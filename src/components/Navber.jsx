@@ -11,7 +11,9 @@ import {
   Typography,
   Grid,
   Drawer,
-  Menu
+  Menu,
+  List,
+  AutoComplete
 } from 'antd';
 import { 
   PlusOutlined, 
@@ -30,9 +32,10 @@ import {
   CloseOutlined
 } from '@ant-design/icons';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import debounce from 'lodash/debounce';
 
 const { Header } = Layout;
 const { Search } = Input;
@@ -43,6 +46,10 @@ export default function Navbar() {
   const screens = useBreakpoint();
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [showMobileSearch, setShowMobileSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [suggestions, setSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const searchRef = useRef(null);
   const router = useRouter();
 
   const items = [
@@ -115,6 +122,73 @@ export default function Navbar() {
     },
   ];
 
+  // Debounced function to fetch search suggestions
+  const fetchSuggestions = debounce(async (query) => {
+    if (!query) {
+      setSuggestions([]);
+      return;
+    }
+    
+    // In a real app, replace this with your actual API call
+    // Example: const response = await fetch(`/api/search/suggestions?q=${query}`);
+    // const data = await response.json();
+    
+    // Mock data for demonstration
+    const mockSuggestions = [
+      { value: `${query} tutorial` },
+      { value: `${query} for beginners` },
+      { value: `how to ${query}` },
+      { value: `best ${query} techniques` },
+      { value: `${query} advanced` },
+    ];
+    
+    setSuggestions(mockSuggestions);
+  }, 300);
+
+  useEffect(() => {
+    fetchSuggestions(searchQuery);
+    
+    return () => {
+      fetchSuggestions.cancel();
+    };
+  }, [searchQuery]);
+
+  const handleSearch = (value) => {
+    if (value.trim()) {
+      router.push(`/search?q=${encodeURIComponent(value)}`);
+      setShowSuggestions(false);
+    }
+  };
+
+  const handleSelect = (value) => {
+    handleSearch(value);
+  };
+
+  const handleInputChange = (value) => {
+    setSearchQuery(value);
+    setShowSuggestions(true);
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      handleSearch(searchQuery);
+    }
+  };
+
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (searchRef.current && !searchRef.current.contains(event.target)) {
+        setShowSuggestions(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
   const showDrawer = () => {
     setDrawerVisible(true);
   };
@@ -125,6 +199,9 @@ export default function Navbar() {
 
   const toggleMobileSearch = () => {
     setShowMobileSearch(!showMobileSearch);
+    setSearchQuery('');
+    setSuggestions([]);
+    setShowSuggestions(false);
   };
 
   return (
@@ -165,13 +242,63 @@ export default function Navbar() {
             minWidth: '200px',
             display: 'flex',
             alignItems: 'center',
-            height: '100%'
-          }}>
-            <Search
-              placeholder="Search topics"
-              prefix={<SearchOutlined style={{ color: 'rgba(0, 0, 0, 0.25)' }} />}
-              style={{ borderRadius: '999px', width: '100%' }}
-            />
+            height: '100%',
+            position: 'relative'
+          }} ref={searchRef}>
+            <AutoComplete
+              options={suggestions}
+              onSelect={handleSelect}
+              onSearch={handleInputChange}
+              onKeyDown={handleKeyDown}
+              value={searchQuery}
+              style={{ width: '100%' }}
+              open={showSuggestions && suggestions.length > 0}
+              onDropdownVisibleChange={(open) => setShowSuggestions(open)}
+              dropdownMatchSelectWidth={true}
+              dropdownStyle={{
+                borderRadius: '8px',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+                padding: '8px 0'
+              }}
+            >
+              <Input.Search
+                placeholder="Search topics"
+                prefix={<SearchOutlined style={{ color: 'rgba(0, 0, 0, 0.25)' }} />}
+                style={{ borderRadius: '999px', width: '100%' }}
+                enterButton={screens.lg}
+                onSearch={handleSearch}
+              />
+            </AutoComplete>
+            
+            {showSuggestions && suggestions.length > 0 && (
+              <div style={{
+                position: 'absolute',
+                top: '100%',
+                left: 0,
+                right: 0,
+                zIndex: 1050,
+                background: '#fff',
+                borderRadius: '8px',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+                marginTop: '4px'
+              }}>
+                <List
+                  size="small"
+                  dataSource={suggestions}
+                  renderItem={(item) => (
+                    <List.Item 
+                      style={{ padding: '8px 16px', cursor: 'pointer' }}
+                      onClick={() => handleSelect(item.value)}
+                    >
+                      <Space>
+                        <SearchOutlined style={{ color: 'rgba(0, 0, 0, 0.25)' }} />
+                        {item.value}
+                      </Space>
+                    </List.Item>
+                  )}
+                />
+              </div>
+            )}
           </div>
         ) : showMobileSearch && (
           <div style={{ 
@@ -179,20 +306,34 @@ export default function Navbar() {
             display: 'flex',
             alignItems: 'center',
             height: '100%',
-            padding: '0 8px'
-          }}>
-            <Search
-              placeholder="Search topics"
-              prefix={<SearchOutlined style={{ color: 'rgba(0, 0, 0, 0.25)' }} />}
-              style={{ borderRadius: '999px', width: '100%' }}
-              autoFocus
-            />
-            <Button 
-              type="text" 
-              icon={<CloseOutlined />} 
-              onClick={toggleMobileSearch}
-              style={{ marginLeft: 8 }}
-            />
+            padding: '0 8px',
+            position: 'relative'
+          }} ref={searchRef}>
+            <AutoComplete
+              options={suggestions}
+              onSelect={handleSelect}
+              onSearch={handleInputChange}
+              onKeyDown={handleKeyDown}
+              value={searchQuery}
+              style={{ width: '100%' }}
+              open={showSuggestions && suggestions.length > 0}
+              onDropdownVisibleChange={(open) => setShowSuggestions(open)}
+              dropdownMatchSelectWidth={true}
+              dropdownStyle={{
+                borderRadius: '8px',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+                padding: '8px 0'
+              }}
+            >
+              <Input.Search
+                placeholder="Search topics"
+                prefix={<SearchOutlined style={{ color: 'rgba(0, 0, 0, 0.25)' }} />}
+                style={{ borderRadius: '999px', width: '100%' }}
+                autoFocus
+                enterButton
+                onSearch={handleSearch}
+              />
+            </AutoComplete>
           </div>
         )}
         
@@ -212,6 +353,7 @@ export default function Navbar() {
                 
                 <Badge count={5}>
                   <Button 
+                    onClick={()=> router.push("/chat")}
                     type="text" 
                     icon={<MessageOutlined />} 
                     shape="circle" 
@@ -221,6 +363,7 @@ export default function Navbar() {
                 
                 <Badge count={3}>
                   <Button 
+                  onClick={()=> router.push("/notification")}
                     type="text" 
                     icon={<BellOutlined />} 
                     shape="circle" 
@@ -274,17 +417,19 @@ export default function Navbar() {
               key: 'new-post',
               icon: <PlusOutlined />,
               label: 'New Post',
-              onClick: () => router.push('/new')
+              onClick: () => router.push("/new")
             },
             {
               key: 'messages',
               icon: <MessageOutlined />,
               label: 'Messages',
+              onClick: () => router.push('/chat')
             },
             {
               key: 'notifications',
               icon: <BellOutlined />,
               label: 'Notifications',
+              onClick: () => router.push('/notification')
             },
             {
               type: 'divider',

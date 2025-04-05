@@ -1,6 +1,8 @@
 "use client";
+import { notification } from 'antd';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import React, { useState } from 'react';
 
 const LoginPage = () => {
@@ -15,6 +17,8 @@ const LoginPage = () => {
     password: '',
     rememberMe: ''
   });
+
+  const router = useRouter();
   
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -74,10 +78,18 @@ const LoginPage = () => {
       
       try {
         // Simulate API call
-        console.log('Submitting:', formData);
         // await yourAuthAPI(formData);
         
         // Reset form after successful submission
+        if(formData.username === "demo12" && formData.password === "password"){
+          router.push('/')
+        }else{
+          alert("user not found")
+        }
+
+
+
+
         setFormData({
           username: '',
           password: '',
@@ -170,7 +182,7 @@ const LoginPage = () => {
                   </label>
                 </div>
                 <div className="text-sm">
-                  <Link href="/forgot-password" className="text-indigo-600 hover:text-indigo-500">
+                  <Link href="/auth/forget-password" className="text-indigo-600 hover:text-indigo-500">
                     Forgot your password?
                   </Link>
                 </div>

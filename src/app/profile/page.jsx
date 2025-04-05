@@ -3,10 +3,17 @@
 import PostCard from '@/components/PostCard';
 import ProfileBanner from '@/components/profile/ProfileBanner';
 import React, { useState, useEffect } from 'react';
-import { Card, Space, Typography } from 'antd';
+import { Card, Space, Typography, Grid } from 'antd';
 import { FiFile, FiBookmark, FiMessageSquare } from 'react-icons/fi';
 
+const { useBreakpoint } = Grid;
+
 const ProfilePage = () => {
+    const screens = useBreakpoint();
+    const isMobile = !screens.md;
+    const isTablet = screens.md && !screens.lg;
+    const isDesktop = screens.lg;
+
     // These would ideally come from props or API calls
     const stats = {
         totalPosts: 15,
@@ -34,78 +41,148 @@ const ProfilePage = () => {
         totalPosts: Array.from({ length: stats.totalPosts }).map((_, i) => ({ 
             id: `total-${i}`, 
             type: 'total',
-            title: `Post ${i + 1}`
+            title: `Post ${i + 1}`,
+            author: {
+                name: "John Doe",
+                username: "@johndoe",
+                avatar: "/images/profile.jpg"
+            },
+            timePosted: `${i + 1} days ago`,
+            content: `This is the content of post ${i + 1}`,
+            stats: {
+                likes: Math.floor(Math.random() * 100),
+                comments: Math.floor(Math.random() * 20),
+                reads: Math.floor(Math.random() * 500)
+            }
         })),
         savedPosts: Array.from({ length: stats.savedPosts }).map((_, i) => ({ 
             id: `saved-${i}`, 
             type: 'saved',
-            title: `Saved Post ${i + 1}`
+            title: `Saved Post ${i + 1}`,
+            author: {
+                name: "John Doe",
+                username: "@johndoe",
+                avatar: "/images/post.png"
+            },
+            timePosted: `${i + 1} days ago`,
+            content: `This is the content of saved post ${i + 1}`,
+            stats: {
+                likes: Math.floor(Math.random() * 100),
+                comments: Math.floor(Math.random() * 20),
+                reads: Math.floor(Math.random() * 500)
+            }
         })),
         comments: Array.from({ length: stats.comments }).map((_, i) => ({ 
             id: `comment-${i}`, 
             type: 'comment',
-            title: `Comment Post ${i + 1}`
+            title: `Comment Post ${i + 1}`,
+            author: {
+                name: "John Doe",
+                username: "@johndoe",
+                avatar: "/path/to/avatar.jpg"
+            },
+            timePosted: `${i + 1} days ago`,
+            content: `This is the content of comment post ${i + 1}`,
+            stats: {
+                likes: Math.floor(Math.random() * 100),
+                comments: Math.floor(Math.random() * 20),
+                reads: Math.floor(Math.random() * 500)
+            }
         }))
     };
     
     // Determine which posts to display based on active tab
     const postsToDisplay = mockPosts[activeTab] || [];
     
+    // Generate tab label with proper accessibility
+    const getTabLabel = (type) => {
+        const labels = {
+            totalPosts: 'Total Posts',
+            savedPosts: 'Saved Posts',
+            comments: 'Comments'
+        };
+        return labels[type] || type;
+    };
+    
     return (
         <div className="bg-gray-50 min-h-screen">
             <ProfileBanner />
             
-            <main className="py-6 container mx-auto px-4">
-                <div className="flex flex-col justify-center lg:flex-row gap-6">
-                    <aside className="w-full lg:w-1/3 xl:w-1/4">
+            <main className="py-4 sm:py-6 lg:py-8 container mx-auto px-2 sm:px-4 lg:px-32">
+                <div className={`flex ${isMobile ? 'flex-col' : 'flex-row'} gap-4 sm:gap-6`}>
+                    {/* Sidebar - Activity Stats */}
+                    <aside className={`${isMobile ? 'w-full' : isTablet ? 'w-1/3' : 'w-1/4'} transition-all duration-300`}>
                         <Card 
-                            title="Your Activity" 
-                            className="shadow-sm"
+                            title={<span className="text-base sm:text-lg font-medium">Your Activity</span>} 
+                            className="shadow-sm hover:shadow transition-shadow"
                             aria-label="User statistics"
+                            bodyStyle={{ padding: isMobile ? '12px' : '16px' }}
                         >
-                            <Space direction="vertical" size="middle" className="w-full">
-                                <button 
-                                    onClick={() => setActiveTab('totalPosts')} 
-                                    className={`flex items-center text-gray-700 w-full p-2 rounded-md ${activeTab === 'totalPosts' ? 'bg-indigo-50' : ''}`}
-                                >
-                                    <FiFile className={`h-5 w-5 mr-3 ${activeTab === 'totalPosts' ? 'text-indigo-600' : 'text-gray-500'}`} />
-                                    <span>Total Posts: <strong>{stats.totalPosts}</strong></span>
-                                </button>
-                                <button 
-                                    onClick={() => setActiveTab('savedPosts')} 
-                                    className={`flex items-center text-gray-700 w-full p-2 rounded-md ${activeTab === 'savedPosts' ? 'bg-indigo-50' : ''}`}
-                                >
-                                    <FiBookmark className={`h-5 w-5 mr-3 ${activeTab === 'savedPosts' ? 'text-indigo-600' : 'text-gray-500'}`} />
-                                    <span>Saved Posts: <strong>{stats.savedPosts}</strong></span>
-                                </button>
-                                <button 
-                                    onClick={() => setActiveTab('comments')} 
-                                    className={`flex items-center text-gray-700 w-full p-2 rounded-md ${activeTab === 'comments' ? 'bg-indigo-50' : ''}`}
-                                >
-                                    <FiMessageSquare className={`h-5 w-5 mr-3 ${activeTab === 'comments' ? 'text-indigo-600' : 'text-gray-500'}`} />
-                                    <span>Comments: <strong>{stats.comments}</strong></span>
-                                </button>
+                            <Space direction="vertical" size={isMobile ? 'small' : 'middle'} className="w-full">
+                                {Object.keys(stats).map(tabKey => (
+                                    <button 
+                                        key={tabKey}
+                                        onClick={() => setActiveTab(tabKey)} 
+                                        className={`flex items-center justify-between text-gray-700 w-full p-2 sm:p-3 rounded-md transition-all ${activeTab === tabKey ? 'bg-indigo-50 text-indigo-700' : 'hover:bg-gray-100'}`}
+                                        aria-selected={activeTab === tabKey}
+                                        aria-controls={`${tabKey}-panel`}
+                                        role="tab"
+                                    >
+                                        <span className="flex items-center cursor-pointer">
+                                            {tabKey === 'totalPosts' && <FiFile className={`h-4 w-4 sm:h-5 sm:w-5 mr-2 sm:mr-3 ${activeTab === tabKey ? 'text-indigo-600' : 'text-gray-500'}`} />}
+                                            {tabKey === 'savedPosts' && <FiBookmark className={`h-4 w-4 sm:h-5 sm:w-5 mr-2 sm:mr-3 ${activeTab === tabKey ? 'text-indigo-600' : 'text-gray-500'}`} />}
+                                            {tabKey === 'comments' && <FiMessageSquare className={`h-4 w-4 sm:h-5 sm:w-5 mr-2 sm:mr-3 ${activeTab === tabKey ? 'text-indigo-600' : 'text-gray-500'}`} />}
+                                            <span className="text-sm sm:text-base">{getTabLabel(tabKey)}</span>
+                                        </span>
+                                        <span className={`font-bold text-sm sm:text-base ${activeTab === tabKey ? 'text-indigo-600' : 'text-gray-500'}`}>
+                                            {stats[tabKey]}
+                                        </span>
+                                    </button>
+                                ))}
                             </Space>
                         </Card>
+                        
+                        {/* Mobile-only: Filter Indicator */}
+                        {isMobile && (
+                            <div className="mt-3 bg-white p-2 rounded-md shadow-sm text-center text-sm text-gray-600">
+                                Currently viewing: <span className="font-medium text-indigo-600">{getTabLabel(activeTab)}</span>
+                            </div>
+                        )}
                     </aside>
                     
                     {/* Posts Feed */}
-                    <section className="w-full lg:w-2/3 xl:w-2/4" aria-label={`Your ${activeTab}`}>
-                        <div className="mb-4">
-                            <h2 className="text-xl font-semibold">
+                    <section 
+                        className={`${isMobile ? 'w-full' : isTablet ? 'w-2/3' : 'w-3/4'} transition-all duration-300`} 
+                        id={`${activeTab}-panel`}
+                        role="tabpanel"
+                        aria-labelledby={`${activeTab}-tab`}
+                    >
+                        <div className="mb-3 sm:mb-4 lg:mb-6">
+                            <h2 className="text-lg sm:text-xl lg:text-2xl font-semibold">
                                 {activeTab === 'totalPosts' && 'Your Posts'}
                                 {activeTab === 'savedPosts' && 'Saved Posts'}
                                 {activeTab === 'comments' && 'Your Comments'}
                             </h2>
                         </div>
-                        <div className="flex flex-col gap-4">
+                        <div className="flex flex-col gap-3 sm:gap-4 lg:gap-5">
                             {postsToDisplay.length > 0 ? (
                                 postsToDisplay.map((post) => (
-                                    <PostCard key={post.id} postData={post} />
+                                    <PostCard 
+                                        key={post.id} 
+                                        postData={post} 
+                                        className={`${isMobile ? 'p-3' : 'p-4'} hover:shadow-md transition-shadow`}
+                                    />
                                 ))
                             ) : (
-                                <div className="text-center p-8 bg-white rounded-lg shadow-sm">
-                                    <p className="text-gray-500">No posts to display</p>
+                                <div className="text-center p-6 sm:p-8 bg-white rounded-lg shadow-sm">
+                                    <p className="text-gray-500 text-sm sm:text-base">
+                                        No {activeTab === 'totalPosts' ? 'posts' : activeTab === 'savedPosts' ? 'saved posts' : 'comments'} to display
+                                    </p>
+                                    <button className="mt-3 text-indigo-600 hover:text-indigo-800 text-sm sm:text-base">
+                                        {activeTab === 'totalPosts' ? 'Create your first post' : 
+                                         activeTab === 'savedPosts' ? 'Browse posts to save' : 
+                                         'Start commenting'}
+                                    </button>
                                 </div>
                             )}
                         </div>

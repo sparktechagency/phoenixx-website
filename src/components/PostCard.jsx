@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useRef, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { 
   AiOutlineHeart, 
   AiFillHeart, 
@@ -17,11 +18,17 @@ const PostCard = ({
   onOptionSelect,
   currentUser
 }) => {
+  // Next.js router for navigation
+  const router = useRouter();
+  
   // State management
   const [expanded, setExpanded] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
-  const [showCommentBox, setShowCommentBox] = useState(false);
   const [commentText, setCommentText] = useState('');
+  const [windowSize, setWindowSize] = useState({
+    width: typeof window !== 'undefined' ? window.innerWidth : 0,
+    height: typeof window !== 'undefined' ? window.innerHeight : 0
+  });
   const dropdownRef = useRef(null);
   
   // Default post data structure
@@ -41,8 +48,26 @@ const PostCard = ({
       comments: [],
       reads: 0
     },
-    isLiked: false
+    isLiked: false,
+    category: "general" // Default category
   };
+
+  // Device detection
+  useEffect(() => {
+    const handleResize = () => {
+      setWindowSize({
+        width: window.innerWidth,
+        height: window.innerHeight
+      });
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const isMobile = windowSize.width < 640;
+  const isTablet = windowSize.width >= 640 && windowSize.width < 1024;
+  const isDesktop = windowSize.width >= 1024;
 
   // Merge provided post data with defaults
   const post = { ...defaultPost, ...postData };
@@ -62,9 +87,16 @@ const PostCard = ({
   }, [dropdownRef]);
   
   // Content truncation for "See more" feature
-  const maxLength = 120;
+  const maxLength = isMobile ? 100 : isTablet ? 150 : 200;
   const truncatedContent = post.content.slice(0, maxLength);
   const needsTruncation = post.content.length > maxLength;
+  
+  // Generate a URL-friendly post name from the title
+  const getPostNameSlug = (title) => {
+    return title 
+      ? title.toLowerCase().replace(/[^\w\s]/gi, '').replace(/\s+/g, '-')
+      : 'post';
+  };
   
   // Event handlers
   const handleLike = () => {
@@ -77,9 +109,27 @@ const PostCard = ({
     setShowDropdown(!showDropdown);
   };
   
-  const toggleCommentBox = () => {
-    setShowCommentBox(!showCommentBox);
-  };
+// In your PostCard component, modify the handlePostDetails and handleCommentClick functions:
+
+const handlePostDetails = () => {
+  const postId = post.id || post._id || 'placeholder-id';
+  const postName = getPostNameSlug(post.title);
+  const category = post.category || 'general';
+  
+  // Redirect to the post's dedicated page with a hash that we'll handle in the PostPage
+  router.push(`/${category}/${postName}/${postId}#top`);
+};
+
+const handleCommentClick = () => {
+  const postId = post.id || post._id || 'placeholder-id';
+  const postName = getPostNameSlug(post.title);
+  const category = post.category || 'general';
+  
+  // Redirect to the post's dedicated page with a hash that we'll handle in the PostPage
+  router.push(`/${category}/${postName}/${postId}#comments`);
+};
+
+
   
   const handleCommentSubmit = (e) => {
     e.preventDefault();
@@ -103,230 +153,162 @@ const PostCard = ({
   };
 
   return (
-    <div className="border border-gray-200 rounded-lg bg-white shadow-sm mb-4">
-      <div className="p-4">
-        {/* Author info and options */}
-        <div className="flex justify-between items-center mb-2">
-          <div className="flex items-center gap-2">
-            {post.author.avatar ? (
-              <img 
-                src={post.author.avatar} 
-                alt="Author avatar" 
-                className="w-6 h-6 rounded-full"
-              />
-            ) : (
-              <div className="w-6 h-6 rounded-full bg-gray-300 flex items-center justify-center text-xs">
-                {post.author.name.charAt(0).toUpperCase()}
-              </div>
-            )}
-            <span className="font-medium text-sm text-gray-900">
+    <div className={`border border-gray-200 rounded-lg bg-white shadow-sm mb-4 ${isMobile ? 'p-3' : isTablet ? 'p-4' : 'p-5'}`}>
+      {/* Author info and options */}
+      <div className="flex justify-between items-center mb-3">
+        <div className="flex items-center gap-2">
+          {post.author.avatar ? (
+            <img 
+              src={post.author.avatar} 
+              alt="Author avatar" 
+              className={`${isMobile ? 'w-6 h-6' : 'w-8 h-8'} rounded-full cursor-pointer`}
+            />
+          ) : (
+            <div className={`${isMobile ? 'w-6 h-6' : 'w-8 h-8'} rounded-full bg-gray-300 flex items-center justify-center text-xs`}>
+              {post.author.name.charAt(0).toUpperCase()}
+            </div>
+          )}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:gap-2">
+            <span className={`font-medium cursor-pointer ${isMobile ? 'text-xs' : 'text-sm'} text-gray-900`}>
               {post.author.username || post.author.name}
             </span>
-            <span className="text-xs text-gray-500">{post.timePosted}</span>
-          </div>
-          
-          {/* Options dropdown */}
-          <div className="relative" ref={dropdownRef}>
-            <button 
-              className="text-gray-500 p-1 rounded hover:bg-gray-100"
-              onClick={toggleDropdown}
-            >
-              <AiOutlineEllipsis className="w-5 h-5" />
-            </button>
-            
-            {showDropdown && (
-              <div className="absolute right-0 mt-1 w-40 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
-                <div className="py-2">
-                  <button 
-                    onClick={() => handleOptionSelect('hide')}
-                    className="w-full text-left px-4 py-2 flex items-center gap-3 hover:bg-gray-100"
-                  >
-                    <span className="text-gray-800">✕</span>
-                    <span>Hide Post</span>
-                  </button>
-                  <button 
-                    onClick={() => handleOptionSelect('save')}
-                    className="w-full text-left px-4 py-2 flex items-center gap-3 hover:bg-gray-100"
-                  >
-                    <span className="text-gray-800">⋏</span>
-                    <span>Save Post</span>
-                  </button>
-                  <button 
-                    onClick={() => handleOptionSelect('report')}
-                    className="w-full text-left px-4 py-2 flex items-center gap-3 hover:bg-gray-100"
-                  >
-                    <span className="text-gray-800">⚑</span>
-                    <span>Report Post</span>
-                  </button>
-                </div>
-              </div>
-            )}
+            <span className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-500`}>{post.timePosted}</span>
           </div>
         </div>
         
-        {/* Post title */}
-        {post.title && (
-          <h2 className="text-xl font-bold mb-2">{post.title}</h2>
-        )}
-        
-        {/* Post content with See more feature */}
-        {post.content && (
-          <div className="mb-3 text-gray-700">
-            {expanded ? post.content : truncatedContent}
-            {needsTruncation && !expanded && (
-              <button 
-                className="text-blue-600 hover:text-blue-800 font-medium ml-1"
-                onClick={() => setExpanded(true)}
-              >
-                See more
-              </button>
-            )}
-          </div>
-        )}
-        
-        {/* Post image */}
-        {post.image && (
-          <div className="mb-4">
-            <img 
-              src={post.image} 
-              alt="Post content" 
-              className="w-full h-auto rounded-lg object-cover"
-            />
-          </div>
-        )}
-        
-        {/* Tags */}
-        {post.tags.length > 0 && (
-          <div className="flex flex-wrap gap-2 mb-3">
-            {post.tags.map((tag, index) => (
-              <span 
-                key={index} 
-                className="bg-blue-50 text-blue-700 text-xs py-1 px-2 rounded"
-              >
-                {tag}
+        {/* Options dropdown */}
+        <div className="relative" ref={dropdownRef}>
+          <button 
+            className="text-gray-500 p-1 rounded hover:bg-gray-100 cursor-pointer"
+            onClick={toggleDropdown}
+          >
+            <AiOutlineEllipsis className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'}`} />
+          </button>
+          
+          {showDropdown && (
+            <div className={`absolute right-0 mt-1 ${isMobile ? 'w-32' : 'w-40'} bg-white rounded-lg shadow-lg border border-gray-200 z-10`}>
+              <div className="py-1">
+                <button 
+                  onClick={() => handleOptionSelect('hide')}
+                  className="w-full text-left px-3 py-2 flex cursor-pointer items-center gap-2 hover:bg-gray-100 text-sm"
+                >
+                  <span>✕</span>
+                  <span>Hide Post</span>
+                </button>
+                <button 
+                  onClick={() => handleOptionSelect('save')}
+                  className="w-full text-left px-3 cursor-pointer py-2 flex items-center gap-2 hover:bg-gray-100 text-sm"
+                >
+                  <span>⋏</span>
+                  <span>Save Post</span>
+                </button>
+                <button 
+                  onClick={() => handleOptionSelect('report')}
+                  className="w-full text-left cursor-pointer px-3 py-2 flex items-center gap-2 hover:bg-gray-100 text-sm"
+                >
+                  <span>⚑</span>
+                  <span>Report Post</span>
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+      
+      {/* Post title */}
+      {post.title && (
+        <h2 onClick={handlePostDetails} className={`${isMobile ? 'text-lg' : isTablet ? 'text-xl' : 'text-2xl'} cursor-pointer hover:text-blue-700 font-bold mb-3`}>{post.title}</h2>
+      )}
+      
+      {/* Post content with See more feature */}
+      {post.content && (
+        <div className={`mb-3 text-gray-700 ${isMobile ? 'text-sm' : 'text-base'}`}>
+          {expanded ? post.content : truncatedContent}
+          {needsTruncation && !expanded && (
+            <button 
+              className="text-blue-600 hover:text-blue-800 cursor-pointer font-medium ml-1"
+              onClick={() => setExpanded(true)}
+            >
+              See more
+            </button>
+          )}
+        </div>
+      )}
+      
+      {/* Post image */}
+      {post.image && (
+        <div className="mb-4">
+          <img 
+            src={post.image} 
+            alt="Post content" 
+            className="w-full h-auto rounded-lg object-cover"
+          />
+        </div>
+      )}
+      
+      {/* Tags */}
+      {post.tags.length > 0 && (
+        <div className="flex flex-wrap gap-2 mb-3">
+          {post.tags.map((tag, index) => (
+            <span 
+              key={index} 
+              className="bg-blue-50 text-blue-700 text-xs py-1 px-2 rounded"
+            >
+              {tag}
+            </span>
+          ))}
+        </div>
+      )}
+      
+      {/* Interaction bar */}
+      <div className="flex justify-between items-center">
+        <div className="flex gap-4 sm:gap-6">
+          {/* Like button */}
+          <div className="flex items-center gap-1">
+            <button 
+              onClick={handleLike}
+              className="flex items-center cursor-pointer hover:bg-gray-100 p-1 rounded"
+            >
+              {post.isLiked ? 
+                <AiFillHeart className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} text-red-500`} /> : 
+                <AiOutlineHeart className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} text-gray-500`} />
+              }
+              <span className={`ml-1 ${isMobile ? 'text-xs' : 'text-sm'} text-gray-700`}>
+                {post.stats.likes || 0}
               </span>
-            ))}
-          </div>
-        )}
-        
-        {/* Interaction bar */}
-        <div className="flex justify-between items-center">
-          <div className="flex gap-6">
-            {/* Like button */}
-            <div className="flex items-center gap-1">
-              <button 
-                onClick={handleLike}
-                className="flex items-center hover:bg-gray-100 p-1 rounded"
-              >
-                {post.isLiked ? 
-                  <AiFillHeart className="w-5 h-5 text-red-500" /> : 
-                  <AiOutlineHeart className="w-5 h-5 text-gray-500" />
-                }
-                <span className="ml-1 text-sm text-gray-700">
-                  {post.stats.likes || 0}
-                </span>
-              </button>
-            </div>
-            
-            {/* Comment button */}
-            <div className="flex items-center gap-1">
-              <button 
-                onClick={toggleCommentBox}
-                className="flex items-center hover:bg-gray-100 p-1 rounded"
-              >
-                <AiOutlineMessage className="w-5 h-5 text-gray-500" />
-                <span className="ml-1 text-sm text-gray-700">
-                  {post.stats.comments?.length || 0}
-                </span>
-              </button>
-            </div>
+            </button>
           </div>
           
-          <div className="flex items-center gap-3">
-            {/* Read count */}
-            {post.stats.reads > 0 && (
-              <div className="flex items-center text-sm text-gray-500">
-                <span>{post.stats.reads} reads</span>
-              </div>
-            )}
-            
-            {/* Share button */}
+          {/* Comment button */}
+          <div className="flex items-center gap-1">
             <button 
-              onClick={handleShare}
-              className="text-gray-500 hover:bg-gray-100 p-1 rounded"
+              onClick={handleCommentClick}
+              className="flex items-center cursor-pointer hover:bg-gray-100 p-1 rounded"
             >
-              <AiOutlineShareAlt className="w-5 h-5" />
+              <AiOutlineMessage className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} text-gray-500`} />
+              <span className={`ml-1 ${isMobile ? 'text-xs' : 'text-sm'} text-gray-700`}>
+                {post.stats.comments?.length || 0}
+              </span>
             </button>
           </div>
         </div>
-
-        {/* Comment section */}
-        {showCommentBox && (
-          <div className="mt-4">
-            {/* Existing comments */}
-            {post.stats.comments?.length > 0 && (
-              <div className="mb-4 space-y-3">
-                {post.stats.comments.map(comment => (
-                  <div key={comment.id || comment._id} className="flex items-start gap-2">
-                    {comment.author?.avatar ? (
-                      <img 
-                        src={comment.author.avatar} 
-                        alt="Comment author avatar" 
-                        className="w-6 h-6 rounded-full"
-                      />
-                    ) : (
-                      <div className="w-6 h-6 rounded-full bg-gray-300 flex items-center justify-center text-xs">
-                        {comment.author?.name?.charAt(0).toUpperCase() || 'U'}
-                      </div>
-                    )}
-                    <div className="flex-1">
-                      <div className="bg-gray-100 p-3 rounded-lg">
-                        <div className="flex justify-between items-center mb-1">
-                          <span className="font-medium text-sm">
-                            {comment.author?.username || comment.author?.name || 'Unknown'}
-                          </span>
-                          <span className="text-xs text-gray-500">
-                            {new Date(comment.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </span>
-                        </div>
-                        <p className="text-sm">{comment.text}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Comment input box */}
-            <form onSubmit={handleCommentSubmit} className="flex gap-2">
-              {currentUser?.avatar ? (
-                <img 
-                  src={currentUser.avatar} 
-                  alt="Your avatar" 
-                  className="w-6 h-6 rounded-full"
-                />
-              ) : (
-                <div className="w-6 h-6 rounded-full bg-gray-300 flex items-center justify-center text-xs">
-                  {currentUser?.name?.charAt(0).toUpperCase() || 'Y'}
-                </div>
-              )}
-              <input
-                type="text"
-                value={commentText}
-                onChange={(e) => setCommentText(e.target.value)}
-                placeholder="Write a comment..."
-                className="flex-1 border border-gray-300 rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-              <button
-                type="submit"
-                disabled={!commentText.trim()}
-                className="bg-blue-500 text-white rounded-full p-2 hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <AiOutlineSend className="w-5 h-5" />
-              </button>
-            </form>
-          </div>
-        )}
+        
+        <div className="flex items-center gap-3">
+          {/* Read count */}
+          {post.stats.reads > 0 && (
+            <div className={`flex items-center ${isMobile ? 'text-xs' : 'text-sm'} text-gray-500`}>
+              <span>{post.stats.reads} reads</span>
+            </div>
+          )}
+          
+          {/* Share button */}
+          <button 
+            onClick={handleShare}
+            className="text-gray-500 cursor-pointer hover:bg-gray-100 p-1 rounded"
+          >
+            <AiOutlineShareAlt className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'}`} />
+          </button>
+        </div>
       </div>
     </div>
   );
