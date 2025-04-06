@@ -105,7 +105,7 @@ export default function NotificationPage() {
   );
 
   return (
-    <Layout className="min-h-screen bg-gray-50">
+    <Layout className="min-h-screen bg-gray-50 md:p-6 p-0">
       <Content className="p-2 md:p-2">
         <div className="bg-white p-2 md:p-2 rounded-lg shadow-sm overflow-hidden">
           {/* Header with actions */}

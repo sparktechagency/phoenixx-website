@@ -181,7 +181,7 @@ const ProfilePage = () => {
                                     <button className="mt-3 text-indigo-600 hover:text-indigo-800 text-sm sm:text-base">
                                         {activeTab === 'totalPosts' ? 'Create your first post' : 
                                          activeTab === 'savedPosts' ? 'Browse posts to save' : 
-                                         'Start commenting'}
+                                         ''}
                                     </button>
                                 </div>
                             )}
