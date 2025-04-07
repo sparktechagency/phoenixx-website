@@ -1,4 +1,5 @@
 "use client";
+import { useResetPasswordMutation } from '@/features/auth/authApi';
 import { notification } from 'antd';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -19,6 +20,8 @@ const ResetPasswordPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const router = useRouter();
+
+  const [resetPassword, {isLoading, isError, error}] = useResetPasswordMutation()
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -73,14 +76,16 @@ const ResetPasswordPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    const token = localStorage.getItem("forgot-password-otp-token");
     
     if (validateForm()) {
       setIsSubmitting(true);
       
       try {
         // Simulate API call to reset password
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
+        const response = await resetPassword({newPassword:formData.newPassword , confirmPassword:formData.confirmPassword , token: token }).unwrap()
+        console.log(response)
         // Show success state
         setIsSuccess(true);
         notification.success({

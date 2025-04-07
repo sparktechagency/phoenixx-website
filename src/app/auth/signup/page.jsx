@@ -1,24 +1,28 @@
 "use client";
+import { useSignupMutation } from '@/features/auth/authApi';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import React, { useState } from 'react';
+import { toast } from 'react-toastify';
 
 const SignUp = () => {
+  const router = useRouter();
   const [formData, setFormData] = useState({
     username: '',
-    email: '', // Added email field which was missing
+    email: '',
     password: '',
     rememberMe: false
   });
   
   const [errors, setErrors] = useState({
     username: '',
-    email: '', // Added email error field
+    email: '',
     password: '',
     rememberMe: ''
   });
   
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [signUp, { isLoading }] = useSignupMutation();
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -27,7 +31,6 @@ const SignUp = () => {
       [name]: type === 'checkbox' ? checked : value
     }));
     
-    // Clear error when user starts typing
     if (errors[name]) {
       setErrors(prev => ({
         ...prev,
@@ -40,7 +43,6 @@ const SignUp = () => {
     let isValid = true;
     const newErrors = { ...errors };
 
-    // Username validation
     if (!formData.username.trim()) {
       newErrors.username = 'Username is required';
       isValid = false;
@@ -49,7 +51,6 @@ const SignUp = () => {
       isValid = false;
     }
 
-    // Email validation
     if (!formData.email.trim()) {
       newErrors.email = 'Email is required';
       isValid = false;
@@ -58,7 +59,6 @@ const SignUp = () => {
       isValid = false;
     }
 
-    // Password validation
     if (!formData.password) {
       newErrors.password = 'Password is required';
       isValid = false;
@@ -75,24 +75,42 @@ const SignUp = () => {
     e.preventDefault();
     
     if (validateForm()) {
-      setIsSubmitting(true);
-      
       try {
-        // Simulate API call
-        console.log('Submitting:', formData);
-        // await yourAuthAPI(formData);
-        
-        // Reset form after successful submission
+        const response = await signUp({
+          userName: formData.username,
+          email: formData.email,
+          password: formData.password
+        }).unwrap();
+
+
+        // toast.success('Account created successfully! Please check your email for verification.');
+       if(response.success){
+        router.push(`/auth/verify-otp?email=${formData.email}`)
+       }
         setFormData({
           username: '',
           email: '',
           password: '',
           rememberMe: false
         });
+
+        // Redirect to login after 3 seconds
+
       } catch (error) {
         console.error('Sign up error:', error);
-      } finally {
-        setIsSubmitting(false);
+        
+        if (error.data) {
+          // Handle specific backend errors
+          if (error.data.message.includes('email')) {
+            setErrors(prev => ({ ...prev, email: error.data.message }));
+          } else if (error.data.message.includes('username')) {
+            setErrors(prev => ({ ...prev, username: error.data.message }));
+          } else {
+            toast.error(error.data.message || 'Signup failed. Please try again.');
+          }
+        } else {
+          toast.error('Network error. Please try again.');
+        }
       }
     }
   };
@@ -116,7 +134,7 @@ const SignUp = () => {
           <div className="w-full max-w-md bg-white rounded-lg p-8 shadow-sm">
             <div className="text-center mb-8">
               <h2 className="text-2xl font-semibold">Sign Up</h2>
-              <p className="text-gray-600 mt-1">Create your account</p> {/* Updated text */}
+              <p className="text-gray-600 mt-1">Create your account</p>
             </div>
 
             <form onSubmit={handleSubmit} noValidate>
@@ -199,10 +217,10 @@ const SignUp = () => {
 
               <button
                 type="submit"
-                disabled={isSubmitting}
-                className={`w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:border-none ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}
+                disabled={isLoading}
+                className={`w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:border-none ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
               >
-                {isSubmitting ? 'Signing Up...' : 'Sign Up'} {/* Updated text */}
+                {isLoading ? 'Signing Up...' : 'Sign Up'}
               </button>
             </form>
 

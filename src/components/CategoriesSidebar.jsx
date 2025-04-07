@@ -11,8 +11,7 @@ import {
   DownOutlined
 } from '@ant-design/icons';
 import { motion, AnimatePresence } from 'framer-motion';
-
-const { Title, Text } = Typography;
+import { useCategoriesQuery, useSubCategoryQuery } from '@/features/Category/CategoriesApi';
 
 const CategoriesSidebar = () => {
   const [expandedKeys, setExpandedKeys] = useState([]);
@@ -20,6 +19,38 @@ const CategoriesSidebar = () => {
     width: typeof window !== 'undefined' ? window.innerWidth : 0,
     height: typeof window !== 'undefined' ? window.innerHeight : 0
   });
+
+  const { data: cat, isLoading: categoryLoading, isError: categoryError } = useCategoriesQuery({ searchTerm: "" });
+ 
+  console.log(cat?.data?.result)
+
+  /* 
+  category
+: 
+createdAt
+: 
+"2025-03-30T03:12:04.992Z"
+description
+: 
+"gffsd"
+id
+: 
+"67e8b68433e34068bb355466"
+image
+: "/images/chatgpt-image-mar-29,-2025,-12_15_35-pm-1743304348648.png"
+name: "General"
+postCount: 1
+status: "active"
+updatedAt: "2025-03-30T03:12:28.656Z"
+_id: "67e8b68433e34068bb355466"
+subcategories: Array(2)
+{_id: '67e8c35e5365d889da3368d5', categoryId: '67e8b68433e34068bb355466', name: 'Technology', description: 'abc', image: '/images/chatgpt-image-mar-29,-2025,-12_15_35-pm-1743307614102.png', …} 
+{_id: '67f0b9b9095d51688c46b474', categoryId: '67e8b68433e34068bb355466', name: 'Web Development', description: 'web dev', image: '/images/chatgpt-image-mar-29,-2025,-12_15_35-pm-1743829433089.png', …}
+  
+  
+  */
+  // const {data: subcategories , isLoading} = useSubCategoryQuery()
+
 
   useEffect(() => {
     const handleResize = () => {
@@ -33,12 +64,12 @@ const CategoriesSidebar = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Define breakpoints for different devices
-  const isMobile = windowSize.width < 640;       // < 640px
-  const isTablet = windowSize.width >= 640 && windowSize.width < 1024;  // 640px - 1023px
-  const isLaptop = windowSize.width >= 1024 && windowSize.width < 1280; // 1024px - 1279px
-  const isDesktop = windowSize.width >= 1280;    // >= 1280px
+  // Device breakpoints
+  const isMobile = windowSize.width < 640;
+  const isTablet = windowSize.width >= 640 && windowSize.width < 1024;
+  const isDesktop = windowSize.width >= 1024;
 
+  // Responsive styles
   const getPadding = () => {
     if (isMobile) return 'p-2';
     if (isTablet) return 'p-3';
@@ -55,17 +86,6 @@ const CategoriesSidebar = () => {
     if (isMobile) return 'text-sm';
     if (isTablet) return 'text-base';
     return 'text-medium';
-  };
-
-  const getSubItemTextSize = () => {
-    if (isMobile) return 'text-xs';
-    return 'text-sm';
-  };
-
-  const getPostsTextSize = () => {
-    if (isMobile) return 'text-xxs';
-    if (isTablet) return 'text-xs';
-    return 'text-xs';
   };
 
   const categories = [
@@ -89,31 +109,7 @@ const CategoriesSidebar = () => {
         { label: 'UI/UX Patterns', posts: '28,235' }
       ]
     },
-    {
-      key: '3',
-      label: 'Fashion Trends',
-      icon: <SkinOutlined />,
-      posts: '65,023',
-      expandable: false
-    },
-    {
-      key: '4',
-      label: 'Business of Design',
-      icon: <ShopOutlined />,
-      posts: '65,023',
-      expandable: true,
-      subcategories: [
-        { label: 'Freelancing', posts: '9,876' },
-        { label: 'Agency Management', posts: '5,432' }
-      ]
-    },
-    {
-      key: '5',
-      label: 'Collaborations',
-      icon: <TeamOutlined />,
-      posts: '65,023',
-      expandable: false
-    },
+    // ... other categories
   ];
 
   const toggleExpand = (key) => {
@@ -124,6 +120,12 @@ const CategoriesSidebar = () => {
     );
   };
 
+
+
+  if(categoryLoading){
+    return "loading...."
+  }
+
   return (
     <div className={`w-full bg-white rounded-xl shadow-sm ${getPadding()} sticky top-20`}>
       <h5 className={`${getTitleSize()} font-semibold px-2 mb-4`}>Categories</h5>
@@ -131,22 +133,22 @@ const CategoriesSidebar = () => {
         {categories.map((item) => (
           <React.Fragment key={item.key}>
             <motion.li 
-              className={`${isMobile ? 'py-2' : isTablet ? 'py-2.5' : 'py-3'} px-2 cursor-pointer hover:bg-gray-50 transition-colors rounded-md`}
+              className={`${isMobile ? 'py-2' : 'py-3'} px-2 cursor-pointer hover:bg-gray-50 rounded-md`}
               onClick={() => item.expandable && toggleExpand(item.key)}
               whileHover={!isMobile ? { scale: 1.02 } : {}}
               transition={{ type: 'spring', stiffness: 400, damping: 10 }}
             >
               <div className="flex justify-between items-center w-full">
                 <div className="flex items-center gap-3">
-                  <span className={`text-gray-600 ${isMobile ? 'text-md' : 'text-lg'}`}>{item.icon}</span>
+                  <span className="text-gray-600 text-lg">{item.icon}</span>
                   <span className={`text-gray-800 ${getItemTextSize()}`}>{item.label}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className={`${getPostsTextSize()} text-gray-500`}>{item.posts} Posts</span>
+                  <span className="text-xs text-gray-500">{item.posts} Posts</span>
                   {item.expandable && (
                     expandedKeys.includes(item.key) 
-                      ? <DownOutlined className={`${getPostsTextSize()} text-gray-400`} /> 
-                      : <RightOutlined className={`${getPostsTextSize()} text-gray-400`} />
+                      ? <DownOutlined className="text-xs text-gray-400" /> 
+                      : <RightOutlined className="text-xs text-gray-400" />
                   )}
                 </div>
               </div>
@@ -160,18 +162,18 @@ const CategoriesSidebar = () => {
                   exit={{ opacity: 0, height: 0 }}
                   transition={{ duration: 0.3, ease: 'easeInOut' }}
                 >
-                  <ul className={`${isMobile ? 'pl-6' : isTablet ? 'pl-7' : 'pl-8'} list-none`}>
+                  <ul className="pl-8 list-none">
                     {item.subcategories?.map((sub, index) => (
                       <motion.li
                         key={index}
-                        className={`${isMobile ? 'py-1' : 'py-1.5'} px-2 ${getSubItemTextSize()} text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md`}
+                        className="py-1.5 px-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md"
                         initial={{ opacity: 0, x: -10 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: index * 0.05 }}
                       >
                         <div className="flex justify-between">
                           <span>{sub.label}</span>
-                          <span className={`${getPostsTextSize()} text-gray-400`}>{sub.posts}</span>
+                          <span className="text-xs text-gray-400">{sub.posts}</span>
                         </div>
                       </motion.li>
                     ))}

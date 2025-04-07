@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 
-const VerifyOTPPage = () => {
+const ForgotPasswordOTP = () => {
   const [otp, setOtp] = useState(['', '', '', '']);
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -80,7 +80,8 @@ const VerifyOTPPage = () => {
       // Hide modal and redirect after 2 seconds
       setTimeout(() => {
         setShowSuccessModal(false);
-        router.push('/');
+        router.push('/auth/reset-password');
+        localStorage.setItem("forgot-password-otp-token", result?.data)
       }, 2000);
       
     } catch (err) {
@@ -262,4 +263,4 @@ const VerifyOTPPage = () => {
   );
 };
 
-export default VerifyOTPPage;
+export default ForgotPasswordOTP;

@@ -1,5 +1,7 @@
 "use client";
-import { notification } from 'antd';
+import { useLoginMutation } from '@/features/auth/authApi';
+import { saveToken } from '@/features/auth/authService';
+import { message} from 'antd';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -21,6 +23,9 @@ const LoginPage = () => {
   const router = useRouter();
   
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [Login , {isLoading}] = useLoginMutation();
+
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -77,19 +82,9 @@ const LoginPage = () => {
       setIsSubmitting(true);
       
       try {
-        // Simulate API call
-        // await yourAuthAPI(formData);
-        
-        // Reset form after successful submission
-        if(formData.username === "demo12" && formData.password === "password"){
-          router.push('/')
-        }else{
-          alert("user not found")
-        }
-
-
-
-
+        const response = await Login({email:formData.username , password : formData.password}).unwrap();
+        saveToken(response?.data?.accessToken)
+        router.push("/")
         setFormData({
           username: '',
           password: '',
@@ -97,6 +92,9 @@ const LoginPage = () => {
         });
       } catch (error) {
         console.error('Login error:', error);
+        alert(error?.data?.message);
+
+        console.log(error?.data?.message)
       } finally {
         setIsSubmitting(false);
       }
