@@ -7,8 +7,12 @@ import {
   AiOutlineMessage, 
   AiOutlineShareAlt, 
   AiOutlineEllipsis, 
-  AiOutlineSend 
+  AiOutlineSend, 
+  AiFillLike,
+  AiOutlineLike
 } from 'react-icons/ai';
+import Image from 'next/image';
+import { IoIosShareAlt } from 'react-icons/io';
 
 const PostCard = ({ 
   postData,
@@ -153,7 +157,7 @@ const handleCommentClick = () => {
   };
 
   return (
-    <div className={`border border-gray-200 rounded-lg bg-white shadow-sm mb-4 ${isMobile ? 'p-3' : isTablet ? 'p-4' : 'p-5'}`}>
+    <div className={` rounded-lg bg-white shadow mb-4 ${isMobile ? 'p-3' : isTablet ? 'p-4' : 'p-5'}`}>
       {/* Author info and options */}
       <div className="flex justify-between items-center mb-3">
         <div className="flex items-center gap-2">
@@ -168,18 +172,18 @@ const handleCommentClick = () => {
               {post.author.name.charAt(0).toUpperCase()}
             </div>
           )}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:gap-2">
+          <div className="flex flex-col justify-center sm:items-center sm:gap-1">
             <span className={`font-medium cursor-pointer ${isMobile ? 'text-xs' : 'text-sm'} text-gray-900`}>
               {post.author.username || post.author.name}
             </span>
-            <span className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-500`}>{post.timePosted}</span>
+            <span className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-500 pl-2`}>{post.timePosted}</span>
           </div>
         </div>
         
         {/* Options dropdown */}
         <div className="relative" ref={dropdownRef}>
           <button 
-            className="text-gray-500 p-1 rounded hover:bg-gray-100 cursor-pointer"
+            className="font-bold p-1 rounded hover:bg-gray-100 cursor-pointer"
             onClick={toggleDropdown}
           >
             <AiOutlineEllipsis className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'}`} />
@@ -250,67 +254,74 @@ const handleCommentClick = () => {
         </div>
       )}
       
-      {/* Tags */}
-      {post.tags.length > 0 && (
-        <div className="flex flex-wrap gap-2 mb-3">
-          {post.tags.map((tag, index) => (
-            <span 
-              key={index} 
-              className="bg-blue-50 text-blue-700 text-xs py-1 px-2 rounded"
-            >
-              {tag}
-            </span>
-          ))}
-        </div>
-      )}
+     
       
-      {/* Interaction bar */}
       <div className="flex justify-between items-center">
-        <div className="flex gap-4 sm:gap-6">
-          {/* Like button */}
-          <div className="flex items-center gap-1">
-            <button 
-              onClick={handleLike}
-              className="flex items-center cursor-pointer hover:bg-gray-100 p-1 rounded"
-            >
-              {post.isLiked ? 
-                <AiFillHeart className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} text-red-500`} /> : 
-                <AiOutlineHeart className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} text-gray-500`} />
-              }
-              <span className={`ml-1 ${isMobile ? 'text-xs' : 'text-sm'} text-gray-700`}>
-                {post.stats.likes || 0}
-              </span>
-            </button>
-          </div>
-          
-          {/* Comment button */}
-          <div className="flex items-center gap-1">
-            <button 
-              onClick={handleCommentClick}
-              className="flex items-center cursor-pointer hover:bg-gray-100 p-1 rounded"
-            >
-              <AiOutlineMessage className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} text-gray-500`} />
-              <span className={`ml-1 ${isMobile ? 'text-xs' : 'text-sm'} text-gray-700`}>
-                {post.stats.comments?.length || 0}
-              </span>
-            </button>
-          </div>
-        </div>
+  <div className="flex items-center gap-4 sm:gap-6">
+    {/* Like button */}
+    <div className="flex items-center gap-1">
+      <button 
+        onClick={handleLike}
+        className="flex items-center cursor-pointer hover:bg-gray-100 p-1 rounded"
+      >
+        {post.isLiked ? 
+          <AiFillLike className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} text-[#4096FF]`} /> : 
+          <AiOutlineLike  className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} text-gray-500`} />
+        }
+        <span className={`ml-1 ${isMobile ? 'text-xs' : 'text-sm'} text-gray-700`}>
+          {post.stats.likes || 0}
+        </span>
+      </button>
+    </div>
+
+    {/* Comment button */}
+    <div className="flex items-center gap-1">
+      <button 
+        onClick={handleCommentClick}
+        className="flex items-center cursor-pointer hover:bg-gray-100 p-1 rounded"
+      >
+        {/* <AiOutlineMessage className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} text-gray-500`} /> */}
+        <Image src={"/icons/message.png"} width={20} height={20} alt='message icons'/>
+        <span className={`ml-1 -mt-[1px] ${isMobile ? 'text-xs' : 'text-sm'} text-gray-700`}>
+          {post.stats.comments?.length || 0}
+        </span>
+      </button>
+    </div>
+
+    {/* Tags */}
+    {post.tags.length > 0 && (
+      <div className="flex flex-wrap items-center gap-2">
+        {post.tags.map((tag, index) => (
+          <span 
+            key={index} 
+            className="bg-[#E6E6FF]  text-xs py-1 px-2 rounded"
+          >
+            {tag}
+          </span>
+        ))}
+      </div>
+    )}
+  </div>
+
+
+        
         
         <div className="flex items-center gap-3">
           {/* Read count */}
           {post.stats.reads > 0 && (
-            <div className={`flex items-center ${isMobile ? 'text-xs' : 'text-sm'} text-gray-500`}>
-              <span>{post.stats.reads} reads</span>
+            <div className={`flex items-center gap-1 ${isMobile ? 'text-xs' : 'text-sm'} text-gray-500`}>
+              <Image src={"/icons/read.png"} width={20} height={20} alt='read all user' />
+              <span className='pt-1'>{post.stats.reads}</span>
             </div>
           )}
           
           {/* Share button */}
           <button 
             onClick={handleShare}
-            className="text-gray-500 cursor-pointer hover:bg-gray-100 p-1 rounded"
+            className="text-gray-500 px-2 py-1.5 cursor-pointer hover:bg-gray-100 rounded-sm"
           >
-            <AiOutlineShareAlt className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'}`} />
+            {/* <IoIosShareAlt className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'}`} /> */}
+            <Image className='' src={"/icons/share.png"} width={20} height={20}  alt='share button'/>
           </button>
         </div>
       </div>

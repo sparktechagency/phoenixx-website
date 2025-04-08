@@ -66,10 +66,10 @@ const Page = () => {
   };
 
   const TrendingTopics = () => (
-    <div className="bg-white rounded-lg shadow-sm p-4 sticky top-20">
+    <div className="bg-white rounded-lg p-4 sticky top-20">
       <h3 className="text-lg font-semibold mb-4">Trending Topics</h3>
-      {["#WebDevelopment", "#UXDesign", "#JavaScript", "#ResponsiveDesign"].map(topic => (
-        <div key={topic} className="text-sm text-gray-600 hover:text-blue-600 cursor-pointer py-1">
+      {["WebDevelopment", "UXDesign", "JavaScript", "ResponsiveDesign"].map(topic => (
+        <div key={topic} className="text-sm text-gray-600 hover:text-primary cursor-pointer py-1">
           {topic}
         </div>
       ))}
@@ -80,7 +80,7 @@ const Page = () => {
   const isGrid2 = gridNumber === 2 && isDesktop;
 
   return (
-    <div>
+    <div className='bg-[#F2F4F7]'>
       <Banner />
       <main className="container mx-auto px-4 py-6">
         <LayoutGroup>

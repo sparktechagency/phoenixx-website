@@ -20,12 +20,6 @@ const CategoriesSidebar = () => {
     height: typeof window !== 'undefined' ? window.innerHeight : 0
   });
 
-  // const { data: cat, isLoading: categoryLoading, isError: categoryError } = useCategoriesQuery({ searchTerm: "" });
- 
-  // console.log(cat?.data?.result)
-
-
-
 
   useEffect(() => {
     const handleResize = () => {
@@ -84,6 +78,27 @@ const CategoriesSidebar = () => {
         { label: 'UI/UX Patterns', posts: '28,235' }
       ]
     },
+    {
+      key: '3',
+      label: 'Fashion Trends',
+      icon: <SkinOutlined />,
+      posts: '65,523',
+      expandable: false
+    },
+    {
+      key: '4',
+      label: 'Business of Design',
+      icon: <ShopOutlined />,
+      posts: '65,523',
+      expandable: false
+    },
+    {
+      key: '5',
+      label: 'Collaborations',
+      icon: <TeamOutlined />,
+      posts: '65,523',
+      expandable: false
+    },
     // ... other categories
   ];
 
@@ -100,7 +115,7 @@ const CategoriesSidebar = () => {
  
 
   return (
-    <div className={`w-full bg-white rounded-xl shadow-sm ${getPadding()} sticky top-20`}>
+    <div className={`w-full bg-white rounded-xl ${getPadding()} sticky top-20`}>
       <h5 className={`${getTitleSize()} font-semibold px-2 mb-4`}>Categories</h5>
       <ul className="list-none p-0 m-0">
         {categories.map((item) => (
@@ -113,11 +128,14 @@ const CategoriesSidebar = () => {
             >
               <div className="flex justify-between items-center w-full">
                 <div className="flex items-center gap-3">
-                  <span className="text-gray-600 text-lg">{item.icon}</span>
-                  <span className={`text-gray-800 ${getItemTextSize()}`}>{item.label}</span>
+                  <span className="text-gray-600 text-lg border-[1px] rounded border-gray-300 px-1.5">{item.icon}</span>
+                  <div className='flex flex-col gap-1'>
+                  <span className={`text-gray-800 font-medium ${getItemTextSize()}`}>{item.label}</span>
+                  <span className="text-xs text-gray-500">{item.posts} Posts</span>
+                  </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-gray-500">{item.posts} Posts</span>
+                  
                   {item.expandable && (
                     expandedKeys.includes(item.key) 
                       ? <DownOutlined className="text-xs text-gray-400" /> 

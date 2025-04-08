@@ -40,7 +40,7 @@ const FeedNavigation = ({ handlefeedGrid }) => {
   };
   
   return (
-    <div className="flex justify-between items-center py-5 bg-white border-gray-200 rounded-lg my-2 w-full select-none">
+    <div className="flex justify-between items-center py-4  w-full select-none">
       <div 
         onClick={handleFeedsClick} 
         onMouseEnter={() => !isMobile && setIsHovered(true)}
@@ -48,7 +48,7 @@ const FeedNavigation = ({ handlefeedGrid }) => {
         className={`cursor-pointer flex items-center gap-1 p-1 md:p-1.5 rounded transition-colors duration-200 ${isHovered ? 'bg-gray-100' : 'bg-transparent'}`}
       >
         <AppstoreOutlined className={`mr-1 text-blue-500 ${isMobile ? 'text-base' : 'text-2xl'}`} />
-        <span className={`font-semibold text-gray-900 ${isMobile ? 'text-sm' : 'text-xl'}`}>
+        <span className={`font-semibold text-gray-900 ${isMobile ? 'text-sm' : 'text-lg'}`}>
           Your Feeds
         </span>
       </div>
