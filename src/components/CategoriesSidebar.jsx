@@ -11,7 +11,7 @@ import {
   DownOutlined
 } from '@ant-design/icons';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useCategoriesQuery, useSubCategoryQuery } from '@/features/Category/CategoriesApi';
+// import { useCategoriesQuery, useSubCategoryQuery } from '@/features/Category/CategoriesApi';
 
 const CategoriesSidebar = () => {
   const [expandedKeys, setExpandedKeys] = useState([]);
@@ -20,36 +20,11 @@ const CategoriesSidebar = () => {
     height: typeof window !== 'undefined' ? window.innerHeight : 0
   });
 
-  const { data: cat, isLoading: categoryLoading, isError: categoryError } = useCategoriesQuery({ searchTerm: "" });
+  // const { data: cat, isLoading: categoryLoading, isError: categoryError } = useCategoriesQuery({ searchTerm: "" });
  
-  console.log(cat?.data?.result)
+  // console.log(cat?.data?.result)
 
-  /* 
-  category
-: 
-createdAt
-: 
-"2025-03-30T03:12:04.992Z"
-description
-: 
-"gffsd"
-id
-: 
-"67e8b68433e34068bb355466"
-image
-: "/images/chatgpt-image-mar-29,-2025,-12_15_35-pm-1743304348648.png"
-name: "General"
-postCount: 1
-status: "active"
-updatedAt: "2025-03-30T03:12:28.656Z"
-_id: "67e8b68433e34068bb355466"
-subcategories: Array(2)
-{_id: '67e8c35e5365d889da3368d5', categoryId: '67e8b68433e34068bb355466', name: 'Technology', description: 'abc', image: '/images/chatgpt-image-mar-29,-2025,-12_15_35-pm-1743307614102.png', …} 
-{_id: '67f0b9b9095d51688c46b474', categoryId: '67e8b68433e34068bb355466', name: 'Web Development', description: 'web dev', image: '/images/chatgpt-image-mar-29,-2025,-12_15_35-pm-1743829433089.png', …}
-  
-  
-  */
-  // const {data: subcategories , isLoading} = useSubCategoryQuery()
+
 
 
   useEffect(() => {
@@ -122,9 +97,7 @@ subcategories: Array(2)
 
 
 
-  if(categoryLoading){
-    return "loading...."
-  }
+ 
 
   return (
     <div className={`w-full bg-white rounded-xl shadow-sm ${getPadding()} sticky top-20`}>

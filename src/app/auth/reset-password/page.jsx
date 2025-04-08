@@ -1,5 +1,5 @@
 "use client";
-import { useResetPasswordMutation } from '@/features/auth/authApi';
+// import { useResetPasswordMutation } from '@/features/auth/authApi';
 import { notification } from 'antd';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -21,7 +21,7 @@ const ResetPasswordPage = () => {
   const [isSuccess, setIsSuccess] = useState(false);
   const router = useRouter();
 
-  const [resetPassword, {isLoading, isError, error}] = useResetPasswordMutation()
+  // const [resetPassword, {isLoading, isError, error}] = useResetPasswordMutation()
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -82,35 +82,35 @@ const ResetPasswordPage = () => {
     if (validateForm()) {
       setIsSubmitting(true);
       
-      try {
-        // Simulate API call to reset password
-        const response = await resetPassword({newPassword:formData.newPassword , confirmPassword:formData.confirmPassword , token: token }).unwrap()
-        console.log(response)
-        // Show success state
-        setIsSuccess(true);
-        notification.success({
-          message: 'Password Reset Successful',
-          description: 'Your password has been updated successfully',
-        });
+      // try {
+      //   // Simulate API call to reset password
+      //   const response = await resetPassword({newPassword:formData.newPassword , confirmPassword:formData.confirmPassword , token: token }).unwrap()
+      //   console.log(response)
+      //   // Show success state
+      //   setIsSuccess(true);
+      //   notification.success({
+      //     message: 'Password Reset Successful',
+      //     description: 'Your password has been updated successfully',
+      //   });
 
-        // Reset form
-        setFormData({
-          newPassword: '',
-          confirmPassword: ''
-        });
+      //   // Reset form
+      //   setFormData({
+      //     newPassword: '',
+      //     confirmPassword: ''
+      //   });
 
-        // Optionally redirect after delay
-        setTimeout(() => {
-          router.push('/auth/login');
-        }, 2000);
-      } catch (error) {
-        notification.error({
-          message: 'Reset Failed',
-          description: 'Failed to reset password. Please try again.',
-        });
-      } finally {
-        setIsSubmitting(false);
-      }
+      //   // Optionally redirect after delay
+      //   setTimeout(() => {
+      //     router.push('/auth/login');
+      //   }, 2000);
+      // } catch (error) {
+      //   notification.error({
+      //     message: 'Reset Failed',
+      //     description: 'Failed to reset password. Please try again.',
+      //   });
+      // } finally {
+      //   setIsSubmitting(false);
+      // }
     }
   };
 

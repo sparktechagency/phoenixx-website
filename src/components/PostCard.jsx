@@ -222,18 +222,22 @@ const handleCommentClick = () => {
       
       {/* Post content with See more feature */}
       {post.content && (
-        <div className={`mb-3 text-gray-700 ${isMobile ? 'text-sm' : 'text-base'}`}>
-          {expanded ? post.content : truncatedContent}
-          {needsTruncation && !expanded && (
-            <button 
-              className="text-blue-600 hover:text-blue-800 cursor-pointer font-medium ml-1"
-              onClick={() => setExpanded(true)}
-            >
-              See more
-            </button>
-          )}
-        </div>
-      )}
+  <div className={`mb-3 text-gray-700 ${isMobile ? 'text-sm' : 'text-base'}`}>
+    {post.content.split(' ').length > 30 ? (
+      <>
+        {post.content.split(' ').slice(0, 30).join(' ')}...
+        <button 
+          className="text-blue-600 hover:text-blue-800 cursor-pointer font-medium ml-1"
+          onClick={handleCommentClick}
+        >
+          See more
+        </button>
+      </>
+    ) : (
+      post.content
+    )}
+  </div>
+)}
       
       {/* Post image */}
       {post.image && (

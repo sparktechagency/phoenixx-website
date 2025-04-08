@@ -1,5 +1,5 @@
 "use client";
-import { useResendOtpMutation, useVerifyOtpMutation } from '@/features/auth/authApi';
+// import { useResendOtpMutation, useVerifyOtpMutation } from '@/features/auth/authApi';
 import { notification } from 'antd';
 import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -17,8 +17,8 @@ const ForgotPasswordOTP = () => {
   const searchParams = useSearchParams();
   const email = searchParams.get("email");
   
-  const [verifyOtp, { isLoading }] = useVerifyOtpMutation();
-  const [resendOtp, { isLoading: isResendLoading }] = useResendOtpMutation();
+  // const [verifyOtp, { isLoading }] = useVerifyOtpMutation();
+  // const [resendOtp, { isLoading: isResendLoading }] = useResendOtpMutation();
 
   const router = useRouter();
 
@@ -70,29 +70,29 @@ const ForgotPasswordOTP = () => {
     }
 
     setIsSubmitting(true);
-    try {
-      const result = await verifyOtp({ email, oneTimeCode: parseFloat(otpValue) }).unwrap();
+    // try {
+    //   const result = await verifyOtp({ email, oneTimeCode: parseFloat(otpValue) }).unwrap();
       
-      // Show custom success modal
-      setSuccessMessage(result?.message || 'Your OTP has been verified');
-      setShowSuccessModal(true);
+    //   // Show custom success modal
+    //   setSuccessMessage(result?.message || 'Your OTP has been verified');
+    //   setShowSuccessModal(true);
       
-      // Hide modal and redirect after 2 seconds
-      setTimeout(() => {
-        setShowSuccessModal(false);
-        router.push('/auth/reset-password');
-        localStorage.setItem("forgot-password-otp-token", result?.data)
-      }, 2000);
+    //   // Hide modal and redirect after 2 seconds
+    //   setTimeout(() => {
+    //     setShowSuccessModal(false);
+    //     router.push('/auth/reset-password');
+    //     localStorage.setItem("forgot-password-otp-token", result?.data)
+    //   }, 2000);
       
-    } catch (err) {
-      notification.error({
-        message: 'Verification Failed',
-        description: err?.data?.message || 'Invalid OTP. Please try again.',
-      });
-      setError(err?.data?.message || 'Invalid OTP');
-    } finally {
-      setIsSubmitting(false);
-    }
+    // } catch (err) {
+    //   notification.error({
+    //     message: 'Verification Failed',
+    //     description: err?.data?.message || 'Invalid OTP. Please try again.',
+    //   });
+    //   setError(err?.data?.message || 'Invalid OTP');
+    // } finally {
+    //   setIsSubmitting(false);
+    // }
   }, [email, otp, router, verifyOtp]);
 
   // Handle resend OTP

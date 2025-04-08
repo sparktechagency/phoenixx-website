@@ -20,6 +20,7 @@ import {
 } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
+import Image from 'next/image';
 
 // Dynamically import JoditEditor to avoid SSR issues
 const JoditEditor = dynamic(() => import('jodit-react'), { 
@@ -250,17 +251,8 @@ const BlogPostForm = () => {
           className="rounded-xl shadow-lg border-0 overflow-hidden"
         >
           {/* Header */}
-          <div className="bg-gradient-to-r rounded-md from-blue-600 to-purple-600 p-4 sm:p-6">
-            <Title 
-              level={isMobile ? 4 : 3} 
-              style={{color:"white"}}
-              className="text-white mb-0"
-            >
-              Create New Post
-            </Title>
-            <Text style={{color:"white"}} className="text-white text-sm sm:text-base">
-              Share your thoughts with the world
-            </Text>
+          <div className="">
+           <Image src={"/images/create-post-image.png"} height={1000} width={1000} alt='' /> 
           </div>
           
           {/* Form Content */}

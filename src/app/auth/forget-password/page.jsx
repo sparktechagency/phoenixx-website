@@ -1,5 +1,5 @@
 "use client";
-import { useForgotPasswordMutation, useResetPasswordMutation } from '@/features/auth/authApi';
+// import { useForgotPasswordMutation, useResetPasswordMutation } from '@/features/auth/authApi';
 import { notification } from 'antd';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -12,7 +12,7 @@ const ForgotPasswordPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const router = useRouter();
- const [forgotPassword , {isLoading} ] = useForgotPasswordMutation()
+//  const [forgotPassword , {isLoading} ] = useForgotPasswordMutation()
 
   const handleChange = (e) => {
     setEmail(e.target.value);
@@ -36,29 +36,29 @@ const ForgotPasswordPage = () => {
     if (validateEmail()) {
       setIsSubmitting(true);
       
-      try {
-        // Simulate API call
-        // await new Promise(resolve => setTimeout(resolve, 1000));
+      // try {
+      //   // Simulate API call
+      //   // await new Promise(resolve => setTimeout(resolve, 1000));
 
-        const response = await forgotPassword({email : email}).unwrap();
-        if(response.success){
-          router.push(`/auth/forgot-password-otp?email=${email}`)
-        }
+      //   const response = await forgotPassword({email : email}).unwrap();
+      //   if(response.success){
+      //     router.push(`/auth/forgot-password-otp?email=${email}`)
+      //   }
         
-        // Show success message
-        setIsSuccess(true);
-        notification.success({
-          message: response?.message,
-          // description: 'Check your email for a password reset link',
-        });
-      } catch (err) {
-        notification.error({
-          message: 'Error',
-          description: 'Failed to send reset link. Please try again.',
-        });
-      } finally {
-        setIsSubmitting(false);
-      }
+      //   // Show success message
+      //   setIsSuccess(true);
+      //   notification.success({
+      //     message: response?.message,
+      //     // description: 'Check your email for a password reset link',
+      //   });
+      // } catch (err) {
+      //   notification.error({
+      //     message: 'Error',
+      //     description: 'Failed to send reset link. Please try again.',
+      //   });
+      // } finally {
+      //   setIsSubmitting(false);
+      // }
     }
   };
 

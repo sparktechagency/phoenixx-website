@@ -52,6 +52,12 @@ export default function Navbar() {
   const searchRef = useRef(null);
   const router = useRouter();
 
+  // Handle navigation with drawer closing
+  const handleNavigation = (path) => {
+    router.push(path);
+    setDrawerVisible(false); // Close drawer when navigation happens
+  };
+
   const items = [
     {
       key: 'profile-header',
@@ -64,7 +70,7 @@ export default function Navbar() {
           </Space>
         </Flex>
       ),
-      onClick: () => router.push("/profile"),
+      onClick: () => handleNavigation("/profile"),
     },
     {
       type: 'divider',
@@ -73,37 +79,25 @@ export default function Navbar() {
       key: 'about',
       icon: <UserOutlined />,
       label: 'About us',
-      onClick: () => router.push('/about')
+      onClick: () => handleNavigation('/about')
     },
     {
       key: 'help',
       icon: <QuestionCircleOutlined />,
       label: 'Help & Support',
-      onClick: () => router.push('/help&support')
-    },
-    {
-      key: 'terms',
-      icon: <FileTextOutlined />,
-      label: 'Terms & Conditions',
-      onClick: () => router.push('/terms-conditions')
-    },
-    {
-      key: 'privacy',
-      icon: <LockOutlined />,
-      label: 'Privacy Policy',
-      onClick: () => router.push('/privacy-policy')
+      onClick: () => handleNavigation('/help&support')
     },
     {
       key: 'feedback',
       icon: <CommentOutlined />,
       label: 'Feedback',
-      onClick: () => router.push('/feedback')
+      onClick: () => handleNavigation('/feedback')
     },
     {
       key: 'settings',
       icon: <SettingOutlined />,
       label: 'Settings',
-      onClick: () => router.push('/settings')
+      onClick: () => handleNavigation('/settings')
     },
     {
       key: 'darkmode',
@@ -118,7 +112,7 @@ export default function Navbar() {
       icon: <LogoutOutlined />,
       label: 'Sign Out',
       danger: true,
-      onClick: () => router.push('/auth/login')
+      onClick: () => handleNavigation('/auth/login')
     },
   ];
 
@@ -254,7 +248,7 @@ export default function Navbar() {
               style={{ width: '100%' }}
               open={showSuggestions && suggestions.length > 0}
               onDropdownVisibleChange={(open) => setShowSuggestions(open)}
-              dropdownMatchSelectWidth={true}
+              popupMatchSelectWidth={true}
               dropdownStyle={{
                 borderRadius: '8px',
                 boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
@@ -332,6 +326,20 @@ export default function Navbar() {
                 autoFocus
                 enterButton
                 onSearch={handleSearch}
+                suffix={
+                  <Button 
+                    type="text"
+                    icon={<CloseOutlined />}
+                    onClick={toggleMobileSearch}
+                    style={{ 
+                      border: 'none', 
+                      background: 'transparent',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                  />
+                }
               />
             </AutoComplete>
           </div>
@@ -343,7 +351,7 @@ export default function Navbar() {
             {screens.md ? (
               <>
                 <Button 
-                  onClick={() => router.push('/new')}
+                  onClick={() => handleNavigation('/new')}
                   type="primary" 
                   icon={<PlusOutlined />} 
                   style={{ display: 'flex', alignItems: 'center' }}
@@ -353,7 +361,7 @@ export default function Navbar() {
                 
                 <Badge count={5}>
                   <Button 
-                    onClick={()=> router.push("/chat")}
+                    onClick={() => handleNavigation("/chat")}
                     type="text" 
                     icon={<MessageOutlined />} 
                     shape="circle" 
@@ -363,7 +371,7 @@ export default function Navbar() {
                 
                 <Badge count={3}>
                   <Button 
-                  onClick={()=> router.push("/notification")}
+                    onClick={() => handleNavigation("/notification")}
                     type="text" 
                     icon={<BellOutlined />} 
                     shape="circle" 
@@ -417,19 +425,19 @@ export default function Navbar() {
               key: 'new-post',
               icon: <PlusOutlined />,
               label: 'New Post',
-              onClick: () => router.push("/new")
+              onClick: () => handleNavigation("/new")
             },
             {
               key: 'messages',
               icon: <MessageOutlined />,
               label: 'Messages',
-              onClick: () => router.push('/chat')
+              onClick: () => handleNavigation('/chat')
             },
             {
               key: 'notifications',
               icon: <BellOutlined />,
               label: 'Notifications',
-              onClick: () => router.push('/notification')
+              onClick: () => handleNavigation('/notification')
             },
             {
               type: 'divider',

@@ -1,77 +1,77 @@
-import { baseApi } from "../../../utils/apiBaseQuery";
+// import { baseApi } from "../../../utils/apiBaseQuery";
 
 
 
-export const authApi = baseApi.injectEndpoints({
-  endpoints: (builder) => ({
-    // Signup
-    signup: builder.mutation({
-      query: (newUser) => ({
-        url: "/users/create-user",
-        method: "POST",
-        body: newUser,
-      }),
-    }),
+// export const authApi = baseApi.injectEndpoints({
+//   endpoints: (builder) => ({
+//     // Signup
+//     signup: builder.mutation({
+//       query: (newUser) => ({
+//         url: "/users/create-user",
+//         method: "POST",
+//         body: newUser,
+//       }),
+//     }),
 
-    // Login
-    login: builder.mutation({
-      query: (credentials) => ({
-        url: "/auth/login",
-        method: "POST",
-        body: credentials,
-      }),
-    }),
+//     // Login
+//     login: builder.mutation({
+//       query: (credentials) => ({
+//         url: "/auth/login",
+//         method: "POST",
+//         body: credentials,
+//       }),
+//     }),
 
-    // Email Verification
-    verifyOtp: builder.mutation({
-      query: (data) => ({
-        url: "/auth/verify-otp",
-        method: "POST",
-        body: data,
-      }),
-    }),
+//     // Email Verification
+//     verifyOtp: builder.mutation({
+//       query: (data) => ({
+//         url: "/auth/verify-otp",
+//         method: "POST",
+//         body: data,
+//       }),
+//     }),
 
-    // Forgot Password
-    forgotPassword: builder.mutation({
-      query: (data) => ({
-        url: "/auth/forget-password",
-        method: "POST",
-        body: data,
-      }),
-    }),
+//     // Forgot Password
+//     forgotPassword: builder.mutation({
+//       query: (data) => ({
+//         url: "/auth/forget-password",
+//         method: "POST",
+//         body: data,
+//       }),
+//     }),
 
-    // Reset Password
-    resetPassword: builder.mutation({
-      query: (data) => ({
-        url: "/auth/reset-password",
-        method: "POST",
-        headers: {
-          Authorization:`${data.token}`,
-        },
-        body: {
-          newPassword: data.newPassword,
-          confirmPassword: data.confirmPassword
-        },
-      }),
-    }),
+//     // Reset Password
+//     resetPassword: builder.mutation({
+//       query: (data) => ({
+//         url: "/auth/reset-password",
+//         method: "POST",
+//         headers: {
+//           Authorization:`${data.token}`,
+//         },
+//         body: {
+//           newPassword: data.newPassword,
+//           confirmPassword: data.confirmPassword
+//         },
+//       }),
+//     }),
 
-    // Resend OTP
-    resendOtp: builder.mutation({
-      query: (data) => ({
-        url: "/auth/resend-otp",
-        method: "POST",
-        body: data,
-      }),
-    }),
-  }),
-});
+//     // Resend OTP
+//     resendOtp: builder.mutation({
+//       query: (data) => ({
+//         url: "/auth/resend-otp",
+//         method: "POST",
+//         body: data,
+//       }),
+//     }),
+//   }),
+// });
 
-// Export hooks
-export const {
-  useSignupMutation,
-  useLoginMutation,
-  useVerifyOtpMutation,
-  useForgotPasswordMutation,
-  useResetPasswordMutation,
-  useResendOtpMutation,
-} = authApi;
+// // Export hooks
+// export const {
+//   useSignupMutation,
+//   useLoginMutation,
+//   useVerifyOtpMutation,
+//   useForgotPasswordMutation,
+//   useResetPasswordMutation,
+//   useResendOtpMutation,
+// } = authApi;

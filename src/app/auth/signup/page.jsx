@@ -1,5 +1,5 @@
 "use client";
-import { useSignupMutation } from '@/features/auth/authApi';
+// import { useSignupMutation } from '@/features/auth/authApi';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -22,7 +22,7 @@ const SignUp = () => {
     rememberMe: ''
   });
   
-  const [signUp, { isLoading }] = useSignupMutation();
+  // const [signUp, { isLoading }] = useSignupMutation();
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -74,45 +74,45 @@ const SignUp = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (validateForm()) {
-      try {
-        const response = await signUp({
-          userName: formData.username,
-          email: formData.email,
-          password: formData.password
-        }).unwrap();
+    // if (validateForm()) {
+    //   try {
+    //     const response = await signUp({
+    //       userName: formData.username,
+    //       email: formData.email,
+    //       password: formData.password
+    //     }).unwrap();
 
 
-        // toast.success('Account created successfully! Please check your email for verification.');
-       if(response.success){
-        router.push(`/auth/verify-otp?email=${formData.email}`)
-       }
-        setFormData({
-          username: '',
-          email: '',
-          password: '',
-          rememberMe: false
-        });
+    //     // toast.success('Account created successfully! Please check your email for verification.');
+    //    if(response.success){
+    //     router.push(`/auth/verify-otp?email=${formData.email}`)
+    //    }
+    //     setFormData({
+    //       username: '',
+    //       email: '',
+    //       password: '',
+    //       rememberMe: false
+    //     });
 
-        // Redirect to login after 3 seconds
+    //     // Redirect to login after 3 seconds
 
-      } catch (error) {
-        console.error('Sign up error:', error);
+    //   } catch (error) {
+    //     console.error('Sign up error:', error);
         
-        if (error.data) {
-          // Handle specific backend errors
-          if (error.data.message.includes('email')) {
-            setErrors(prev => ({ ...prev, email: error.data.message }));
-          } else if (error.data.message.includes('username')) {
-            setErrors(prev => ({ ...prev, username: error.data.message }));
-          } else {
-            toast.error(error.data.message || 'Signup failed. Please try again.');
-          }
-        } else {
-          toast.error('Network error. Please try again.');
-        }
-      }
-    }
+    //     if (error.data) {
+    //       // Handle specific backend errors
+    //       if (error.data.message.includes('email')) {
+    //         setErrors(prev => ({ ...prev, email: error.data.message }));
+    //       } else if (error.data.message.includes('username')) {
+    //         setErrors(prev => ({ ...prev, username: error.data.message }));
+    //       } else {
+    //         toast.error(error.data.message || 'Signup failed. Please try again.');
+    //       }
+    //     } else {
+    //       toast.error('Network error. Please try again.');
+    //     }
+    //   }
+    // }
   };
 
   return (
@@ -215,12 +215,15 @@ const SignUp = () => {
                 </label>
               </div>
 
+
+{/* {isLoading ? 'opacity-70 cursor-not-allowed' : ''}`} */}
               <button
                 type="submit"
-                disabled={isLoading}
-                className={`w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:border-none ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
+                // disabled={isLoading}
+                className={`w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:border-none`}
               >
-                {isLoading ? 'Signing Up...' : 'Sign Up'}
+                {/* {isLoading ? 'Signing Up...' : 'Sign Up'} */}
+                Sign Up
               </button>
             </form>
 
