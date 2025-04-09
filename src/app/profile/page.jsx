@@ -3,10 +3,12 @@
 import PostCard from '@/components/PostCard';
 import ProfileBanner from '@/components/profile/ProfileBanner';
 import React, { useState, useEffect } from 'react';
-import { Card, Space, Typography, Grid } from 'antd';
+import { Card, Space, Typography, Grid, Modal, Form, Input, Button } from 'antd';
 import { FiFile, FiBookmark, FiMessageSquare } from 'react-icons/fi';
+import ProfilePostCard from '@/components/ProfilePostCard';
 
 const { useBreakpoint } = Grid;
+const { TextArea } = Input;
 
 const ProfilePage = () => {
     const screens = useBreakpoint();
@@ -21,6 +23,11 @@ const ProfilePage = () => {
         comments: 0
     };
     
+    // Modal state
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editingPost, setEditingPost] = useState(null);
+    const [form] = Form.useForm();
+    
     // Initialize state with value from localStorage if available, otherwise default to 'totalPosts'
     const [activeTab, setActiveTab] = useState(() => {
         // Only run on client-side
@@ -33,11 +40,13 @@ const ProfilePage = () => {
     
     // Save activeTab to localStorage whenever it changes
     useEffect(() => {
-        localStorage.setItem('profileActiveTab', activeTab);
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('profileActiveTab', activeTab);
+        }
     }, [activeTab]);
     
     // Mock data for different post types
-    const mockPosts = {
+    const [mockPosts, setMockPosts] = useState({
         totalPosts: Array.from({ length: stats.totalPosts }).map((_, i) => ({ 
             id: `total-${i}`, 
             type: 'total',
@@ -89,7 +98,7 @@ const ProfilePage = () => {
                 reads: Math.floor(Math.random() * 500)
             }
         }))
-    };
+    });
     
     // Determine which posts to display based on active tab
     const postsToDisplay = mockPosts[activeTab] || [];
@@ -103,9 +112,71 @@ const ProfilePage = () => {
         };
         return labels[type] || type;
     };
+
+    // Handle opening the edit modal
+    const handleEditPost = (postId) => {
+        // Find the post to edit based on the active tab
+        const postToEdit = mockPosts[activeTab].find(post => post.id === postId);
+        
+        if (postToEdit) {
+            setEditingPost(postToEdit);
+            
+            // Set form values
+            form.setFieldsValue({
+                title: postToEdit.title,
+                content: postToEdit.content
+            });
+            
+            setIsModalOpen(true);
+        }
+    };
+
+    // Handle modal close
+    const handleModalCancel = () => {
+        setIsModalOpen(false);
+        setEditingPost(null);
+        form.resetFields();
+    };
+
+    // Handle form submission for editing a post
+    const handleEditFormSubmit = (values) => {
+        if (!editingPost) return;
+        
+        // Update the post in the appropriate array
+        const updatedPosts = {...mockPosts};
+        
+        // Find and update the post in the active tab
+        updatedPosts[activeTab] = updatedPosts[activeTab].map(post => {
+            if (post.id === editingPost.id) {
+                return {
+                    ...post,
+                    title: values.title,
+                    content: values.content
+                };
+            }
+            return post;
+        });
+        
+        setMockPosts(updatedPosts);
+        setIsModalOpen(false);
+        setEditingPost(null);
+        form.resetFields();
+    };
+
+    // Handle option select from ProfilePostCard
+    const handleOptionSelect = (postId, option) => {
+        if (option === 'edit') {
+            handleEditPost(postId);
+        } else if (option === 'delete') {
+            // Handle delete functionality
+            const updatedPosts = {...mockPosts};
+            updatedPosts[activeTab] = updatedPosts[activeTab].filter(post => post.id !== postId);
+            setMockPosts(updatedPosts);
+        }
+    };
     
     return (
-        <div className="bg-gray-50 min-h-screen">
+        <div className="bg-[#E5E7EB] min-h-screen">
             <ProfileBanner />
             
             <main className="py-4 sm:py-6 lg:py-8 container mx-auto px-2 sm:px-4 lg:px-32">
@@ -164,13 +235,14 @@ const ProfilePage = () => {
                                 {activeTab === 'comments' && 'Your Comments'}
                             </h2>
                         </div>
-                        <div className="flex flex-col gap-3 sm:gap-4 lg:gap-5">
+                        <div className="flex flex-col gap-3 sm:gap-2 lg:gap-1">
                             {postsToDisplay.length > 0 ? (
                                 postsToDisplay.map((post) => (
-                                    <PostCard 
+                                    <ProfilePostCard
                                         key={post.id} 
                                         postData={post} 
                                         className={`${isMobile ? 'p-3' : 'p-4'} hover:shadow-md transition-shadow`}
+                                        onOptionSelect={handleOptionSelect}
                                     />
                                 ))
                             ) : (
@@ -189,6 +261,56 @@ const ProfilePage = () => {
                     </section>
                 </div>
             </main>
+
+            {/* Edit Post Modal */}
+            <Modal
+                title="Edit Post"
+                open={isModalOpen}
+                onCancel={handleModalCancel}
+                footer={null}
+                destroyOnClose={true}
+                maskClosable={false}
+                className="edit-post-modal"
+            >
+                <Form
+                    form={form}
+                    layout="vertical"
+                    onFinish={handleEditFormSubmit}
+                    initialValues={{
+                        title: editingPost?.title || '',
+                        content: editingPost?.content || ''
+                    }}
+                >
+                    <Form.Item
+                        name="title"
+                        label="Post Title"
+                        rules={[{ required: true, message: 'Please enter a title' }]}
+                    >
+                        <Input placeholder="Enter post title" />
+                    </Form.Item>
+
+                    <Form.Item
+                        name="content"
+                        label="Post Content"
+                        rules={[{ required: true, message: 'Please enter some content' }]}
+                    >
+                        <TextArea 
+                            placeholder="Enter post content" 
+                            rows={6} 
+                            autoSize={{ minRows: 6, maxRows: 12 }}
+                        />
+                    </Form.Item>
+
+                    <div className="flex justify-end gap-2 mt-4">
+                        <Button onClick={handleModalCancel}>
+                            Cancel
+                        </Button>
+                        <Button type="primary" htmlType="submit">
+                            Save Changes
+                        </Button>
+                    </div>
+                </Form>
+            </Modal>
         </div>
     );
 };

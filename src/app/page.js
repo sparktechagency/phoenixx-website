@@ -14,7 +14,7 @@ const Page = () => {
       author: { name: "John Doe", username: "@johndoe", avatar: "/images/profile.jpg" },
       timePosted: "2 hours ago",
       title: "My First Post",
-      content: "This is a sample post content that will be truncated if it's too long...".repeat(5),
+      content: "Curabitur euismod magna a volutpat rhoncus. Nam vel risus euismod, vestibulum dui at, aliquam purus. Donec vel turpis in odio tincidunt volutpat ac ac lacus. Integer in mollis justo. Nullam vitae sapien feugiat, congue ipsum at, vehicula sapien.",
       image: "/images/post.png",
       tags: ["Technology", "Programming"],
       stats: { likes: 24, comments: [{ id: 'c1', author: { name: "Jane Smith", username: "@janesmith" }, text: "Great post!", createdAt: new Date() }], reads: 150 },
@@ -25,7 +25,7 @@ const Page = () => {
       author: { name: "John Doe", username: "@johndoe", avatar: "/images/profile.jpg" },
       timePosted: "2 hours ago",
       title: "My Second Post",
-      content: "Another sample post content...".repeat(3),
+      content: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore",
       image: "/images/post.png",
       tags: ["Design", "UI/UX"],
       stats: { likes: 12, comments: [], reads: 75 },
@@ -56,17 +56,19 @@ const Page = () => {
   const handleCommentSubmit = (postId, commentText) => {
     setPosts(posts.map(post => post.id === postId ? {
       ...post,
-      stats: { ...post.stats, comments: [...post.stats.comments, {
-        id: `c${post.stats.comments.length + 1}`,
-        author: currentUser,
-        text: commentText,
-        createdAt: new Date()
-      }]}
+      stats: {
+        ...post.stats, comments: [...post.stats.comments, {
+          id: `c${post.stats.comments.length + 1}`,
+          author: currentUser,
+          text: commentText,
+          createdAt: new Date()
+        }]
+      }
     } : post));
   };
 
   const TrendingTopics = () => (
-    <div className="bg-white rounded-lg p-4 sticky top-20">
+    <div className="bg-white rounded-lg  p-4 sticky top-20">
       <h3 className="text-lg font-semibold mb-4">Trending Topics</h3>
       {["WebDevelopment", "UXDesign", "JavaScript", "ResponsiveDesign"].map(topic => (
         <div key={topic} className="text-sm text-gray-600 hover:text-primary cursor-pointer py-1">
@@ -104,14 +106,14 @@ const Page = () => {
               </motion.div>
 
               {/* Main Feed */}
-              <motion.section 
+              <motion.section
                 layout
                 className={`${isGrid2 ? 'w-9/12' : 'w-6/12'}`}
               >
                 <FeedNavigation handlefeedGrid={setGridNumber} />
                 <motion.div
                   layout
-                  className={`grid gap-5 ${isGrid2 ? 'grid-cols-2' : 'grid-cols-1'}`}
+                  className={`grid  ${isGrid2 ? 'grid-cols-2 gap-4' : 'grid-cols-1 gap-1'}`}
                 >
                   {posts.map(post => (
                     <div key={post.id}>
@@ -138,10 +140,11 @@ const Page = () => {
               <CategoriesSidebar />
               <FeedNavigation handlefeedGrid={setGridNumber} />
               <div className={`grid gap-5 ${gridNumber === 2 && windowWidth >= 640 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+
                 {posts.map(post => (
                   <div key={post.id}>
                     <PostCard
-                      postData={post}
+                      postData={{ ...post, category: "general" }} // Make sure to include category
                       currentUser={currentUser}
                       onLike={handleLike}
                       onCommentSubmit={handleCommentSubmit}

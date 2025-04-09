@@ -262,10 +262,14 @@ export default function ChatApp() {
   );
 
   return (
-    <div className="flex sm:p-6 p-0 h-screen bg-gray-50">
+    <div className='bg-[#F2F4F7] '>
+
+ 
+    <div className="flex gap-7 sm:p-6 p-0 sm:h-[835px] h-screen sm:w-10/12 w-full mx-auto ">
+
       {/* Left sidebar - Contacts */}
       {(showSidebar || !isMobileView) && (
-        <div className={`w-full md:w-80 bg-white shadow-sm border-r border-gray-200 flex flex-col ${isMobileView ? 'absolute z-10 h-full' : ''}`}>
+        <div className={`w-full md:w-80 bg-white shadow-sm border-r rounded-md border-gray-200 flex flex-col ${isMobileView ? 'absolute z-10 h-full' : ''}`}>
           {/* User header */}
           <div className="p-4 border-b border-gray-200 flex items-center justify-between bg-white">
             <div className="flex items-center">
@@ -315,7 +319,7 @@ export default function ChatApp() {
                   <div className="flex justify-between items-center">
                     <div className="text-sm text-gray-500 truncate">{contact.lastMessage}</div>
                     {contact.unread > 0 && (
-                      <Badge count={contact.unread} style={{ backgroundColor: '#1890ff' }} />
+                      <Badge count={contact.unread} style={{ backgroundColor: '#0001FB' }} />
                     )}
                   </div>
                 </div>
@@ -326,7 +330,7 @@ export default function ChatApp() {
       )}
 
       {/* Main chat area */}
-      <div className={`flex-1 flex flex-col ${!showSidebar && isMobileView ? 'w-full' : ''}`}>
+      <div className={`flex-1 flex flex-col bg-white shadow-sm border rounded-md border-gray-200 ${!showSidebar && isMobileView ? 'w-full' : ''}`}>
         {/* Chat header */}
         <div className="px-4 py-3 bg-white shadow-sm flex items-center justify-between border-b border-gray-200">
           <div className="flex items-center">
@@ -348,7 +352,7 @@ export default function ChatApp() {
               <div className="font-semibold text-gray-900">{activeChat.name}</div>
               <div className="text-xs text-gray-500">
                 {activeChat.typing ? (
-                  <span className="text-blue-500">typing...</span>
+                  <span className="text-primary">typing...</span>
                 ) : (
                   activeChat.status === 'online' ? 'Online' : `Last seen ${activeChat.lastSeen}`
                 )}
@@ -397,7 +401,7 @@ export default function ChatApp() {
                     {message.text && (
                       <div className={`px-4 py-2 rounded-2xl ${
                         message.sender === 'user' 
-                          ? 'bg-blue-500 text-white rounded-tr-none' 
+                          ? 'bg-primary text-white rounded-tr-none' 
                           : 'bg-white text-gray-800 rounded-tl-none shadow-sm'
                       }`}>
                         {message.text}
@@ -516,7 +520,7 @@ export default function ChatApp() {
                 shape="circle" 
                 icon={<SendOutlined />} 
                 onClick={handleSendMessage}
-                className="bg-blue-500 hover:bg-blue-600"
+                className="bg-primary"
               />
             ) : (
               <Button 
@@ -529,6 +533,9 @@ export default function ChatApp() {
           </div>
         </div>
       </div>
+
+      
+    </div>
     </div>
   );
 }

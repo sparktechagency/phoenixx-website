@@ -105,8 +105,8 @@ export default function NotificationPage() {
   );
 
   return (
-    <Layout className="min-h-screen bg-gray-50 md:p-6 p-0">
-      <Content className="p-2 md:p-2">
+    <Layout className="min-h-screen bg-gray-50  md:p-6 p-0">
+      <Content className="p-2 md:p-2 lg:w-8/12 w-full mx-auto">
         <div className="bg-white p-2 md:p-2 rounded-lg shadow-sm overflow-hidden">
           {/* Header with actions */}
           <div className="p-4 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">

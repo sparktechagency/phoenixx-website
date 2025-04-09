@@ -36,6 +36,7 @@ import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import debounce from 'lodash/debounce';
+import { Message, Notification } from '../../utils/svgImage';
 
 const { Header } = Layout;
 const { Search } = Input;
@@ -198,6 +199,34 @@ export default function Navbar() {
     setShowSuggestions(false);
   };
 
+  // Custom search field styles to match the reference image
+  const searchFieldStyles = {
+    input: {
+      backgroundColor: '#f3f2fa', // Light purple/lavender background
+      borderRadius: '10px',
+      border: '1px solid #D8D8D8',
+      padding: '10px 16px',
+      boxShadow: 'none',
+    },
+    searchIcon: {
+      color: '#6b7280', // Medium gray color for the icon
+      fontSize: '16px',
+      marginRight: '8px',
+    }
+  };
+
+  // Consistent button styles for notification and message icons
+  const iconButtonStyles = {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    border: '1px solid #808080',
+    padding: '15px',
+    width: '30px',
+    height: '30px',
+    borderRadius: '50%'
+  };
+
   return (
     <>
       <Header style={{
@@ -229,15 +258,17 @@ export default function Navbar() {
           </Flex>
         )}
         
-        {/* Middle - Search Bar */}
+        {/* Middle - Search Bar - Updated styling to match reference */}
         {screens.md ? (
           <div style={{ 
-            width: '40%', 
+            width: '35%', 
+            paddingLeft:"100px",
             minWidth: '200px',
             display: 'flex',
             alignItems: 'center',
+            justifyContent:"center",
             height: '100%',
-            position: 'relative'
+            position: 'relative',
           }} ref={searchRef}>
             <AutoComplete
               options={suggestions}
@@ -250,49 +281,18 @@ export default function Navbar() {
               onDropdownVisibleChange={(open) => setShowSuggestions(open)}
               popupMatchSelectWidth={true}
               dropdownStyle={{
-                borderRadius: '8px',
                 boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
                 padding: '8px 0'
               }}
             >
-              <Input.Search
+              <Input
                 placeholder="Search topics"
-                prefix={<SearchOutlined style={{ color: 'rgba(0, 0, 0, 0.25)' }} />}
-                style={{ borderRadius: '999px', width: '100%' }}
-                enterButton={screens.lg}
-                onSearch={handleSearch}
+                prefix={<SearchOutlined style={searchFieldStyles.searchIcon} />}
+                style={searchFieldStyles.input}
+                onPressEnter={() => handleSearch(searchQuery)}
+                allowClear
               />
             </AutoComplete>
-            
-            {showSuggestions && suggestions.length > 0 && (
-              <div style={{
-                position: 'absolute',
-                top: '100%',
-                left: 0,
-                right: 0,
-                zIndex: 1050,
-                background: '#fff',
-                borderRadius: '8px',
-                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
-                marginTop: '4px'
-              }}>
-                <List
-                  size="small"
-                  dataSource={suggestions}
-                  renderItem={(item) => (
-                    <List.Item 
-                      style={{ padding: '8px 16px', cursor: 'pointer' }}
-                      onClick={() => handleSelect(item.value)}
-                    >
-                      <Space>
-                        <SearchOutlined style={{ color: 'rgba(0, 0, 0, 0.25)' }} />
-                        {item.value}
-                      </Space>
-                    </List.Item>
-                  )}
-                />
-              </div>
-            )}
           </div>
         ) : showMobileSearch && (
           <div style={{ 
@@ -319,13 +319,13 @@ export default function Navbar() {
                 padding: '8px 0'
               }}
             >
-              <Input.Search
+              <Input
                 placeholder="Search topics"
-                prefix={<SearchOutlined style={{ color: 'rgba(0, 0, 0, 0.25)' }} />}
-                style={{ borderRadius: '999px', width: '100%' }}
+                prefix={<SearchOutlined style={searchFieldStyles.searchIcon} />}
+                style={{...searchFieldStyles.input, width: '100%'}}
                 autoFocus
-                enterButton
-                onSearch={handleSearch}
+                onPressEnter={() => handleSearch(searchQuery)}
+                allowClear
                 suffix={
                   <Button 
                     type="text"
@@ -363,9 +363,9 @@ export default function Navbar() {
                   <Button 
                     onClick={() => handleNavigation("/chat")}
                     type="text" 
-                    icon={<MessageOutlined />} 
+                    icon={<Message />} 
                     shape="circle" 
-                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor:"#E5E4E2" }}
+                    style={iconButtonStyles}
                   />
                 </Badge>
                 
@@ -373,9 +373,9 @@ export default function Navbar() {
                   <Button 
                     onClick={() => handleNavigation("/notification")}
                     type="text" 
-                    icon={<BellOutlined />} 
+                    icon={<Notification />} 
                     shape="circle" 
-                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor:"#E5E4E2" }}
+                    style={iconButtonStyles}
                   />
                 </Badge>
               </>

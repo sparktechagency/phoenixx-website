@@ -1,499 +1,621 @@
 "use client";
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import { Avatar, Card, Button, Input, Select, Dropdown, Menu } from 'antd';
+import { LikeOutlined, LikeFilled, MessageOutlined, ShareAltOutlined, EllipsisOutlined } from '@ant-design/icons';
+import Image from 'next/image';
 
-import { useState, useEffect } from 'react';
-import { AiOutlineHeart, AiFillHeart, AiOutlineShareAlt, AiOutlineSend, AiOutlineMessage, 
-         AiOutlineEye, AiOutlineCalendar, AiOutlineTag, AiOutlineBook } from 'react-icons/ai';
-
-export default function PostPage({ params }) {
+export default function PostDetailsPage() {
+  const params = useParams();
+  const router = useRouter();
   const { category, postName, postId } = params;
   const [post, setPost] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [comments, setComments] = useState([]);
   const [commentText, setCommentText] = useState('');
+  const [editingCommentId, setEditingCommentId] = useState(null);
+  const [editCommentText, setEditCommentText] = useState('');
   const [replyingTo, setReplyingTo] = useState(null);
-  const [currentUser, setCurrentUser] = useState({
-    name: "Current User",
-    avatar: "",
-    username: "currentuser"
+  const [replyText, setReplyText] = useState('');
+  const [commentSort, setCommentSort] = useState('relevant');
+  const [showDropdown, setShowDropdown] = useState(false);
+  const dropdownRef = useRef(null);
+  const commentInputRef = useRef(null);
+  const [windowSize, setWindowSize] = useState({
+    width: typeof window !== 'undefined' ? window.innerWidth : 0,
+    height: typeof window !== 'undefined' ? window.innerHeight : 0
   });
 
+  const currentUser = { 
+    id: "user1",
+    name: "Current User", 
+    username: "@currentuser", 
+    avatar: "/images/profile2.jpg" 
+  };
+
+  // Handle window resize
   useEffect(() => {
-    // In a real app, you would fetch the post data from an API
-    // using the postId from params
-    const fetchPost = async () => {
-      try {
-        // Simulating API response for demo purposes
-        const mockPost = {
-          id: postId,
-          title: postName.split('-').join(' '),
-          content: "This is a placeholder content for the post. In a real application, this would be fetched from an API. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus lacinia odio vitae vestibulum vestibulum. Cras porttitor metus in sem finibus, sit amet ultricies sem pretium. Donec finibus sapien eget semper fringilla. Sed eget ex sit amet magna euismod accumsan. Integer efficitur, arcu vitae ullamcorper ullamcorper, urna dui lobortis urna, vel vehicula ex augue id urna. Proin quis tellus at magna efficitur aliquet.",
-          author: {
-            name: "John Doe",
-            username: "johndoe",
-            avatar: "",
-            bio: "Content creator passionate about technology and design"
-          },
-          timePosted: "April 5, 2025",
-          category: category,
-          image: "https://images.unsplash.com/photo-1501504905252-473c47e087f8?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1074&q=80",
-          tags: ["technology", "design", "tutorial"],
-          stats: {
-            likes: 42,
-            comments: [
-              {
-                id: "comment1",
-                author: {
-                  name: "Jane Smith",
-                  username: "janesmith",
-                  avatar: ""
-                },
-                text: "Great post! Thanks for sharing.",
-                createdAt: new Date().toISOString(),
-                likes: 5,
-                isLiked: false,
-                replies: [
-                  {
-                    id: "reply1",
-                    author: {
-                      name: "Mike Johnson",
-                      username: "mikej",
-                      avatar: ""
-                    },
-                    text: "I agree with Jane, this is really helpful!",
-                    createdAt: new Date().toISOString(),
-                    likes: 2,
-                    isLiked: false
-                  }
-                ]
-              }
-            ],
-            reads: 128
-          },
-          isLiked: false,
-          estimatedReadTime: "5 min read",
-          relatedPosts: [
-            { id: "related1", title: "Related Post 1", image: "" },
-            { id: "related2", title: "Related Post 2", image: "" }
-          ]
-        };
-        
-        setPost(mockPost);
-        setLoading(false);
-      } catch (error) {
-        console.error("Error fetching post:", error);
-        setLoading(false);
+    const handleResize = () => {
+      setWindowSize({
+        width: window.innerWidth,
+        height: window.innerHeight
+      });
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Handle clicks outside dropdown
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowDropdown(false);
       }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // Fetch post data based on postId
+  useEffect(() => {
+    const fetchPost = async () => {
+      // Simulate API call with mock data including comments
+      const mockPost = {
+        id: postId,
+        author: { id: "user2", name: "John Doe", username: "@johndoe", avatar: "/images/profile.jpg" },
+        timePosted: "2 hours ago",
+        title: decodeURIComponent(postName.replace(/-/g, ' ')),
+        content: "Curabitur euismod magna a volutpat rhoncus. Nam vel risus euismod, vestibulum dui at, aliquam purus. Donec vel turpis in odio tincidunt volutpat ac ac lacus. Integer in mollis justo. Nullam vitae sapien feugiat, congue ipsum at, vehicula sapien.",
+        image: "/images/post.png",
+        tags: ["Technology", "Programming"],
+        stats: { likes: 24, comments: 3, reads: 150 },
+        isLiked: false,
+        category: category
+      };
+      
+      // Mock comments data with nested structure
+      const mockComments = [
+        {
+          id: "c1",
+          author: { id: "user3", name: "Alice Smith", username: "@alice", avatar: "/images/profile3.jpg" },
+          content: "Great post! I learned a lot from this.",
+          time: '1 hour ago',
+          likes: 5,
+          likedByUser: false,
+          comments: [
+            {
+              id: "c1-1",
+              author: currentUser,
+              content: "Thanks Alice! Glad you found it helpful.",
+              time: '30 minutes ago',
+              likes: 2,
+              likedByUser: true,
+              comments: []
+            }
+          ]
+        },
+        {
+          id: "c2",
+          author: { id: "user4", name: "Bob Johnson", username: "@bob", avatar: "/images/profile2.jpg" },
+          content: "Interesting perspective. Have you considered the implications for X?",
+          time: '45 minutes ago',
+          likes: 3,
+          likedByUser: false,
+          comments: []
+        }
+      ];
+      
+      setPost(mockPost);
+      setComments(mockComments);
     };
 
     fetchPost();
   }, [postId, postName, category]);
 
-
-
-
+  // Scroll to comments if hash is present and focus comment input
   useEffect(() => {
-    // This runs after the post data is loaded
-    if (!loading && post) {
-      // Check the URL hash
-      const hash = window.location.hash;
-      
-      if (hash === '#comments') {
-        // Scroll to and focus the comment input
-        const commentInput = document.querySelector('input[type="text"]');
-        if (commentInput) {
-          commentInput.focus();
-          commentInput.scrollIntoView({ behavior: 'smooth' });
-        }
-      } else {
-        // Scroll to top if no hash or hash is #top
-        window.scrollTo(0, 0);
+    if (window.location.hash === '#comments') {
+      const commentsSection = document.getElementById('comments');
+      if (commentsSection) {
+        commentsSection.scrollIntoView({ behavior: 'smooth' });
+        
+        // Add slight delay to ensure the element is available
+        setTimeout(() => {
+          if (commentInputRef.current) {
+            commentInputRef.current.focus();
+          }
+        }, 300);
       }
     }
-  }, [loading, post]);
+  }, []);
+
+  const toggleDropdown = useCallback(() => {
+    setShowDropdown(prev => !prev);
+  }, []);
+
+  const handleOptionSelect = (option) => {
+    setShowDropdown(false);
+    console.log(`Selected option: ${option}`);
+  };
 
   const handleLike = () => {
-    if (post) {
-      setPost({
-        ...post,
-        isLiked: !post.isLiked,
-        stats: {
-          ...post.stats,
-          likes: post.isLiked ? post.stats.likes - 1 : post.stats.likes + 1
-        }
-      });
-    }
-  };
-
-  const handleCommentLike = (commentId, isReply = false, replyId = null) => {
-    if (!post) return;
-
-    setPost({
-      ...post,
-      stats: {
-        ...post.stats,
-        comments: post.stats.comments.map(comment => {
-          if (isReply && comment.id === commentId) {
-            // Handle reply like
-            return {
-              ...comment,
-              replies: comment.replies.map(reply => {
-                if (reply.id === replyId) {
-                  return {
-                    ...reply,
-                    isLiked: !reply.isLiked,
-                    likes: reply.isLiked ? reply.likes - 1 : reply.likes + 1
-                  };
-                }
-                return reply;
-              })
-            };
-          } else if (!isReply && comment.id === commentId) {
-            // Handle comment like
-            return {
-              ...comment,
-              isLiked: !comment.isLiked,
-              likes: comment.isLiked ? comment.likes - 1 : comment.likes + 1
-            };
-          }
-          return comment;
-        })
+    setPost(prev => ({
+      ...prev,
+      isLiked: !prev.isLiked,
+      stats: { 
+        ...prev.stats, 
+        likes: prev.isLiked ? prev.stats.likes - 1 : prev.stats.likes + 1 
       }
-    });
+    }));
   };
 
-  const handleReply = (commentId, authorUsername) => {
-    setReplyingTo({ commentId, authorUsername });
-    setCommentText(`@${authorUsername} `);
-    document.querySelector('input[type="text"]')?.focus();
-  };
-
-  const cancelReply = () => {
-    setReplyingTo(null);
-    setCommentText('');
+  const handleCommentLike = (commentId) => {
+    const updateCommentLikes = (comments) => {
+      return comments.map(comment => {
+        if (comment.id === commentId) {
+          return {
+            ...comment,
+            likes: comment.likedByUser ? comment.likes - 1 : comment.likes + 1,
+            likedByUser: !comment.likedByUser
+          };
+        }
+        
+        if (comment.comments && comment.comments.length > 0) {
+          return {
+            ...comment,
+            comments: updateCommentLikes(comment.comments)
+          };
+        }
+        
+        return comment;
+      });
+    };
+    
+    setComments(updateCommentLikes(comments));
   };
 
   const handleCommentSubmit = (e) => {
     e.preventDefault();
+    if (!commentText.trim()) return;
     
-    if (commentText.trim() && post) {
-      const newCommentOrReply = {
-        id: `comment${Date.now()}`,
-        author: currentUser,
-        text: commentText,
-        createdAt: new Date().toISOString(),
-        likes: 0,
-        isLiked: false
-      };
-
-      if (replyingTo) {
-        // Add reply to existing comment
-        setPost({
-          ...post,
-          stats: {
-            ...post.stats,
-            comments: post.stats.comments.map(comment => {
-              if (comment.id === replyingTo.commentId) {
-                return {
-                  ...comment,
-                  replies: [...(comment.replies || []), newCommentOrReply]
-                };
-              }
-              return comment;
-            })
-          }
-        });
-        cancelReply();
-      } else {
-        // Add new top-level comment
-        setPost({
-          ...post,
-          stats: {
-            ...post.stats,
-            comments: [...post.stats.comments, newCommentOrReply]
-          }
-        });
-        setCommentText('');
+    const newComment = {
+      id: `c${Date.now()}`,
+      author: currentUser,
+      content: commentText,
+      time: 'Just now',
+      likes: 0,
+      likedByUser: false,
+      comments: []
+    };
+    
+    setComments([newComment, ...comments]);
+    setPost(prev => ({
+      ...prev,
+      stats: {
+        ...prev.stats,
+        comments: prev.stats.comments + 1
       }
-    }
+    }));
+    setCommentText('');
   };
 
-  if (loading) {
-    return (
-      <div className="container mx-auto p-4 flex justify-center items-center min-h-screen">
-        <div className="animate-pulse flex flex-col items-center">
-          <div className="h-8 w-64 bg-gray-200 rounded mb-4"></div>
-          <div className="h-4 w-32 bg-gray-200 rounded"></div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!post) {
-    return (
-      <div className="container mx-auto p-4 text-center min-h-screen flex flex-col justify-center">
-        <h2 className="text-2xl font-bold text-red-500 mb-2">Post Not Found</h2>
-        <p className="text-gray-600">The post you are looking for might have been removed or is temporarily unavailable.</p>
-      </div>
-    );
-  }
-
-  const renderCommentActions = (comment, isReply = false, parentId = null) => {
-    return (
-      <div className="flex items-center gap-4 mt-2 text-sm">
-        <button 
-          onClick={() => handleCommentLike(comment.id, isReply, isReply ? comment.id : null)}
-          className="flex items-center gap-1 text-gray-500 hover:text-red-500"
-        >
-          {comment.isLiked ? 
-            <AiFillHeart className="w-4 h-4 text-red-500" /> : 
-            <AiOutlineHeart className="w-4 h-4" />
-          }
-          <span>{comment.likes || 0}</span>
-        </button>
+  const handleReplySubmit = (parentCommentId) => {
+    if (!replyText.trim()) return;
+    
+    const addReplyToComment = (comments) => {
+      return comments.map(comment => {
+        if (comment.id === parentCommentId) {
+          const newReply = {
+            id: `c${Date.now()}`,
+            author: currentUser,
+            content: replyText,
+            time: 'Just now',
+            likes: 0,
+            likedByUser: false,
+            comments: []
+          };
+          
+          return {
+            ...comment,
+            comments: [...comment.comments, newReply]
+          };
+        }
         
-        {!isReply && (
-          <button 
-            onClick={() => handleReply(parentId || comment.id, comment.author.username)}
-            className="flex items-center gap-1 text-gray-500 hover:text-blue-500"
-          >
-            <AiOutlineMessage className="w-4 h-4" />
-            <span>Reply</span>
-          </button>
+        if (comment.comments && comment.comments.length > 0) {
+          return {
+            ...comment,
+            comments: addReplyToComment(comment.comments)
+          };
+        }
+        
+        return comment;
+      });
+    };
+    
+    setComments(addReplyToComment(comments));
+    setPost(prev => ({
+      ...prev,
+      stats: {
+        ...prev.stats,
+        comments: prev.stats.comments + 1
+      }
+    }));
+    setReplyText('');
+    setReplyingTo(null);
+  };
+
+  const handleEditComment = (commentId, currentText) => {
+    setEditingCommentId(commentId);
+    setEditCommentText(currentText);
+  };
+
+  const handleUpdateComment = (commentId) => {
+    if (!editCommentText.trim()) return;
+    
+    const updateCommentText = (comments) => {
+      return comments.map(comment => {
+        if (comment.id === commentId) {
+          return {
+            ...comment,
+            content: editCommentText
+          };
+        }
+        
+        if (comment.comments && comment.comments.length > 0) {
+          return {
+            ...comment,
+            comments: updateCommentText(comment.comments)
+          };
+        }
+        
+        return comment;
+      });
+    };
+    
+    setComments(updateCommentText(comments));
+    setEditingCommentId(null);
+    setEditCommentText('');
+  };
+
+  const handleDeleteComment = (commentId) => {
+    const deleteComment = (comments) => {
+      const filteredComments = comments.filter(comment => comment.id !== commentId);
+      
+      return filteredComments.map(comment => {
+        if (comment.comments && comment.comments.length > 0) {
+          return {
+            ...comment,
+            comments: deleteComment(comment.comments)
+          };
+        }
+        return comment;
+      });
+    };
+    
+    setComments(deleteComment(comments));
+    setPost(prev => ({
+      ...prev,
+      stats: {
+        ...prev.stats,
+        comments: prev.stats.comments - 1
+      }
+    }));
+  };
+
+  const sortComments = (comments) => {
+    if (commentSort === 'recent') {
+      return [...comments].sort((a, b) => new Date(b.time) - new Date(a.time));
+    }
+    // Default is 'relevant' which sorts by likes
+    return [...comments].sort((a, b) => b.likes - a.likes);
+  };
+
+  const renderCommentMenu = (comment) => {
+    const isCurrentUserComment = comment.author.id === currentUser.id;
+    
+    return (
+      <Menu>
+        {isCurrentUserComment && (
+          <>
+            <Menu.Item key="edit" onClick={() => handleEditComment(comment.id, comment.content)}>
+              Edit Comment
+            </Menu.Item>
+            <Menu.Item key="delete" onClick={() => handleDeleteComment(comment.id)}>
+              Delete Comment
+            </Menu.Item>
+          </>
         )}
+        {!isCurrentUserComment && (
+          <Menu.Item key="report">Report Comment</Menu.Item>
+        )}
+      </Menu>
+    );
+  };
+
+  const renderComment = (comment, depth = 0) => {
+    const isEditing = editingCommentId === comment.id;
+    
+    return (
+      <div 
+        key={comment.id} 
+        className={`mb-4 ${depth > 0 ? 'ml-8 border-l-2 border-gray-200 pl-4' : ''}`}
+      >
+        <Card className="rounded-2xl">
+          <div className="flex items-center mb-3">
+            <Avatar src={comment.author.avatar} size={32} />
+            <div className="ml-2">
+              <div className="font-medium">{comment.author.username}</div>
+              <div className="text-xs text-gray-500">{comment.time}</div>
+            </div>
+            <div className="ml-auto">
+              <Dropdown 
+                overlay={renderCommentMenu(comment)} 
+                trigger={['click']}
+                placement="bottomRight"
+              >
+                <Button type="text" icon={<EllipsisOutlined />} />
+              </Dropdown>
+            </div>
+          </div>
+
+          {isEditing ? (
+            <div className="mb-3">
+              <Input.TextArea 
+                value={editCommentText}
+                onChange={(e) => setEditCommentText(e.target.value)}
+                autoSize={{ minRows: 2, maxRows: 6 }}
+              />
+              <div className="flex justify-end mt-2">
+                <Button onClick={() => setEditingCommentId(null)} className="mr-2">
+                  Cancel
+                </Button>
+                <Button 
+                  type="primary" 
+                  onClick={() => handleUpdateComment(comment.id)}
+                  disabled={!editCommentText.trim()}
+                >
+                  Update
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <p className="text-gray-700 mb-3 pl-10">
+              {comment.content}
+            </p>
+          )}
+
+          <div className="flex items-center text-gray-600">
+            <button 
+              className="flex items-center mr-4 hover:text-blue-500"
+              onClick={() => handleCommentLike(comment.id)}
+            >
+              {comment.likedByUser ? (
+                <LikeFilled className="mr-1 text-blue-500" />
+              ) : (
+                <LikeOutlined className="mr-1" />
+              )}
+              <span>{comment.likes}</span>
+            </button>
+
+            <button 
+              className="flex items-center hover:text-blue-500"
+              onClick={() => setReplyingTo(replyingTo === comment.id ? null : comment.id)}
+            >
+              <MessageOutlined className="mr-1" />
+              <span>Reply</span>
+            </button>
+          </div>
+
+          {replyingTo === comment.id && (
+            <div className="mt-3 flex gap-2">
+              <Input.TextArea
+                placeholder="Write your reply..."
+                value={replyText}
+                onChange={(e) => setReplyText(e.target.value)}
+                autoSize={{ minRows: 1, maxRows: 4 }}
+              />
+              <Button 
+                type="primary" 
+                onClick={() => handleReplySubmit(comment.id)}
+                disabled={!replyText.trim()}
+              >
+                Post
+              </Button>
+            </div>
+          )}
+
+          {comment.comments && comment.comments.length > 0 && (
+            <div className="mt-3">
+              {comment.comments.map(childComment => 
+                renderComment(childComment, depth + 1)
+              )}
+            </div>
+          )}
+        </Card>
       </div>
     );
   };
+
+  const isMobile = windowSize.width < 640;
+  const isTablet = windowSize.width >= 640 && windowSize.width < 1024;
+  const isDesktop = windowSize.width >= 1024;
+
+  const renderAuthorAvatar = (author) => (
+    author.avatar ? (
+      <img 
+        src={author.avatar} 
+        alt="Author avatar" 
+        className={`${isMobile ? 'w-6 h-6' : isTablet ? 'w-8 h-8' : 'w-10 h-10'} rounded-full cursor-pointer`}
+      />
+    ) : (
+      <div className={`${isMobile ? 'w-6 h-6' : isTablet ? 'w-8 h-8' : 'w-10 h-10'} rounded-full bg-gray-300 flex items-center justify-center text-xs`}>
+        {author.name.charAt(0).toUpperCase()}
+      </div>
+    )
+  );
+
+  const renderDropdown = () => (
+    <div className={`absolute right-0 mt-1 ${isMobile ? 'w-32' : isTablet ? 'w-36' : 'w-40'} bg-white rounded-lg shadow-lg border border-gray-200 z-10`}>
+      <div className="py-1">
+        <button onClick={() => handleOptionSelect('report')} className="w-full text-left cursor-pointer px-3 py-2 flex items-center gap-2 hover:bg-gray-100 text-sm">
+          <Image src="/icons/report.png" height={16} width={16} alt="report" />
+          <span className="-mt-1">Report Post</span>
+        </button>
+      </div>
+    </div>
+  );
+
+  const renderTags = () => (
+    post?.tags?.length > 0 && (
+      <div className="flex flex-wrap items-center gap-2">
+        {post.tags.map((tag, index) => (
+          <span key={index} className="bg-[#E6E6FF] text-xs py-1 px-2 rounded">
+            {tag}
+          </span>
+        ))}
+      </div>
+    )
+  );
+
+  if (!post) return <div className="min-h-screen bg-gray-100 p-4 flex items-center justify-center">Loading...</div>;
 
   return (
-    <div className="bg-gray-50 min-h-screen pb-12">
-      {/* Hero section with image */}
-      {post.image && (
-        <div className="relative w-full h-64 md:h-96 overflow-hidden">
-          <div 
-            className="absolute inset-0 bg-cover bg-center" 
-            style={{ backgroundImage: `url(${post.image})` }}
-          >
-            <div className="absolute inset-0 bg- bg-opacity-50"></div>
-          </div>
-          <div className="container mx-auto px-4 h-full flex flex-col justify-end pb-8 relative z-10">
-            <div className="inline-block bg-primary  text-white text-sm font-medium px-3 py-3 w-20 text-center rounded mb-4">
-              {post.category}
-            </div>
-            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4 max-w-3xl">
-              {post.title}
-            </h1>
-            <div className="flex items-center text-white gap-4">
+    <div className="min-h-screen bg-gray-100 p-4">
+      <main className="max-w-2xl mx-auto">
+        {/* Post card */}
+        <div className="mb-6">
+          <div className={`rounded-lg bg-white shadow ${isMobile ? 'p-3' : isTablet ? 'p-4' : 'p-5'}`}>
+            <div className="flex justify-between items-center mb-3">
               <div className="flex items-center gap-2">
-                <AiOutlineCalendar className="w-4 h-4" />
-                <span className="text-sm">{post.timePosted}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <AiOutlineBook className="w-4 h-4" />
-                <span className="text-sm">{post.estimatedReadTime}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <AiOutlineEye className="w-4 h-4" />
-                <span className="text-sm">{post.stats.reads} reads</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-      
-      <div className="container mx-auto px-4 max-w-3xl">
-        <div className="bg-white rounded-lg shadow-md -mt-10 relative z-20 p-6 md:p-8">
-          {/* Author information */}
-          <div className="flex items-center justify-between mb-8 border-b pb-6">
-            <div className="flex items-center gap-4">
-              {post.author.avatar ? (
-                <img 
-                  src={post.author.avatar} 
-                  alt="Author avatar" 
-                  className="w-12 h-12 rounded-full border-2 border-white shadow-sm"
-                />
-              ) : (
-                <div className="w-12 h-12 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-lg text-white font-bold border-2 border-white shadow-sm">
-                  {post.author.name.charAt(0).toUpperCase()}
+                {renderAuthorAvatar(post.author)}
+                <div className="flex flex-col justify-center sm:items-center sm:gap-1">
+                  <span className={`font-medium cursor-pointer ${isMobile ? 'text-xs' : 'text-sm'} text-gray-900`}>
+                    {post.author.username || post.author.name}
+                  </span>
+                  <span className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-500 pl-2`}>{post.timePosted}</span>
                 </div>
-              )}
-              <div>
-                <div className="font-bold text-gray-900">{post.author.name}</div>
-                <div className="text-sm text-gray-500">@{post.author.username}</div>
+              </div>
+              
+              <div className="relative" ref={dropdownRef}>
+                <button 
+                  className="font-bold p-1 rounded hover:bg-gray-100 cursor-pointer" 
+                  onClick={toggleDropdown}
+                >
+                  <EllipsisOutlined className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'}`} />
+                </button>
+                {showDropdown && renderDropdown()}
               </div>
             </div>
             
-            <div className="flex items-center gap-3">
-              <button 
-                onClick={handleLike}
-                className="flex items-center gap-1 px-3 py-2 border rounded-full hover:bg-gray-50 transition-colors"
-              >
-                {post.isLiked ? 
-                  <AiFillHeart className="w-5 h-5 text-red-500" /> : 
-                  <AiOutlineHeart className="w-5 h-5 text-gray-500" />
-                }
-                <span className="font-medium">{post.stats.likes}</span>
-              </button>
-              
-              <button 
-                onClick={() => {/* Share functionality */}}
-                className="flex items-center gap-1 px-3 py-2 border rounded-full hover:bg-gray-50 transition-colors"
-              >
-                <AiOutlineShareAlt className="w-5 h-5 text-gray-500" />
-                <span className="font-medium">Share</span>
-              </button>
+            {post.title && (
+              <h2 className={`${isMobile ? 'text-lg' : isTablet ? 'text-xl' : 'text-2xl'} font-bold mb-3`}>
+                {post.title}
+              </h2>
+            )}
+            
+            <div className={`mb-3 text-gray-700 ${isMobile ? 'text-sm' : 'text-base'}`}>
+              {post.content}
             </div>
-          </div>
-          
-          {/* Tags */}
-          {post.tags.length > 0 && (
-            <div className="flex flex-wrap gap-2 mb-6">
-              <AiOutlineTag className="w-5 h-5 text-gray-500" />
-              {post.tags.map((tag, index) => (
-                <span 
-                  key={index} 
-                  className="bg-gray-100 text-gray-700 text-sm py-1 px-3 rounded-full hover:bg-gray-200 cursor-pointer transition-colors"
-                >
-                  #{tag}
-                </span>
-              ))}
-            </div>
-          )}
-          
-          {/* Post content */}
-          <div className="prose prose-lg max-w-none mb-10">
-            <p className="text-gray-700 leading-relaxed">{post.content}</p>
-          </div>
-        </div>
-      </div>
-      
-      {/* Comments section */}
-      <div className="container mx-auto px-4 max-w-3xl mt-8">
-        <div className="bg-white rounded-lg shadow-md p-6 md:p-8">
-          <h2 className="text-2xl font-bold mb-6">Comments ({post.stats.comments?.length || 0})</h2>
-          
-          {/* Comment form */}
-          <form onSubmit={handleCommentSubmit} className="flex gap-3 mb-8">
-            {currentUser?.avatar ? (
-              <img 
-                src={currentUser.avatar} 
-                alt="Your avatar" 
-                className="w-10 h-10 rounded-full"
-              />
-            ) : (
-              <div className="w-10 h-10 rounded-full bg-gradient-to-r from-green-400 to-blue-500 flex items-center justify-center text-lg text-white font-bold">
-                {currentUser?.name?.charAt(0).toUpperCase() || 'Y'}
+            
+            {post.image && (
+              <div className="mb-4">
+                <img 
+                  src={post.image} 
+                  alt="Post content" 
+                  className="w-full h-auto rounded-lg object-cover"
+                />
               </div>
             )}
-            <div className="flex-1 flex flex-col gap-2">
-              {replyingTo && (
-                <div className="flex items-center justify-between bg-blue-50 px-3 py-1 rounded-t-lg">
-                  <span className="text-sm text-blue-600">Replying to @{replyingTo.authorUsername}</span>
-                  <button 
-                    type="button"
-                    onClick={cancelReply}
-                    className="text-sm text-blue-600 hover:text-blue-800"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              )}
-              <div className="flex">
-                    <input
-                    id="comment-input"
-                    type="text"
-                    value={commentText}
-                    onChange={(e) => setCommentText(e.target.value)}
-                    placeholder={replyingTo ? "Write your reply..." : "Add to the discussion"}
-                    className="flex-1 border border-gray-300 rounded-l-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                <button
-                  type="submit"
-                  disabled={!commentText.trim()}
-                  className="bg-blue-600 text-white rounded-r-lg px-4 py-2 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-4 sm:gap-6">
+               
+              <button onClick={handleLike} className="flex items-center cursor-pointer hover:bg-gray-100 p-1 rounded">
+                  {post.isLiked ? 
+                    <LikeFilled className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} text-[#4096FF]`} /> : 
+                    <LikeOutlined className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} text-gray-500`} />
+                  }
+                  <span className={`ml-1 ${isMobile ? 'text-xs' : 'text-sm'} text-gray-700`}>
+                    {post.stats.likes || 0}
+                  </span>
+                </button>
+
+                <button 
+                  className="flex items-center cursor-pointer hover:bg-gray-100 p-1 rounded"
+                  onClick={() => {
+                    document.getElementById('comments').scrollIntoView({ behavior: 'smooth' });
+                  }}
                 >
-                  <AiOutlineSend className="w-5 h-5" />
+                  <MessageOutlined className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} text-gray-500`} />
+                  <span className={`ml-1 ${isMobile ? 'text-xs' : 'text-sm'} text-gray-700`}>
+                    {post.stats.comments || 0}
+                  </span>
+                </button>
+
+                {renderTags()}
+              </div>
+
+              <div className="flex items-center gap-3">
+                {post.stats.reads > 0 && (
+                  <div className={`flex items-center gap-1 ${isMobile ? 'text-xs' : 'text-sm'} text-gray-500`}>
+                    <Image src="/icons/read.png" width={20} height={20} alt="read all user" />
+                    <span className="pt-1">{post.stats.reads}</span>
+                  </div>
+                )}
+                
+                <button className="text-gray-500 px-2 py-1.5 cursor-pointer hover:bg-gray-100 rounded-sm">
+                  <ShareAltOutlined className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'}`} />
                 </button>
               </div>
             </div>
-          </form>
-          
-          {/* Existing comments */}
-          {post.stats.comments?.length > 0 ? (
-            <div className="space-y-6">
-              {post.stats.comments.map(comment => (
-                <div key={comment.id} className="flex flex-col gap-4">
-                  <div className="flex gap-3">
-                    {comment.author?.avatar ? (
-                      <img 
-                        src={comment.author.avatar} 
-                        alt="Comment author avatar" 
-                        className="w-10 h-10 rounded-full"
-                      />
-                    ) : (
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-400 to-pink-500 flex items-center justify-center text-lg text-white font-bold">
-                        {comment.author?.name?.charAt(0).toUpperCase() || 'U'}
-                      </div>
-                    )}
-                    <div className="flex-1">
-                      <div className="bg-gray-50 p-4 rounded-lg">
-                        <div className="flex justify-between items-center mb-2">
-                          <span className="font-medium">
-                            {comment.author?.username || comment.author?.name || 'Unknown'}
-                          </span>
-                          <span className="text-sm text-gray-500">
-                            {new Date(comment.createdAt).toLocaleDateString()}
-                          </span>
-                        </div>
-                        <p>{comment.text}</p>
-                        {renderCommentActions(comment)}
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* Replies */}
-                  {comment.replies?.length > 0 && (
-                    <div className="ml-14 pl-4 border-l-2 border-gray-200 space-y-4">
-                      {comment.replies.map(reply => (
-                        <div key={reply.id} className="flex gap-3">
-                          {reply.author?.avatar ? (
-                            <img 
-                              src={reply.author.avatar} 
-                              alt="Reply author avatar" 
-                              className="w-8 h-8 rounded-full"
-                            />
-                          ) : (
-                            <div className="w-8 h-8 rounded-full bg-gradient-to-r from-yellow-400 to-orange-500 flex items-center justify-center text-sm text-white font-bold">
-                              {reply.author?.name?.charAt(0).toUpperCase() || 'U'}
-                            </div>
-                          )}
-                          <div className="flex-1">
-                            <div className="bg-gray-50 p-3 rounded-lg">
-                              <div className="flex justify-between items-center mb-2">
-                                <span className="font-medium text-sm">
-                                  {reply.author?.username || reply.author?.name || 'Unknown'}
-                                </span>
-                                <span className="text-xs text-gray-500">
-                                  {new Date(reply.createdAt).toLocaleDateString()}
-                                </span>
-                              </div>
-                              <p className="text-sm">{reply.text}</p>
-                              {renderCommentActions(reply, true, comment.id)}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8 bg-gray-50 rounded-lg">
-              <div className="text-gray-500 font-medium">Be the first to add to the discussion!</div>
-              <p className="text-gray-400 text-sm mt-2">Your thoughts and opinions matter.</p>
-            </div>
-          )}
+          </div>
         </div>
-      </div>
+
+        {/* Comment form */}
+        <form onSubmit={handleCommentSubmit} className="mb-4">
+          <div className="flex gap-3 items-center">
+            <Avatar src={currentUser.avatar} size={32} />
+            <Input
+              ref={commentInputRef}
+              placeholder="Add Comment"
+              value={commentText}
+              onChange={(e) => setCommentText(e.target.value)}
+              style={{ paddingBottom: "30px" }}
+              className="ml-2 rounded-full bg-gray-100 border-gray-200"
+            />
+          </div>
+          <Button 
+            type="primary" 
+            htmlType="submit" 
+            className="mt-2 ml-12"
+            disabled={!commentText.trim()}
+          >
+            Post Comment
+          </Button>
+        </form>
+
+        {/* Comments section */}
+        <div id="comments" className='flex flex-col gap-3'>
+          <div className="flex items-center justify-start -ml-3">
+            <Select
+              value={commentSort}
+              onChange={(value) => setCommentSort(value)}
+              bordered={false}
+              className="text-gray-600 font-medium"
+              style={{ fontWeight: "bold" }}
+              options={[
+                { value: 'relevant', label: 'Most relevant' },
+                { value: 'recent', label: 'Most recent' },
+              ]}
+            />
+          </div>
+
+          {sortComments(comments).map(comment => renderComment(comment))}
+        </div>
+      </main>
     </div>
   );
 }

@@ -1,12 +1,11 @@
 "use client";
-import React, { useState } from 'react';
-import { Modal, Input, Form, Button, Grid, Upload } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { Modal, Input, Form, Button, Grid, Upload , Row, Col} from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 
-const { useBreakpoint } = Grid;
-
 const ProfileBanner = () => {
-  const screens = useBreakpoint();
+  // Use Grid.useBreakpoint directly since destructuring doesn't work properly
+  const screens = Grid.useBreakpoint();
   const isMobile = !screens.md;
   
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -20,6 +19,13 @@ const ProfileBanner = () => {
   });
   
   const [fileList, setFileList] = useState([]);
+
+  // Reset form with updated userData when it changes
+  useEffect(() => {
+    if (isModalOpen) {
+      form.setFieldsValue(userData);
+    }
+  }, [userData, isModalOpen, form]);
 
   const showModal = () => {
     // Reset file list when opening modal
@@ -40,10 +46,15 @@ const ProfileBanner = () => {
         // and get back a URL. For now, we'll simulate this with a fake URL
         const fakeImageUrl = URL.createObjectURL(fileList[0].originFileObj);
         values.profileImage = fakeImageUrl;
+      } else {
+        // Keep the existing image if no new one was uploaded
+        values.profileImage = userData.profileImage;
       }
       
       setUserData(values);
       setIsModalOpen(false);
+    }).catch(error => {
+      console.error('Validation failed:', error);
     });
   };
 
@@ -66,7 +77,7 @@ const ProfileBanner = () => {
   };
 
   return (
-    <div className="bg-gray-200 pt-20 flex items-center justify-center">
+    <div className="bg-[#EBEBFF] pt-20 flex items-center justify-center">
       <div className="bg-white rounded-lg w-full max-w-7xl shadow-md">
         <div className="flex justify-between items-center px-4 sm:px-6 py-4 relative">
           <div className="absolute left-1/2 -translate-x-1/2 -top-12">
@@ -78,7 +89,6 @@ const ProfileBanner = () => {
                   className="w-full h-full object-cover"
                 />
               </div>
-              
             </div>
           </div>
           <div className="flex-1"></div>
@@ -145,20 +155,39 @@ const ProfileBanner = () => {
           layout="vertical"
           initialValues={userData}
         >
-          <Form.Item
-            name="profileImage"
-            label="Profile Picture"
-            valuePropName="file"
-          >
-            <Upload {...uploadProps}>
-              {fileList.length === 0 && (
-                <div>
-                  <PlusOutlined />
-                  <div style={{ marginTop: 8 }}>Upload</div>
-                </div>
-              )}
-            </Upload>
-          </Form.Item>
+
+<Form.Item label="Profile Picture">
+  <Row gutter={16} align="middle">
+    {/* Profile Image */}
+    {fileList.length === 0 && (
+      <Col xs={24} sm={8} lg={6}>
+        <div className="flex justify-center">
+          <img 
+            src={userData.profileImage} 
+            alt="Current profile" 
+            className="w-20 h-20 object-cover rounded-full"
+          />
+        </div>
+        <div className="text-xs text-gray-500 mt-1 text-center">
+          Current profile image
+        </div>
+      </Col>
+    )}
+
+    {/* Upload Section */}
+    <Col xs={24} sm={16} lg={18}>
+      <Upload {...uploadProps}>
+        {fileList.length === 0 && (
+          <div className=" p-4 rounded-lg">
+            <PlusOutlined />
+            <div style={{ marginTop: 8 }}>Upload</div>
+          </div>
+        )}
+      </Upload>
+    </Col>
+  </Row>
+</Form.Item>
+
 
           <Form.Item
             name="fullName"

@@ -11,6 +11,7 @@ import {
   DownOutlined
 } from '@ant-design/icons';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Manufacturing, Marketing, Selling, SvgImage } from '../../utils/svgImage';
 // import { useCategoriesQuery, useSubCategoryQuery } from '@/features/Category/CategoriesApi';
 
 const CategoriesSidebar = () => {
@@ -72,10 +73,9 @@ const CategoriesSidebar = () => {
       posts: '65,023',
       expandable: true,
       subcategories: [
-        { label: 'Color Theory', posts: '12,345' },
-        { label: 'Typography', posts: '8,765' },
-        { label: 'Layout Principles', posts: '15,678' },
-        { label: 'UI/UX Patterns', posts: '28,235' }
+        { label: 'Branding & Marketing', posts: '2,645', icon: <Marketing />},
+        { label: 'Selling & Distribution', posts: '82,645' , icon: <Selling /> },
+        { label: 'Manufacturing', posts: '15,678' ,  icon: <Manufacturing /> },
       ]
     },
     {
@@ -115,7 +115,7 @@ const CategoriesSidebar = () => {
  
 
   return (
-    <div className={`w-full bg-white rounded-xl ${getPadding()} sticky top-20`}>
+    <div className={`w-full bg-white rounded-xl ${getPadding()} sm:sticky sm:top-20`}>
       <h5 className={`${getTitleSize()} font-semibold px-2 mb-4`}>Categories</h5>
       <ul className="list-none p-0 m-0">
         {categories.map((item) => (
@@ -128,7 +128,7 @@ const CategoriesSidebar = () => {
             >
               <div className="flex justify-between items-center w-full">
                 <div className="flex items-center gap-3">
-                  <span className="text-gray-600 text-lg border-[1px] rounded border-gray-300 px-1.5">{item.icon}</span>
+                  <span className="text-gray-600 text-lg border-[1px] rounded shadow-md border-gray-300 px-1.5">{item.icon}</span>
                   <div className='flex flex-col gap-1'>
                   <span className={`text-gray-800 font-medium ${getItemTextSize()}`}>{item.label}</span>
                   <span className="text-xs text-gray-500">{item.posts} Posts</span>
@@ -163,8 +163,15 @@ const CategoriesSidebar = () => {
                         transition={{ delay: index * 0.05 }}
                       >
                         <div className="flex justify-between">
-                          <span>{sub.label}</span>
-                          <span className="text-xs text-gray-400">{sub.posts}</span>
+                          {/* <span>{sub.label}</span>
+                          <span className="text-xs text-gray-400">{sub.posts}</span> */}
+                           <div className="flex items-center gap-3 cursor-pointer">
+                            <span className="text-gray-600 text-lg border-[1px] rounded shadow-md border-gray-300 p-1.5">{sub.icon}</span>
+                            <div className='flex flex-col gap-1'>
+                            <span className={`text-gray-800 font-medium ${getItemTextSize()}`}>{sub.label}</span>
+                            <span className="text-xs text-gray-500">{sub.posts} Posts</span>
+                            </div>
+                          </div>
                         </div>
                       </motion.li>
                     ))}

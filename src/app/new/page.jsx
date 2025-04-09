@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   Typography, 
   Input, 
@@ -31,17 +31,28 @@ const JoditEditor = dynamic(() => import('jodit-react'), {
 const { Title, Text } = Typography;
 const { useBreakpoint } = Grid;
 
-const BlogPostForm = () => {
-  const [title, setTitle] = useState('');
-  const [category, setCategory] = useState(null);
-  const [subcategory, setSubcategory] = useState(null);
-  const [description, setDescription] = useState('');
-  const [fileList, setFileList] = useState([]);
+const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) => {
+  const [title, setTitle] = useState(initialValues?.title || '');
+  const [category, setCategory] = useState(initialValues?.category || null);
+  const [subcategory, setSubcategory] = useState(initialValues?.subcategory || null);
+  const [description, setDescription] = useState(initialValues?.description || '');
+  const [fileList, setFileList] = useState(initialValues?.fileList || []);
   const [loading, setLoading] = useState(false);
   const editorRef = useRef(null);
   const router = useRouter();
   const screens = useBreakpoint();
   
+  // Initialize form data if initialValues are provided
+  useEffect(() => {
+    if (initialValues) {
+      setTitle(initialValues.title || '');
+      setCategory(initialValues.category || null);
+      setSubcategory(initialValues.subcategory || null);
+      setDescription(initialValues.description || '');
+      setFileList(initialValues.fileList || []);
+    }
+  }, [initialValues]);
+
   // Responsive layout adjustments
   const isMobile = !screens.md;
   const isTablet = screens.md && !screens.lg;
@@ -105,22 +116,15 @@ const BlogPostForm = () => {
   const joditConfig = {
     height: isMobile ? 300 : 400,
     placeholder: "Write your post description here...",
-    toolbarSticky: false,
-    toolbarAdaptive: true,
-    buttons: [
-      'bold', 'italic', 'underline', 'strikethrough', '|', 
-      'ul', 'ol', '|',
-      'link', 'image', '|',
-      'paragraph', 'align', '|',
-      'undo', 'redo', '|',
-      'source'
-    ],
-    removeButtons: ['hr', 'about', 'print', 'table'],
-    cleanHTML: {
-      fillEmptyParagraph: false
-    },
-    spellcheck: true,
-    showPlaceholder: true
+    removeButtons: [ 'strikethrough', 'superscript', 'subscript', 
+    'font', 'fontsize', 'paragraph', 'outdent', 'indent', 'undo', 
+    'redo', 'cut', 'copy', 'paste', 'link', 'unlink', 'image', 'table', 'hr', 
+    'video', 'file', 'print', 'source', 'preview', 'clean', 'highlight', 
+    'directionality', 'left', 'right', 'center', 'justify', 'removeformat', 'formatblock', 
+    'format', 'textcolor', 'bgcolor', 'fontsize', 'fontname', 'spellcheck', 'settings', 
+    'fullsize', 'about', 'draft', 'statusbar', 'indent', 'outdent', 'insert', 'upload', 
+    'replace', 'template', 'insertImage', 'insertTable', 'insertLink', 'insertText', 
+    'selectAll', 'clear', 'save', 'code', ],
   };
 
   const handleTitleChange = (e) => {
@@ -152,15 +156,7 @@ const BlogPostForm = () => {
     return false;
   };
 
-  const handlePublish = async () => {
-    console.log("Current form values:", { 
-      title, 
-      category,
-      subcategory,
-      description, 
-      fileCount: fileList
-    });
-    
+  const handleSubmit = async () => {
     if (!title || !category || !subcategory || !description) {
       message.warning('Please fill all required fields');
       return;
@@ -176,6 +172,11 @@ const BlogPostForm = () => {
       formData.append('subcategory', subcategory);
       formData.append('description', description);
       
+      // If editing, include the post ID
+      if (isEditing && postId) {
+        formData.append('postId', postId);
+      }
+      
       // Handle file uploads - make sure we're getting the actual File objects
       fileList.forEach((file, index) => {
         if (file.originFileObj) {
@@ -183,15 +184,13 @@ const BlogPostForm = () => {
         }
       });
   
-      // Log form data contents for debugging
-      // for (let [key, value] of formData.entries()) {
-      //   console.log(`FormData: ${key} => ${value instanceof File ? value.name : value}`);
-      // }
-  
-      // Example API call - replace with your actual API endpoint
+      // Example API call - in real implementation, you would use different endpoints for create and update
       /*
-      const response = await fetch('/api/posts', {
-        method: 'POST',
+      const endpoint = isEditing ? `/api/posts/${postId}` : '/api/posts';
+      const method = isEditing ? 'PUT' : 'POST';
+      
+      const response = await fetch(endpoint, {
+        method: method,
         body: formData,
       });
       
@@ -203,22 +202,26 @@ const BlogPostForm = () => {
       */
       
       // Simulate API call
-      // await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // message.success('Post published successfully!');
+      message.success(isEditing ? 'Post updated successfully!' : 'Post published successfully!');
       
-      // Optionally reset form after successful submission
-      setTitle('');
-      setCategory(null);
-      setSubcategory(null);
-      setDescription('');
-      setFileList([]);
+      // Call success callback if provided
+      if (onSuccess) {
+        onSuccess();
+      }
       
-      // Optionally redirect after success
-      // router.push('/blog');
+      // Reset form if not editing
+      if (!isEditing) {
+        setTitle('');
+        setCategory(null);
+        setSubcategory(null);
+        setDescription('');
+        setFileList([]);
+      }
     } catch (error) {
-      console.error('Error publishing post:', error);
-      message.error('Failed to publish post. Please try again.');
+      console.error(isEditing ? 'Error updating post:' : 'Error publishing post:', error);
+      message.error(isEditing ? 'Failed to update post. Please try again.' : 'Failed to publish post. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -245,15 +248,17 @@ const BlogPostForm = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 py-4 sm:py-8 px-2 sm:px-4">
+    <div className={isEditing ? "py-4 px-4" : "min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 py-4 sm:py-8 px-2 sm:px-4"}>
       <div className="max-w-4xl mx-auto">
         <Card 
-          className="rounded-xl shadow-lg border-0 overflow-hidden"
+          className={isEditing ? "border-0 shadow-none" : "rounded-xl shadow-lg border-0 overflow-hidden"}
         >
-          {/* Header */}
-          <div className="">
-           <Image src={"/images/create-post-image.png"} height={1000} width={1000} alt='' /> 
-          </div>
+          {/* Header - Show only in create mode, not in edit mode */}
+          {!isEditing && (
+            <div className="">
+              <Image src={"/images/create-post-image.png"} height={1000} width={1000} alt='' /> 
+            </div>
+          )}
           
           {/* Form Content */}
           <div className="py-4 sm:p-6">
@@ -314,7 +319,7 @@ const BlogPostForm = () => {
                   value={description}
                   config={joditConfig}
                   tabIndex={1}
-                  onBlur={newContent => setDescription(newContent)} // preferred to use only this option to update the content
+                  onBlur={newContent => setDescription(newContent)}
                 />
               </Card>
               <div className="mt-2 text-xs text-gray-500">
@@ -367,10 +372,13 @@ const BlogPostForm = () => {
                   type="primary" 
                   size={isMobile ? "middle" : "large"}
                   className="bg-gradient-to-r from-blue-500 to-purple-500 border-0 shadow-md hover:shadow-lg"
-                  onClick={handlePublish}
+                  onClick={handleSubmit}
                   loading={loading}
                 >
-                  {isMobile ? 'Publish' : 'Publish Post'}
+                  {isEditing 
+                    ? (isMobile ? 'Update' : 'Update Post') 
+                    : (isMobile ? 'Publish' : 'Publish Post')
+                  }
                 </Button>
               </Col>
             </Row>
