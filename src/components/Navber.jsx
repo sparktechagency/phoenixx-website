@@ -359,7 +359,7 @@ export default function Navbar() {
                   {screens.lg ? 'New Post' : ''}
                 </Button>
                 
-                <Badge count={5}>
+                <Badge style={{backgroundColor:"#2930FF"}} count={5}>
                   <Button 
                     onClick={() => handleNavigation("/chat")}
                     type="text" 
@@ -369,7 +369,7 @@ export default function Navbar() {
                   />
                 </Badge>
                 
-                <Badge count={3}>
+                <Badge style={{backgroundColor:"#2930FF"}} count={3}>
                   <Button 
                     onClick={() => handleNavigation("/notification")}
                     type="text" 

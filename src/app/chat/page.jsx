@@ -269,9 +269,9 @@ export default function ChatApp() {
 
       {/* Left sidebar - Contacts */}
       {(showSidebar || !isMobileView) && (
-        <div className={`w-full md:w-80 bg-white shadow-sm border-r rounded-md border-gray-200 flex flex-col ${isMobileView ? 'absolute z-10 h-full' : ''}`}>
+        <div className={`w-full md:w-80 bg-white rounded-lg shadow  flex flex-col ${isMobileView ? 'absolute z-10 h-full' : ''}`}>
           {/* User header */}
-          <div className="p-4 border-b border-gray-200 flex items-center justify-between bg-white">
+          <div className="p-4 border rounded-t-lg border-gray-200 flex items-center justify-between bg-white">
             <div className="flex items-center">
               <Avatar src="https://randomuser.me/api/portraits/men/1.jpg" size="large" className="mr-3" />
               <div>
@@ -330,9 +330,9 @@ export default function ChatApp() {
       )}
 
       {/* Main chat area */}
-      <div className={`flex-1 flex flex-col bg-white shadow-sm border rounded-md border-gray-200 ${!showSidebar && isMobileView ? 'w-full' : ''}`}>
+      <div className={`flex-1 flex flex-col bg-white shadow rounded-lg ${!showSidebar && isMobileView ? 'w-full' : ''}`}>
         {/* Chat header */}
-        <div className="px-4 py-3 bg-white shadow-sm flex items-center justify-between border-b border-gray-200">
+        <div className="px-4 py-3 bg-white shadow-sm flex items-center justify-between border-b rounded-t-lg border-gray-200">
           <div className="flex items-center">
             {isMobileView && !showSidebar && (
               <Button 
@@ -468,7 +468,7 @@ export default function ChatApp() {
         </div>
 
         {/* Input area */}
-        <div className="p-3 bg-white border-t border-gray-200">
+        <div className="p-3 bg-white border-t rounded-b-lg border-gray-200">
           {showEmojiPicker && (
             <div className="absolute bottom-16 right-4 z-10">
               <EmojiPicker 
