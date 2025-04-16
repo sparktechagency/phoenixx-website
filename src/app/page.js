@@ -6,6 +6,7 @@ import FeedNavigation from '@/components/FeedNavigation';
 import PostCard from '@/components/PostCard';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
+import { useGetPostQuery } from '@/features/post/postApi';
 
 const Page = () => {
   const [posts, setPosts] = useState([
@@ -35,6 +36,9 @@ const Page = () => {
 
   const [gridNumber, setGridNumber] = useState(1);
   const [windowWidth, setWindowWidth] = useState(0);
+
+  const {data , isLoading} = useGetPostQuery();
+  
 
   useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);

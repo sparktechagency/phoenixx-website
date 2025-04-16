@@ -3,8 +3,8 @@ import "./globals.css";
 import { ToastContainer } from 'react-toastify';
 import Navbar from "@/components/Navber";
 import { usePathname } from "next/navigation";
-// import { Provider } from "react-redux";
-// import { store } from "../../utils/store";
+import { Provider } from "react-redux";
+import { store } from "../../utils/store";
 import 'react-toastify/dist/ReactToastify.css';
 import { ConfigProvider } from "antd";
 
@@ -41,11 +41,11 @@ export default function RootLayout({ children }) {
             }
           }}
         >
-          {/* <Provider store={store}> */}
+          <Provider store={store}>
           {!isAuthPage && <Navbar />}
           {children}
           <ToastContainer position="top-center" autoClose={2000} />
-          {/* </Provider> */}
+          </Provider>
         </ConfigProvider>
       </body>
     </html>

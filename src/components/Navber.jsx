@@ -113,7 +113,10 @@ export default function Navbar() {
       icon: <LogoutOutlined />,
       label: 'Sign Out',
       danger: true,
-      onClick: () => handleNavigation('/auth/login')
+      onClick: () => {
+        handleNavigation('/auth/login')
+        localStorage.clear();
+      }
     },
   ];
 

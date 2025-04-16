@@ -21,8 +21,9 @@ import {
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
+import { useCreatePostMutation } from '@/features/post/postApi';
+import { useCategoriesQuery, useSubCategoriesQuery } from '@/features/Category/CategoriesApi';
 
-// Dynamically import JoditEditor to avoid SSR issues
 const JoditEditor = dynamic(() => import('jodit-react'), { 
   ssr: false,
   loading: () => <p>Loading editor...</p>
@@ -41,8 +42,8 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
   const editorRef = useRef(null);
   const router = useRouter();
   const screens = useBreakpoint();
+
   
-  // Initialize form data if initialValues are provided
   useEffect(() => {
     if (initialValues) {
       setTitle(initialValues.title || '');
@@ -53,78 +54,46 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
     }
   }, [initialValues]);
 
-  // Responsive layout adjustments
   const isMobile = !screens.md;
   const isTablet = screens.md && !screens.lg;
   const isDesktop = screens.lg;
 
-  // Categories with subcategories
-  const categories = [
-    { value: 'technology', label: 'Technology' },
-    { value: 'design', label: 'Design' },
-    { value: 'business', label: 'Business' },
-    { value: 'lifestyle', label: 'Lifestyle' },
-    { value: 'health', label: 'Health & Wellness' },
-  ];
+  const [createPost, { isLoading }] = useCreatePostMutation();
+  const { data:categoryData } = useCategoriesQuery();
+  const {data: subcategoryData, isLoading: isSubcategoriesLoading} = useSubCategoriesQuery(category);
 
-  // Subcategories mapping
-  const subcategoriesMap = {
-    technology: [
-      { value: 'web-dev', label: 'Web Development' },
-      { value: 'mobile-dev', label: 'Mobile Apps' },
-      { value: 'ai', label: 'Artificial Intelligence' },
-      { value: 'cloud', label: 'Cloud Computing' },
-      { value: 'security', label: 'Cybersecurity' }
-    ],
-    design: [
-      { value: 'ui', label: 'UI Design' },
-      { value: 'ux', label: 'UX Design' },
-      { value: 'graphic', label: 'Graphic Design' },
-      { value: 'product', label: 'Product Design' },
-      { value: 'illustration', label: 'Illustration' }
-    ],
-    business: [
-      { value: 'marketing', label: 'Marketing' },
-      { value: 'entrepreneurship', label: 'Entrepreneurship' },
-      { value: 'finance', label: 'Finance' },
-      { value: 'management', label: 'Management' },
-      { value: 'strategy', label: 'Strategy' }
-    ],
-    lifestyle: [
-      { value: 'travel', label: 'Travel' },
-      { value: 'food', label: 'Food & Cooking' },
-      { value: 'fashion', label: 'Fashion' },
-      { value: 'home', label: 'Home & Decor' },
-      { value: 'hobbies', label: 'Hobbies' }
-    ],
-    health: [
-      { value: 'fitness', label: 'Fitness' },
-      { value: 'nutrition', label: 'Nutrition' },
-      { value: 'mental-health', label: 'Mental Health' },
-      { value: 'wellness', label: 'Wellness' },
-      { value: 'medical', label: 'Medical Advice' }
-    ]
-  };
+  // Transform API data to Select options
+  const categoryOptions = categoryData?.data?.result?.map(item => ({
+    value: item.category._id,
+    label: item.category.name
+  })) || [];
 
-  // Get available subcategories based on selected category
+  // Get subcategories for the selected category
   const getSubcategories = () => {
-    if (!category) return [];
-    return subcategoriesMap[category] || [];
+    if (!category || !subcategoryData?.data?.length) {
+      return [];
+    }
+    
+    return subcategoryData.data.map(sub => ({
+      value: sub._id,
+      label: sub.name
+    }));
   };
 
-  // Jodit configuration - improved settings
   const joditConfig = {
     height: isMobile ? 300 : 400,
     placeholder: "Write your post description here...",
-    removeButtons: [ 'strikethrough', 'superscript', 'subscript', 
-    'font', 'fontsize', 'paragraph', 'outdent', 'indent', 'undo', 
-    'redo', 'cut', 'copy', 'paste', 'link', 'unlink', 'image', 'table', 'hr', 
-    'video', 'file', 'print', 'source', 'preview', 'clean', 'highlight', 
-    'directionality', 'left', 'right', 'center', 'justify', 'removeformat', 'formatblock', 
-    'format', 'textcolor', 'bgcolor', 'fontsize', 'fontname', 'spellcheck', 'settings', 
-    'fullsize', 'about', 'draft', 'statusbar', 'indent', 'outdent', 'insert', 'upload', 
-    'replace', 'template', 'insertImage', 'insertTable', 'insertLink', 'insertText', 
-    'selectAll', 'clear', 'save', 'code', ],
+    removeButtons: [ 
+      'strikethrough', 'superscript', 'subscript', 
+      'font', 'fontsize', 'paragraph', 'outdent', 'indent', 'undo', 
+      'redo', 'cut', 'copy', 'paste', 'link', 'unlink', 'image', 'table', 'hr', 
+      'video', 'file', 'print', 'source', 'preview', 'clean', 'highlight', 
+      'directionality', 'left', 'right', 'center', 'justify', 'removeformat', 'formatblock', 
+      'format', 'textcolor', 'bgcolor', 'fontsize', 'fontname', 'spellcheck', 'settings', 
+      'fullsize', 'about', 'draft', 'statusbar', 'indent', 'outdent', 'insert', 'upload', 
+      'replace', 'template', 'insertImage', 'insertTable', 'insertLink', 'insertText', 
+      'selectAll', 'clear', 'save', 'code'
+    ],
   };
 
   const handleTitleChange = (e) => {
@@ -134,7 +103,6 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
 
   const handleCategoryChange = (value) => {
     setCategory(value);
-    // Reset subcategory when category changes
     setSubcategory(null);
   };
 
@@ -142,7 +110,6 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
     setSubcategory(value);
   };
 
-  // Content handler with better implementation
   const handleDescriptionChange = (newContent) => {
     setDescription(newContent);
   };
@@ -152,66 +119,41 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
   };
 
   const beforeUpload = (file) => {
-    // Return false to prevent automatic upload
     return false;
   };
 
   const handleSubmit = async () => {
-    if (!title || !category || !subcategory || !description) {
+    if (!title || !category || !description) {
       message.warning('Please fill all required fields');
       return;
     }
   
     try {
       setLoading(true);
-      
-      // Create form data object
       const formData = new FormData();
       formData.append('title', title);
       formData.append('category', category);
-      formData.append('subcategory', subcategory);
-      formData.append('description', description);
-      
-      // If editing, include the post ID
-      if (isEditing && postId) {
-        formData.append('postId', postId);
+      if (subcategory) {
+        formData.append('subCategory', subcategory);
       }
+      formData.append('content', description);
       
-      // Handle file uploads - make sure we're getting the actual File objects
-      fileList.forEach((file, index) => {
+      fileList.forEach((file) => {
         if (file.originFileObj) {
-          formData.append(`images[${index}]`, file.originFileObj);
+          formData.append("image", file.originFileObj);
         }
       });
-  
-      // Example API call - in real implementation, you would use different endpoints for create and update
-      /*
-      const endpoint = isEditing ? `/api/posts/${postId}` : '/api/posts';
-      const method = isEditing ? 'PUT' : 'POST';
-      
-      const response = await fetch(endpoint, {
-        method: method,
-        body: formData,
-      });
-      
-      if (!response.ok) {
-        throw new Error('Server responded with an error');
-      }
-      
-      const data = await response.json();
-      */
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+
+
+      const response = await createPost(formData).unwrap();
+      console.log(response);
       
       message.success(isEditing ? 'Post updated successfully!' : 'Post published successfully!');
       
-      // Call success callback if provided
       if (onSuccess) {
         onSuccess();
       }
       
-      // Reset form if not editing
       if (!isEditing) {
         setTitle('');
         setCategory(null);
@@ -220,15 +162,14 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
         setFileList([]);
       }
     } catch (error) {
-      console.error(isEditing ? 'Error updating post:' : 'Error publishing post:', error);
-      message.error(isEditing ? 'Failed to update post. Please try again.' : 'Failed to publish post. Please try again.');
+      console.error('Error:', error);
+      message.error(isEditing ? 'Failed to update post.' : 'Failed to publish post.');
     } finally {
       setLoading(false);
     }
   };
 
   const handleSaveDraft = () => {
-    // Get current form data
     const draftData = {
       title,
       category,
@@ -241,9 +182,7 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
       }))
     };
     
-    // Save to localStorage or your preferred storage
     localStorage.setItem('blogPostDraft', JSON.stringify(draftData));
-    
     message.info('Draft saved successfully');
   };
 
@@ -253,16 +192,13 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
         <Card 
           className={isEditing ? "border-0 shadow-none" : "rounded-xl shadow-lg border-0 overflow-hidden"}
         >
-          {/* Header - Show only in create mode, not in edit mode */}
           {!isEditing && (
             <div className="">
               <Image src={"/images/create-post-image.png"} height={1000} width={1000} alt='' /> 
             </div>
           )}
           
-          {/* Form Content */}
           <div className="py-4 sm:p-6">
-            {/* Title */}
             <div className="mb-6 sm:mb-8">
               <Title level={5} className="text-gray-700 mb-2">Title</Title>
               <Input 
@@ -276,7 +212,6 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
               />
             </div>
             
-            {/* Category and Subcategory */}
             <div className="mb-6 sm:mb-8">
               <Row gutter={[16, 16]}>
                 <Col xs={24} md={12}>
@@ -287,27 +222,32 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
                     onChange={handleCategoryChange}
                     className="w-full"
                     size={isMobile ? "middle" : "large"}
-                    options={categories}
+                    options={categoryOptions}
                     suffixIcon={<span className="text-gray-400">▼</span>}
                   />
                 </Col>
                 <Col xs={24} md={12}>
                   <Title level={5} className="text-gray-700 mb-2">Subcategory</Title>
                   <Select
-                    placeholder={category ? "Select a subcategory" : "Select a category first"}
+                    placeholder={
+                      isSubcategoriesLoading ? "Loading..." : 
+                      !category ? "Select a category first" : 
+                      getSubcategories().length === 0 ? "No subcategories available" : 
+                      "Select a subcategory"
+                    }
                     value={subcategory}
                     onChange={handleSubcategoryChange}
                     className="w-full"
                     size={isMobile ? "middle" : "large"}
                     options={getSubcategories()}
-                    disabled={!category}
+                    disabled={!category || getSubcategories().length === 0 || isSubcategoriesLoading}
                     suffixIcon={<span className="text-gray-400">▼</span>}
+                    notFoundContent={category && "No subcategories found"}
                   />
                 </Col>
               </Row>
             </div>
             
-            {/* Description - Jodit Editor */}
             <div className="mb-6 sm:mb-8">
               <Title level={5} className="text-gray-700 mb-2">Description</Title>
               <Card 
@@ -327,7 +267,6 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
               </div>
             </div>
             
-            {/* Image Upload */}
             <div className="mb-6 sm:mb-8">
               <Title level={5} className="text-gray-700 mb-2">Featured Images</Title>
               <Card 
@@ -355,7 +294,6 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
               </Card>
             </div>
             
-            {/* Actions */}
             <Row justify="end" gutter={[8, 8]}>
               <Col>
                 <Button 

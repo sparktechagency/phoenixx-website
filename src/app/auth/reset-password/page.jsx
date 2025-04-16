@@ -1,10 +1,10 @@
 "use client";
-// import { useResetPasswordMutation } from '@/features/auth/authApi';
+import { useResetPasswordMutation } from '@/features/auth/authApi';
 import { notification } from 'antd';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import React, { useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import React, { useState, useEffect } from 'react';
 
 const ResetPasswordPage = () => {
   const [formData, setFormData] = useState({
@@ -20,8 +20,17 @@ const ResetPasswordPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const [resetToken, setResetToken] = useState('');
 
-  // const [resetPassword, {isLoading, isError, error}] = useResetPasswordMutation()
+  const [resetPassword, {isLoading, isError, error}] = useResetPasswordMutation();
+
+  // Get token from URL or localStorage (client-side only)
+  useEffect(() => {
+    const tokenFromUrl = searchParams.get('token');
+    const tokenFromStorage = typeof window !== 'undefined' ? localStorage.getItem("forgot-password-otp-token") : null;
+    setResetToken(tokenFromUrl || tokenFromStorage || '');
+  }, [searchParams]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -46,7 +55,6 @@ const ResetPasswordPage = () => {
       confirmPassword: ''
     };
 
-    // New Password validation
     if (!formData.newPassword) {
       newErrors.newPassword = 'New password is required';
       isValid = false;
@@ -61,7 +69,6 @@ const ResetPasswordPage = () => {
       isValid = false;
     }
 
-    // Confirm Password validation
     if (!formData.confirmPassword) {
       newErrors.confirmPassword = 'Please confirm your password';
       isValid = false;
@@ -76,41 +83,51 @@ const ResetPasswordPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    const token = localStorage.getItem("forgot-password-otp-token");
     
+    if (!resetToken) {
+      notification.error({
+        message: 'Invalid Token',
+        description: 'Password reset token is missing or invalid',
+      });
+      return;
+    }
+
     if (validateForm()) {
       setIsSubmitting(true);
       
-      // try {
-      //   // Simulate API call to reset password
-      //   const response = await resetPassword({newPassword:formData.newPassword , confirmPassword:formData.confirmPassword , token: token }).unwrap()
-      //   console.log(response)
-      //   // Show success state
-      //   setIsSuccess(true);
-      //   notification.success({
-      //     message: 'Password Reset Successful',
-      //     description: 'Your password has been updated successfully',
-      //   });
+      try {
+        await resetPassword({
+          newPassword: formData.newPassword,
+          confirmPassword: formData.confirmPassword,
+        }).unwrap();
+        
+        // Clear token from localStorage
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem("forgot-password-otp-token");
+        }
 
-      //   // Reset form
-      //   setFormData({
-      //     newPassword: '',
-      //     confirmPassword: ''
-      //   });
+        setIsSuccess(true);
+        notification.success({
+          message: 'Password Reset Successful',
+          description: 'Your password has been updated successfully',
+        });
 
-      //   // Optionally redirect after delay
-      //   setTimeout(() => {
-      //     router.push('/auth/login');
-      //   }, 2000);
-      // } catch (error) {
-      //   notification.error({
-      //     message: 'Reset Failed',
-      //     description: 'Failed to reset password. Please try again.',
-      //   });
-      // } finally {
-      //   setIsSubmitting(false);
-      // }
+        setFormData({
+          newPassword: '',
+          confirmPassword: ''
+        });
+
+        setTimeout(() => {
+          router.push('/auth/login');
+        }, 2000);
+      } catch (error) {
+        notification.error({
+          message: 'Reset Failed',
+          description: error?.data?.message || 'Failed to reset password. Please try again.',
+        });
+      } finally {
+        setIsSubmitting(false);
+      }
     }
   };
 
@@ -186,11 +203,17 @@ const ResetPasswordPage = () => {
 
                 <button
                   type="submit"
-                  disabled={isSubmitting}
-                  className={`w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}
+                  disabled={isSubmitting || !resetToken}
+                  className={`w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${(isSubmitting || !resetToken) ? 'opacity-70 cursor-not-allowed' : ''}`}
                 >
                   {isSubmitting ? 'Resetting...' : 'Reset Password'}
                 </button>
+
+                {!resetToken && (
+                  <p className="mt-2 text-sm text-red-600">
+                    Password reset token is missing. Please request a new password reset link.
+                  </p>
+                )}
               </form>
             ) : (
               <div className="text-center">
