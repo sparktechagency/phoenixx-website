@@ -6,40 +6,16 @@ import FeedNavigation from '@/components/FeedNavigation';
 import PostCard from '@/components/PostCard';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
-import { useGetPostQuery } from '@/features/post/postApi';
+import { useGetPostQuery, useLikePostMutation } from '@/features/post/postApi';
+import { baseURL } from '../../utils/BaseURL';
 
 const Page = () => {
-  const [posts, setPosts] = useState([
-    {
-      id: '1',
-      author: { name: "John Doe", username: "@johndoe", avatar: "/images/profile.jpg" },
-      timePosted: "2 hours ago",
-      title: "My First Post",
-      content: "Curabitur euismod magna a volutpat rhoncus. Nam vel risus euismod, vestibulum dui at, aliquam purus. Donec vel turpis in odio tincidunt volutpat ac ac lacus. Integer in mollis justo. Nullam vitae sapien feugiat, congue ipsum at, vehicula sapien.",
-      image: "/images/post.png",
-      tags: ["Technology", "Programming"],
-      stats: { likes: 24, comments: [{ id: 'c1', author: { name: "Jane Smith", username: "@janesmith" }, text: "Great post!", createdAt: new Date() }], reads: 150 },
-      isLiked: false
-    },
-    {
-      id: '2',
-      author: { name: "John Doe", username: "@johndoe", avatar: "/images/profile.jpg" },
-      timePosted: "2 hours ago",
-      title: "My Second Post",
-      content: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore",
-      image: "/images/post.png",
-      tags: ["Design", "UI/UX"],
-      stats: { likes: 12, comments: [], reads: 75 },
-      isLiked: false
-    },
-  ]);
-
   const [gridNumber, setGridNumber] = useState(1);
   const [windowWidth, setWindowWidth] = useState(0);
 
-  const {data , isLoading} = useGetPostQuery();
+  const { data, isLoading } = useGetPostQuery();
+  const [likePost ] = useLikePostMutation()
   
-
   useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
     handleResize();
@@ -49,30 +25,28 @@ const Page = () => {
 
   const currentUser = { name: "Current User", username: "@currentuser", avatar: "/path/to/currentuser.jpg" };
 
-  const handleLike = (postId) => {
-    setPosts(posts.map(post => post.id === postId ? {
-      ...post,
-      isLiked: !post.isLiked,
-      stats: { ...post.stats, likes: post.isLiked ? post.stats.likes - 1 : post.stats.likes + 1 }
-    } : post));
+  const handleLike =async (postId) => {
+    // You'll need to implement actual like functionality with your API
+    // console.log("Liked post:", postId);
+
+    try {
+      const response = await likePost(postId).unwrap();
+      console.log(response)
+    } catch (error) {
+      console.log(error)
+    }
+
+
+  
   };
 
   const handleCommentSubmit = (postId, commentText) => {
-    setPosts(posts.map(post => post.id === postId ? {
-      ...post,
-      stats: {
-        ...post.stats, comments: [...post.stats.comments, {
-          id: `c${post.stats.comments.length + 1}`,
-          author: currentUser,
-          text: commentText,
-          createdAt: new Date()
-        }]
-      }
-    } : post));
+    // You'll need to implement actual comment functionality with your API
+    console.log("Comment on post:", postId, "Text:", commentText);
   };
 
   const TrendingTopics = () => (
-    <div className="bg-white rounded-lg  p-4 sticky top-20">
+    <div className="bg-white rounded-lg p-4 sticky top-20">
       <h3 className="text-lg font-semibold mb-4">Trending Topics</h3>
       {["WebDevelopment", "UXDesign", "JavaScript", "ResponsiveDesign"].map(topic => (
         <div key={topic} className="text-sm text-gray-600 hover:text-primary cursor-pointer py-1">
@@ -84,6 +58,31 @@ const Page = () => {
 
   const isDesktop = windowWidth >= 1024;
   const isGrid2 = gridNumber === 2 && isDesktop;
+
+  if (isLoading) {
+    return "Loading...";
+  }
+
+  // Format the API data to match your PostCard component's expected structure
+  const formatPostData = (post) => ({
+    id: post._id,
+    author: {
+      name: post.author.userName,
+      username: `@${post.author.userName}`,
+      avatar: `${post?.author?.profile}`
+    },
+    timePosted: new Date(post.createdAt).toLocaleString(),
+    title: post.title,
+    content: post.content,
+    image: post.image,
+    tags: [post.category?.name || "General"],
+    stats: {
+      likes: post.likes?.length || 0,
+      comments: post.comments?.length || 0,
+      reads: post.views || 0
+    },
+    isLiked: false // You might want to check if current user liked this post
+  });
 
   return (
     <div className='bg-[#F2F4F7]'>
@@ -117,12 +116,12 @@ const Page = () => {
                 <FeedNavigation handlefeedGrid={setGridNumber} />
                 <motion.div
                   layout
-                  className={`grid  ${isGrid2 ? 'grid-cols-2 gap-4' : 'grid-cols-1 gap-1'}`}
+                  className={`grid ${isGrid2 ? 'grid-cols-2 gap-4' : 'grid-cols-1 gap-1'}`}
                 >
-                  {posts.map(post => (
-                    <div key={post.id}>
+                  {data?.data?.data?.map((post) => (
+                    <div key={post._id}>
                       <PostCard
-                        postData={post}
+                        postData={formatPostData(post)}
                         currentUser={currentUser}
                         onLike={handleLike}
                         onCommentSubmit={handleCommentSubmit}
@@ -144,11 +143,10 @@ const Page = () => {
               <CategoriesSidebar />
               <FeedNavigation handlefeedGrid={setGridNumber} />
               <div className={`grid gap-5 ${gridNumber === 2 && windowWidth >= 640 ? 'grid-cols-2' : 'grid-cols-1'}`}>
-
-                {posts.map(post => (
-                  <div key={post.id}>
+                {data?.data?.data?.map((post) => (
+                  <div key={post._id}>
                     <PostCard
-                      postData={{ ...post, category: "general" }} // Make sure to include category
+                      postData={formatPostData(post)}
                       currentUser={currentUser}
                       onLike={handleLike}
                       onCommentSubmit={handleCommentSubmit}
