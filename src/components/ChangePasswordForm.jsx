@@ -1,13 +1,32 @@
 import React from 'react';
-import { Form, Input, Button } from 'antd';
+import { Form, Input, Button, notification } from 'antd';
 import { EyeInvisibleOutlined, EyeTwoTone } from '@ant-design/icons';
+import { useChangePasswordMutation } from '@/features/auth/authApi';
 
 const ChangePasswordForm = () => {
   const [form] = Form.useForm();
+  const [changePassword, { isLoading }] = useChangePasswordMutation();
 
-  const onFinish = (values) => {
-    console.log('Form submitted:', values);
-    // Handle password change logic here
+  const onFinish = async (values) => {
+    try {
+      const response = await changePassword(values).unwrap();
+      // Show success notification
+      // notification.success({
+      //   message: 'Success',
+      //   description: 'Password changed successfully!',
+      //   placement: 'topRight',
+      // });
+
+      alert("successfully change password")
+      form.resetFields(); // Reset form after successful submission
+    } catch (error) {
+      // Show error notification
+      notification.error({
+        message: 'Error',
+        description: error?.data?.message || 'Failed to change password. Please try again.',
+        placement: 'topRight',
+      });
+    }
   };
 
   return (
@@ -18,9 +37,9 @@ const ChangePasswordForm = () => {
         onFinish={onFinish}
       >
         <Form.Item
-          label="Old Password"
-          name="oldPassword"
-          rules={[{ required: true, message: 'Please input your old password!' }]}
+          label="Current Password"
+          name="currentPassword"
+          rules={[{ required: true, message: 'Please input your Current password!' }]}
         >
           <Input.Password
             placeholder="••••••••••"
@@ -68,6 +87,8 @@ const ChangePasswordForm = () => {
             type="primary"
             htmlType="submit"
             className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-base font-medium"
+            loading={isLoading}
+            disabled={isLoading}
           >
             Update
           </Button>

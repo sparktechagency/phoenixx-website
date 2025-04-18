@@ -37,6 +37,8 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import debounce from 'lodash/debounce';
 import { Message, Notification } from '../../utils/svgImage';
+import { useGetProfileQuery } from '@/features/profile/profileApi';
+import { baseURL } from '../../utils/BaseURL';
 
 const { Header } = Layout;
 const { Search } = Input;
@@ -53,10 +55,11 @@ export default function Navbar() {
   const searchRef = useRef(null);
   const router = useRouter();
 
-  // Handle navigation with drawer closing
+  const {data, isLoading} = useGetProfileQuery();
+
   const handleNavigation = (path) => {
     router.push(path);
-    setDrawerVisible(false); // Close drawer when navigation happens
+    setDrawerVisible(false);
   };
 
   const items = [
@@ -64,10 +67,10 @@ export default function Navbar() {
       key: 'profile-header',
       label: (
         <Flex gap="small" align="center" className="p-2 cursor-pointer">
-          <Avatar size={40} src="/images/profile.jpg" />
+          <Avatar size={40} src={`${baseURL}${data?.data?.profile}`} />
           <Space direction="vertical" size={0}>
-            <Text strong>George Clooney</Text>
-            <Text type="secondary">@george_clooney</Text>
+            <Text strong>{data?.data?.name? data?.data?.name : ""}</Text>
+            <Text type={`${data?.data?.name ? "":"secondary"}`}>{data?.data?.userName ? "@"+data?.data?.userName : ""}</Text>
           </Space>
         </Flex>
       ),
@@ -104,6 +107,8 @@ export default function Navbar() {
       key: 'darkmode',
       icon: <MoonOutlined />,
       label: 'Switch to Dark Mode',
+      
+
     },
     {
       type: 'divider',
@@ -120,18 +125,12 @@ export default function Navbar() {
     },
   ];
 
-  // Debounced function to fetch search suggestions
   const fetchSuggestions = debounce(async (query) => {
     if (!query) {
       setSuggestions([]);
       return;
     }
     
-    // In a real app, replace this with your actual API call
-    // Example: const response = await fetch(`/api/search/suggestions?q=${query}`);
-    // const data = await response.json();
-    
-    // Mock data for demonstration
     const mockSuggestions = [
       { value: `${query} tutorial` },
       { value: `${query} for beginners` },
@@ -173,7 +172,6 @@ export default function Navbar() {
     }
   };
 
-  // Close suggestions when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (searchRef.current && !searchRef.current.contains(event.target)) {
@@ -202,31 +200,29 @@ export default function Navbar() {
     setShowSuggestions(false);
   };
 
-  // Custom search field styles to match the reference image
   const searchFieldStyles = {
     input: {
-      backgroundColor: '#f3f2fa', // Light purple/lavender background
-      borderRadius: '10px',
-      border: '1px solid #D8D8D8',
+      backgroundColor: 'transparent',
+      border: 'none',
       padding: '10px 16px',
       boxShadow: 'none',
+      height: '100%',
     },
     searchIcon: {
-      color: '#6b7280', // Medium gray color for the icon
+      color: '#6b7280',
       fontSize: '16px',
       marginRight: '8px',
     }
   };
 
-  // Consistent button styles for notification and message icons
   const iconButtonStyles = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     border: '1px solid #808080',
-    padding: '15px',
-    width: '30px',
-    height: '30px',
+    padding: '8px',
+    width: '40px',
+    height: '40px',
     borderRadius: '50%'
   };
 
@@ -252,50 +248,92 @@ export default function Navbar() {
                 type="text" 
                 icon={<MenuOutlined />} 
                 onClick={showDrawer}
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center',
+                  height: '100%',
+                  padding: '0 12px'
+                }}
               />
             )}
             <Link href="/" style={{ display: 'flex', alignItems: 'center', height: '100%' }}>
-              <Image src={'/images/logo.png'} width={!screens.md ? 70 : 178 } height={10} alt='...' />
+              <Image 
+                src={'/images/logo.png'} 
+                width={!screens.md ? 70 : 178} 
+                height={10} 
+                alt='logo'
+                style={{ objectFit: 'contain', height: 'auto' }}
+              />
             </Link>
           </Flex>
         )}
         
-        {/* Middle - Search Bar - Updated styling to match reference */}
+        {/* Middle - Search Bar */}
         {screens.md ? (
           <div style={{ 
             width: '35%', 
-            paddingLeft:"100px",
+            paddingLeft: "100px",
             minWidth: '200px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent:"center",
-            height: '100%',
             position: 'relative',
           }} ref={searchRef}>
-            <AutoComplete
-              options={suggestions}
-              onSelect={handleSelect}
-              onSearch={handleInputChange}
-              onKeyDown={handleKeyDown}
-              value={searchQuery}
-              style={{ width: '100%' }}
-              open={showSuggestions && suggestions.length > 0}
-              onDropdownVisibleChange={(open) => setShowSuggestions(open)}
-              popupMatchSelectWidth={true}
-              dropdownStyle={{
-                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
-                padding: '8px 0'
+            <Flex 
+              align="center" 
+              style={{ 
+                width: '100%',
+                height: '40px',
+                backgroundColor: '#f3f2fa',
+                borderRadius: '10px',
+                border: '1px solid #D8D8D8',
+                overflow: 'hidden'
               }}
             >
-              <Input
-                placeholder="Search topics"
-                prefix={<SearchOutlined style={searchFieldStyles.searchIcon} />}
-                style={searchFieldStyles.input}
-                onPressEnter={() => handleSearch(searchQuery)}
-                allowClear
+              <AutoComplete
+                options={suggestions}
+                onSelect={handleSelect}
+                onSearch={handleInputChange}
+                onKeyDown={handleKeyDown}
+                value={searchQuery}
+                style={{ 
+                  flex: 1,
+                  height: '100%',
+                  border: 'none',
+                  background: 'transparent'
+                }}
+                open={showSuggestions && suggestions.length > 0}
+                onDropdownVisibleChange={(open) => setShowSuggestions(open)}
+                popupMatchSelectWidth={true}
+                dropdownStyle={{
+                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+                  padding: '8px 0'
+                }}
+              >
+                <Input
+                  placeholder="Search topics"
+                  prefix={<SearchOutlined style={searchFieldStyles.searchIcon} />}
+                  style={{
+                    ...searchFieldStyles.input,
+                    width: '100%',
+                  }}
+                  onPressEnter={() => handleSearch(searchQuery)}
+                  allowClear
+                />
+              </AutoComplete>
+              <Button 
+                type="primary" 
+                icon={<SearchOutlined />} 
+                onClick={() => handleSearch(searchQuery)}
+                style={{ 
+                  height: '100%',
+                  width: '50px',
+                  borderRadius: '0 10px 10px 0',
+                  border: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
               />
-            </AutoComplete>
+            </Flex>
           </div>
         ) : showMobileSearch && (
           <div style={{ 
@@ -325,7 +363,12 @@ export default function Navbar() {
               <Input
                 placeholder="Search topics"
                 prefix={<SearchOutlined style={searchFieldStyles.searchIcon} />}
-                style={{...searchFieldStyles.input, width: '100%'}}
+                style={{
+                  ...searchFieldStyles.input, 
+                  width: '100%', 
+                  background: '#f3f2fa', 
+                  borderRadius: '10px'
+                }}
                 autoFocus
                 onPressEnter={() => handleSearch(searchQuery)}
                 allowClear
@@ -357,27 +400,30 @@ export default function Navbar() {
                   onClick={() => handleNavigation('/new')}
                   type="primary" 
                   icon={<PlusOutlined />} 
-                  style={{ display: 'flex', alignItems: 'center' }}
+                  style={{ 
+                    display: 'flex', 
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    height: '40px'
+                  }}
                 >
                   {screens.lg ? 'New Post' : ''}
                 </Button>
                 
-                <Badge style={{backgroundColor:"#2930FF"}} count={5}>
+                <Badge style={{ backgroundColor: "#2930FF" }} count={5}>
                   <Button 
                     onClick={() => handleNavigation("/chat")}
                     type="text" 
                     icon={<Message />} 
-                    shape="circle" 
                     style={iconButtonStyles}
                   />
                 </Badge>
                 
-                <Badge style={{backgroundColor:"#2930FF"}} count={3}>
+                <Badge style={{ backgroundColor: "#2930FF" }} count={3}>
                   <Button 
                     onClick={() => handleNavigation("/notification")}
                     type="text" 
                     icon={<Notification />} 
-                    shape="circle" 
                     style={iconButtonStyles}
                   />
                 </Badge>
@@ -387,7 +433,13 @@ export default function Navbar() {
                 type="text" 
                 icon={<SearchOutlined />} 
                 onClick={toggleMobileSearch}
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center',
+                  height: '100%',
+                  padding: '0 12px'
+                }}
               />
             )}
             
@@ -397,16 +449,15 @@ export default function Navbar() {
               placement="bottomRight"
               arrow={{ pointAtCenter: true }}
             >
-              <Avatar 
-                src="/images/profile.jpg" 
-                size={40} 
-                style={{ 
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }} 
-              />
+              <div style={{ display: 'flex', alignItems: 'center', height: '100%', padding: '0 8px' }}>
+                <Avatar 
+                  src={`${baseURL}${data?.data?.profile}`} 
+                  size={40} 
+                  style={{ 
+                    cursor: 'pointer',
+                  }} 
+                />
+              </div>
             </Dropdown>
           </Flex>
         )}

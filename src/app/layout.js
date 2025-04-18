@@ -7,6 +7,7 @@ import { Provider } from "react-redux";
 import { store } from "../../utils/store";
 import 'react-toastify/dist/ReactToastify.css';
 import { ConfigProvider } from "antd";
+import { AntdRegistry } from '@ant-design/nextjs-registry';
 
 
 
@@ -19,6 +20,7 @@ export default function RootLayout({ children }) {
         className={`antialiased`}
         cz-shortcut-listen="true"
       >
+        <AntdRegistry>
         <ConfigProvider
           theme={{
             token: {
@@ -47,6 +49,7 @@ export default function RootLayout({ children }) {
           <ToastContainer position="top-center" autoClose={2000} />
           </Provider>
         </ConfigProvider>
+        </AntdRegistry>
       </body>
     </html>
   );

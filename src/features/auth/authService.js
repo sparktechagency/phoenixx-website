@@ -1,3 +1,5 @@
+import { jwtDecode } from "jwt-decode";
+
 export const saveToken = (token) => {
     localStorage?.setItem("loginToken", token);
   };
@@ -14,3 +16,10 @@ export const saveToken = (token) => {
     return !!getToken(); 
   };
   
+
+  export const decodedUser = (token) => {
+    const decoded = jwtDecode(JSON.stringify(token));
+    localStorage.setItem("login_user_id" , decoded?.id)
+
+    // console.log(decoded)
+};

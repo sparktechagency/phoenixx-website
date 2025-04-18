@@ -25,3 +25,8 @@
   transform: translateY(-10px);
   transition: all 300ms ease;
 }
+
+
+.dark {
+  color-scheme: dark;
+}

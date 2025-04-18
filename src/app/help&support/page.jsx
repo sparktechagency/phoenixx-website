@@ -1,63 +1,53 @@
 "use client"
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Collapse } from 'antd';
 import { PlusOutlined, MinusOutlined } from '@ant-design/icons';
 import CustomBanner from '@/components/CustomBanner';
+import { useGetfaqCategoryQuery, useGetfaqQuery } from '@/features/faqs/faqsApi';
 
+const FaqPage = () => {
+    // Fetch data from API
+    const { data: faqData, isLoading: faqLoading } = useGetfaqQuery();
+    const { data: faqCategoryData, isLoading: categoryLoading } = useGetfaqCategoryQuery();
 
-const page = () => {
-    const categories = [
-        {
-            name: 'General',
-            active: true
-        },
-        {
-            name: 'Account Management',
-            active: true
-        },
-        {
-            name: 'Posting & Engagement',
-            active: false
-        },
-        {
-            name: 'Community Guidelines',
-            active: false
-        },
-        {
-            name: 'Technical Support',
-            active: false
+    // Extract categories and faqs from API response
+    const categories = faqCategoryData?.data || [];
+    const faqs = faqData?.data?.data || [];
+
+    // Set initial active category (use first category from API or "All" if none)
+    const [activeCategory, setActiveCategory] = useState(null);
+
+    // Initialize active category once data is loaded
+    useEffect(() => {
+        if (categories && categories.length > 0 && !activeCategory) {
+            setActiveCategory(categories[0]._id);
         }
-    ];
+    }, [categories, activeCategory]);
 
-    const faqs = [
-        {
-            key: '1',
-            question: 'What is Mehor Forum?',
-            answer: 'Mehor Forum is a community platform for apparel designers, enthusiasts, and professionals. It\'s a place to discuss trends, share design ideas, ask questions, and collaborate with others passionate about fashion and apparel.'
-        },
-        {
-            key: '2',
-            question: 'How do I get started on Mehor Forum?',
-            answer: 'To get started, create an account, set up your profile, and start exploring discussions that interest you. You can join existing conversations or start new ones about topics you`re passionate about.'
-        },
-        {
-            key: '3',
-            question: 'How do I update my profile?',
-            answer: 'To update your profile, log in to your account, click on your profile picture in the top right corner, and select "Edit Profile" from the dropdown menu. From there, you can update your information, upload a new profile picture, and more.'
-        },
-        {
-            key: '4',
-            question: 'How can I reset my password?',
-            answer: 'To reset your password, click on the "Forgot Password" link on the login page. Enter the email address associated with your account, and we\'ll send you instructions on how to create a new password.'
-        }
-    ];
+    // Filter FAQs based on active category
+    const filteredFaqs = activeCategory
+        ? faqs.filter(faq => faq.category === activeCategory)
+        : faqs;
 
-    const [activeCategory, setActiveCategory] = useState('General');
-
-    const handleCategoryClick = (category) => {
-        setActiveCategory(category);
+    // Handle category click
+    const handleCategoryClick = (categoryId) => {
+        setActiveCategory(categoryId);
     };
+
+    // Show loading state while data is being fetched
+    if (faqLoading || categoryLoading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center">
+                <div className="text-center">
+                    <div className="spinner-border text-primary" role="status">
+                        <span className="visually-hidden">Loading...</span>
+                    </div>
+                    <p className="mt-3">Loading FAQ data...</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div>
@@ -72,12 +62,15 @@ const page = () => {
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
                         {/* Categories Sidebar */}
                         <div className="md:col-span-1">
+                            {/* <h3 className="font-semibold mb-4">Categories</h3> */}
                             <ul className="space-y-4">
                                 {categories.map((category) => (
                                     <li
-                                        key={category.name}
-                                        className={`cursor-pointer font-medium ${activeCategory === category.name ? 'text-blue-600' : 'text-gray-700'}`}
-                                        onClick={() => handleCategoryClick(category.name)}
+                                        key={category._id}
+                                        className={`cursor-pointer font-medium ${
+                                            activeCategory === category._id ? 'text-blue-600' : 'text-gray-700'
+                                        }`}
+                                        onClick={() => handleCategoryClick(category._id)}
                                     >
                                         {category.name}
                                     </li>
@@ -87,22 +80,32 @@ const page = () => {
 
                         {/* FAQs Content */}
                         <div className="md:col-span-3">
-                            <Collapse
-                                bordered={false}
-                                expandIcon={({ isActive }) => isActive ? <MinusOutlined className="text-blue-600" /> : <PlusOutlined className="text-blue-600" />}
-                                className="bg-transparent"
-                                expandIconPosition="end"
-                            >
-                                {faqs.map((faq) => (
-                                    <Collapse.Panel
-                                        key={faq.key}
-                                        header={<div className="text-base font-medium">{faq.question}</div>}
-                                        className="mb-4 bg-white rounded-md border border-gray-200"
-                                    >
-                                        <p className="text-gray-600">{faq.answer}</p>
-                                    </Collapse.Panel>
-                                ))}
-                            </Collapse>
+                            {filteredFaqs.length > 0 ? (
+                                <Collapse
+                                    bordered={false}
+                                    expandIcon={({ isActive }) => 
+                                        isActive ? 
+                                            <MinusOutlined className="text-blue-600" /> : 
+                                            <PlusOutlined className="text-blue-600" />
+                                    }
+                                    className="bg-transparent"
+                                    expandIconPosition="end"
+                                >
+                                    {filteredFaqs.map((faq) => (
+                                        <Collapse.Panel
+                                            key={faq._id}
+                                            header={<div className="text-base font-medium">{faq.question}</div>}
+                                            className="mb-4 bg-white rounded-md border border-gray-200"
+                                        >
+                                            <p className="text-gray-600">{faq.answer}</p>
+                                        </Collapse.Panel>
+                                    ))}
+                                </Collapse>
+                            ) : (
+                                <div className="text-center py-8">
+                                    <p className="text-gray-500">No FAQs found in this category.</p>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -111,4 +114,4 @@ const page = () => {
     );
 };
 
-export default page;
+export default FaqPage;

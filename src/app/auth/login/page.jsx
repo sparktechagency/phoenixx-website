@@ -1,6 +1,6 @@
 "use client";
 import { useLoginMutation } from '@/features/auth/authApi';
-import { saveToken } from '@/features/auth/authService';
+import { decodedUser, saveToken } from '@/features/auth/authService';
 import { message} from 'antd';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -43,6 +43,7 @@ const LoginPage = () => {
     }
   };
 
+
   const validateForm = () => {
     let isValid = true;
     const newErrors = { ...errors };
@@ -84,6 +85,7 @@ const LoginPage = () => {
       try {
         const response = await Login({email:formData.username , password : formData.password}).unwrap();
         saveToken(response?.data?.accessToken)
+        decodedUser(response?.data?.accessToken)
         router.push("/")
         setFormData({
           username: '',

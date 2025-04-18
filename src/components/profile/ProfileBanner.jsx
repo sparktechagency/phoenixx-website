@@ -1,36 +1,44 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import { Modal, Input, Form, Button, Grid, Upload , Row, Col} from 'antd';
+import { Modal, Input, Form, Button, Grid, Upload, Row, Col } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
+import { useGetProfileQuery, useUpdateProfileMutation } from '@/features/profile/profileApi';
+import { baseURL } from '../../../utils/BaseURL';
 
 const ProfileBanner = () => {
+  const { data, error, isLoading: profileLoading } = useGetProfileQuery();
+  const [updateProfile, { isLoading: updateProfileLoading }] = useUpdateProfileMutation();
+
+  console.log(data?.data)
+  
   // Use Grid.useBreakpoint directly since destructuring doesn't work properly
   const screens = Grid.useBreakpoint();
   const isMobile = !screens.md;
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [form] = Form.useForm();
-  const [userData, setUserData] = useState({
-    fullName: 'George Clooney',
-    email: 'secret.undersign@gmail.com',
-    phone: '+8601916333014',
-    username: 'george_clooney',
-    profileImage: '/images/profile.jpg'
-  });
-  
   const [fileList, setFileList] = useState([]);
-
-  // Reset form with updated userData when it changes
+  
+  // Set form values when profile data is available and modal is opened
   useEffect(() => {
-    if (isModalOpen) {
-      form.setFieldsValue(userData);
+    if (isModalOpen && data?.data) {
+      form.setFieldsValue({
+        name: data.data.name || data.data.userName, // Use name if available, otherwise fallback to userName
+        email: data.data.email,
+        contact: data.data.contact || '',
+      });
     }
-  }, [userData, isModalOpen, form]);
+  }, [data, isModalOpen, form]);
 
   const showModal = () => {
-    // Reset file list when opening modal
     setFileList([]);
-    form.setFieldsValue(userData);
+    if (data?.data) {
+      form.setFieldsValue({
+        name: data.data.name || data.data.userName,
+        email: data.data.email,
+        contact: data.data.contact || '',
+      });
+    }
     setIsModalOpen(true);
   };
 
@@ -38,24 +46,35 @@ const ProfileBanner = () => {
     setIsModalOpen(false);
   };
 
-  const handleUpdate = () => {
-    form.validateFields().then(values => {
-      // If a new image was uploaded, update the profile image
-      if (fileList.length > 0 && fileList[0].originFileObj) {
-        // In a real application, you would upload the file to a server
-        // and get back a URL. For now, we'll simulate this with a fake URL
-        const fakeImageUrl = URL.createObjectURL(fileList[0].originFileObj);
-        values.profileImage = fakeImageUrl;
-      } else {
-        // Keep the existing image if no new one was uploaded
-        values.profileImage = userData.profileImage;
+  const handleUpdate = async () => {
+    try {
+      const values = await form.validateFields();
+      
+      // Create a FormData object to handle file uploads
+      const formData = new FormData();
+      
+      // Add form fields to FormData
+      formData.append('name', values.name);
+      
+      // Only add contact if it exists
+      if (values.contact) {
+        formData.append('contact', values.contact);
       }
       
-      setUserData(values);
+      // Only add image if a new one was selected
+      if (fileList.length > 0) {
+        formData.append('image', fileList[0].originFileObj);
+      }
+      
+      // Call the update profile mutation
+      const response = await updateProfile(formData).unwrap();
+      if(response.success){
+        alert("Profile updated successfully");
+      }
       setIsModalOpen(false);
-    }).catch(error => {
-      console.error('Validation failed:', error);
-    });
+    } catch (error) {
+      console.log(error);
+    }
   };
 
   const uploadProps = {
@@ -76,6 +95,14 @@ const ProfileBanner = () => {
     listType: 'picture-card',
   };
 
+  if (profileLoading) {
+    return <div className="bg-[#EBEBFF] pt-20 flex items-center justify-center">Loading profile...</div>;
+  }
+
+  if (error) {
+    return <div className="bg-[#EBEBFF] pt-20 flex items-center justify-center">Error loading profile</div>;
+  }
+
   return (
     <div className="bg-[#EBEBFF] pt-20 flex items-center justify-center">
       <div className="bg-white rounded-lg w-full max-w-7xl shadow-md">
@@ -84,7 +111,7 @@ const ProfileBanner = () => {
             <div className="relative">
               <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-300">
                 <img
-                  src={userData.profileImage}
+                  src={`${baseURL}${data?.data?.profile}`}
                   alt="User"
                   className="w-full h-full object-cover"
                 />
@@ -137,8 +164,8 @@ const ProfileBanner = () => {
         </div>
 
         <div className="text-center pb-10">
-          <h2 className="text-xl sm:text-2xl font-bold">{userData.fullName}</h2>
-          <p className="text-gray-500 text-sm sm:text-base">@{userData.username}</p>
+          <h2 className="text-xl sm:text-2xl font-bold">{data?.data?.name || data?.data?.userName}</h2>
+          <p className="text-gray-500 text-sm sm:text-base">{data?.data?.name ? "@"+data?.data?.userName : data?.data?.email}</p>
         </div>
       </div>
 
@@ -153,80 +180,70 @@ const ProfileBanner = () => {
         <Form
           form={form}
           layout="vertical"
-          initialValues={userData}
         >
+          <Form.Item label="Profile Picture">
+            <Row gutter={16} align="middle">
+              {/* Profile Image */}
+              {fileList.length === 0 && (
+                <Col xs={24} sm={8} lg={6}>
+                  <div className="flex justify-center">
+                    <img 
+                      src={`${baseURL}${data?.data?.profile}`} 
+                      alt="Current profile" 
+                      className="w-20 h-20 object-cover rounded-full"
+                    />
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1 text-center">
+                    Current profile image
+                  </div>
+                </Col>
+              )}
 
-<Form.Item label="Profile Picture">
-  <Row gutter={16} align="middle">
-    {/* Profile Image */}
-    {fileList.length === 0 && (
-      <Col xs={24} sm={8} lg={6}>
-        <div className="flex justify-center">
-          <img 
-            src={userData.profileImage} 
-            alt="Current profile" 
-            className="w-20 h-20 object-cover rounded-full"
-          />
-        </div>
-        <div className="text-xs text-gray-500 mt-1 text-center">
-          Current profile image
-        </div>
-      </Col>
-    )}
-
-    {/* Upload Section */}
-    <Col xs={24} sm={16} lg={18}>
-      <Upload {...uploadProps}>
-        {fileList.length === 0 && (
-          <div className=" p-4 rounded-lg">
-            <PlusOutlined />
-            <div style={{ marginTop: 8 }}>Upload</div>
-          </div>
-        )}
-      </Upload>
-    </Col>
-  </Row>
-</Form.Item>
-
+              {/* Upload Section */}
+              <Col xs={24} sm={16} lg={18}>
+                <Upload {...uploadProps}>
+                  {fileList.length === 0 && (
+                    <div className="p-4 rounded-lg">
+                      <PlusOutlined />
+                      <div style={{ marginTop: 8 }}>Upload</div>
+                    </div>
+                  )}
+                </Upload>
+              </Col>
+            </Row>
+          </Form.Item>
 
           <Form.Item
-            name="fullName"
+            name="name"
             label="Full Name*"
             rules={[{ required: true, message: 'Please enter your name' }]}
           >
-            <Input />
+            <Input placeholder='Name' />
           </Form.Item>
+          
           <Form.Item
             name="email"
-            label="Email*"
-            rules={[
-              { required: true, message: 'Please enter your email' },
-              { type: 'email', message: 'Please enter a valid email' }
-            ]}
+            label="Email"
           >
-            <Input />
+            <Input disabled />
           </Form.Item>
+          
           <Form.Item
-            name="phone"
+            name="contact"
             label="Phone"
           >
-            <Input />
+            <Input placeholder='Phone Number' />
           </Form.Item>
-          <Form.Item
-            name="username"
-            label="Username*"
-            rules={[{ required: true, message: 'Please enter your username' }]}
-          >
-            <Input />
-          </Form.Item>
+          
           <Form.Item>
             <Button
               type="primary"
               block
               onClick={handleUpdate}
+              loading={updateProfileLoading}
               style={{ backgroundColor: '#1C37E0', height: '42px' }}
             >
-              Update Info
+              {updateProfileLoading ? 'Updating...' : 'Update Info'}
             </Button>
           </Form.Item>
         </Form>

@@ -12,9 +12,16 @@ export const postApi = baseApi.injectEndpoints({
     }),
 
     getPost: builder.query({
-      query: () => ({
-        url: `/posts`,
+      query: ({ searchTerm, limit, page, category, subCategory } = {}) => ({
+        url: "/posts",
         method: "GET",
+        params: {
+          searchTerm,
+          limit,
+          page,
+          category,
+          subCategory
+        }
       }),
       providesTags: ["post"],
     }),
@@ -48,13 +55,11 @@ export const postApi = baseApi.injectEndpoints({
         url: `/posts/${postId}`,
         method: "DELETE",
       }),
-     
       invalidatesTags: ["post"],
     }),
   }),
 });
 
-// Export hooks
 export const {
   useCreatePostMutation,
   useGetPostQuery,

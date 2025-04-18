@@ -124,7 +124,7 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
 
   const handleSubmit = async () => {
     if (!title || !category || !description) {
-      message.warning('Please fill all required fields');
+      message.error('Please fill all required fields');
       return;
     }
   
@@ -143,12 +143,11 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
           formData.append("image", file.originFileObj);
         }
       });
-
-
+  
       const response = await createPost(formData).unwrap();
-      console.log(response);
       
-      message.success(isEditing ? 'Post updated successfully!' : 'Post published successfully!');
+      // Show success message for post upload
+      alert('Post successfully uploaded');
       
       if (onSuccess) {
         onSuccess();
@@ -162,8 +161,19 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
         setFileList([]);
       }
     } catch (error) {
-      console.error('Error:', error);
-      message.error(isEditing ? 'Failed to update post.' : 'Failed to publish post.');
+      alert('Error:', error);
+      
+      // Handle validation errors or other errors
+      if (error.data && error.data.message) {
+        // Show server-side validation error message
+        alert(error.data.message);
+      } else if (error.status === 'VALIDATION_ERROR') {
+        // Handle specific validation errors if your API returns them
+        alert('Validation error: Please check your input data');
+      } else {
+        // Generic error message
+        alert(isEditing ? 'Failed to update post' : 'Failed to publish post');
+      }
     } finally {
       setLoading(false);
     }

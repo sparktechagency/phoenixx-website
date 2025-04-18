@@ -80,7 +80,7 @@ const VerifyOTPPage = () => {
       // Hide modal and redirect after 2 seconds
       setTimeout(() => {
         setShowSuccessModal(false);
-        router.push('/');
+        router.push('/auth/login');
       }, 2000);
       
     } catch (err) {

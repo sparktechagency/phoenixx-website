@@ -1,9 +1,12 @@
+import { useSilderQuery } from '@/features/report/reportApi';
 import React, { useState, useEffect } from 'react';
+import { baseURL } from '../../utils/BaseURL';
 
 const CarouselBanner = () => {
   const [activeSlide, setActiveSlide] = useState(0);
   const [prevSlide, setPrevSlide] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const {data } = useSilderQuery();
   
   const bannerItems = [
     {
@@ -34,7 +37,7 @@ const CarouselBanner = () => {
   useEffect(() => {
     // Auto-slide every 2 seconds, regardless of transition state
     const interval = setInterval(() => {
-      const nextSlide = activeSlide === bannerItems.length - 1 ? 0 : activeSlide + 1;
+      const nextSlide = activeSlide === data?.data.length - 1 ? 0 : activeSlide + 1;
       
       setPrevSlide(activeSlide);
       setActiveSlide(nextSlide);
@@ -56,8 +59,8 @@ const CarouselBanner = () => {
     if (current === previous) return '';
     
     // Handle wrap-around case
-    if (current === 0 && previous === bannerItems.length - 1) return 'right';
-    if (current === bannerItems.length - 1 && previous === 0) return 'left';
+    if (current === 0 && previous === data?.data?.length - 1) return 'right';
+    if (current === data?.data?.length - 1 && previous === 0) return 'left';
     
     return current > previous ? 'right' : 'left';
   };
@@ -67,7 +70,7 @@ const CarouselBanner = () => {
   return (
     <div className="relative w-full h-64 overflow-hidden rounded-xl sm:my-2">
       {/* Carousel slides */}
-      {bannerItems.map((item, index) => {
+      {data?.data?.map((item, index) => {
         // Determine slide animation classes
         let positionClass = '';
         let opacityClass = '';
@@ -90,7 +93,7 @@ const CarouselBanner = () => {
             {/* Banner image with subtle zoom effect */}
             <div className="absolute inset-0 w-full h-full  px-3 sm:px-10 rounded-xl overflow-hidden">
               <img 
-                src={item.imagePath} 
+                src={`${baseURL}${item.image}`} 
                 alt={`Banner ${index + 1}`}
                 className="w-full h-full object-cover rounded-xl transition-transform duration-5000 ease-out"
                 style={{ transform: index === activeSlide ? 'scale(1.01)' : 'scale(1)' }}
@@ -102,8 +105,8 @@ const CarouselBanner = () => {
       
       {/* Indicators */}
       <div className="absolute bottom-4 left-0 right-0 flex justify-center rounded-xl space-x-3">
-        {bannerItems.map((_, index) => (
-         bannerItems.length === 1 ? "" :  <button
+        {data?.data?.map((_, index) => (
+         data?.data?.length === 1 ? "" :  <button
          key={index}
          onClick={() => handleSlideChange(index)}
          className={`w-2 h-2 rounded-full transition-all duration-300 ${activeSlide === index ? 'bg-white w-6' : 'bg-white/50 hover:bg-white/70'}`}

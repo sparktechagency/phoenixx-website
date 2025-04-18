@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { Avatar, Card, Button, Input, Select, Dropdown, Menu } from 'antd';
 import { LikeOutlined, LikeFilled, MessageOutlined, ShareAltOutlined, EllipsisOutlined } from '@ant-design/icons';
@@ -10,8 +10,8 @@ import { formatDistanceToNow } from 'date-fns';
 export default function PostDetailsPage() {
   const params = useParams();
   const { postId } = params;
-  const { data: apiResponse, isLoading } = usePostDetailsQuery(postId);
-  const post = apiResponse?.data;
+  const { data: postdetails, isLoading } = usePostDetailsQuery(postId);
+  const post = postdetails?.data;
 
   // Comments state
   const [comments, setComments] = useState([]);

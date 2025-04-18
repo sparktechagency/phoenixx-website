@@ -5,17 +5,20 @@ import CategoriesSidebar from '@/components/CategoriesSidebar';
 import FeedNavigation from '@/components/FeedNavigation';
 import PostCard from '@/components/PostCard';
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
+import { motion,LayoutGroup } from 'framer-motion';
 import { useGetPostQuery, useLikePostMutation } from '@/features/post/postApi';
-import { baseURL } from '../../utils/BaseURL';
+import moment from 'moment';
 
 const Page = () => {
   const [gridNumber, setGridNumber] = useState(1);
   const [windowWidth, setWindowWidth] = useState(0);
+  const [selectedCategory, setSelectedCategory] = useState("");
+  const [selectedSubCategory, setSelectedSubCategory] = useState("");
+  const [sortOrder, setSortOrder] = useState("newest");
 
-  const { data, isLoading } = useGetPostQuery();
-  const [likePost ] = useLikePostMutation()
-  
+  const { data, isLoading, error } = useGetPostQuery();
+  const [likePost] = useLikePostMutation();
+
   useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
     handleResize();
@@ -25,24 +28,26 @@ const Page = () => {
 
   const currentUser = { name: "Current User", username: "@currentuser", avatar: "/path/to/currentuser.jpg" };
 
-  const handleLike =async (postId) => {
-    // You'll need to implement actual like functionality with your API
-    // console.log("Liked post:", postId);
-
+  const handleLike = async (postId) => {
     try {
       const response = await likePost(postId).unwrap();
-      console.log(response)
+      console.log(response);
     } catch (error) {
-      console.log(error)
+      console.log(error);
     }
-
-
-  
   };
 
   const handleCommentSubmit = (postId, commentText) => {
-    // You'll need to implement actual comment functionality with your API
     console.log("Comment on post:", postId, "Text:", commentText);
+  };
+
+  const handleCategorySelect = (categoryId, subCategoryId = "") => {
+    setSelectedCategory(categoryId);
+    setSelectedSubCategory(subCategoryId);
+  };
+
+  const handleSortChange = (sortOption) => {
+    setSortOrder(sortOption);
   };
 
   const TrendingTopics = () => (
@@ -60,10 +65,18 @@ const Page = () => {
   const isGrid2 = gridNumber === 2 && isDesktop;
 
   if (isLoading) {
-    return "Loading...";
+    return <div className="flex justify-center items-center h-screen">Loading...</div>;
   }
 
-  // Format the API data to match your PostCard component's expected structure
+  const formatTime = (timestamp) => {
+    if (!timestamp) return "Just now";
+    
+    // Set Bangladesh time (UTC+6)
+    const bangladeshTime = moment.utc(timestamp).utcOffset(6);
+    
+    return bangladeshTime.fromNow();
+  };
+
   const formatPostData = (post) => ({
     id: post._id,
     author: {
@@ -71,7 +84,7 @@ const Page = () => {
       username: `@${post.author.userName}`,
       avatar: `${post?.author?.profile}`
     },
-    timePosted: new Date(post.createdAt).toLocaleString(),
+    timePosted: formatTime(post.createdAt),
     title: post.title,
     content: post.content,
     image: post.image,
@@ -81,7 +94,33 @@ const Page = () => {
       comments: post.comments?.length || 0,
       reads: post.views || 0
     },
-    isLiked: false // You might want to check if current user liked this post
+    isLiked: false
+  });
+
+  // Filter posts based on selected category and subcategory
+  const filteredPosts = (data?.data?.data || []).filter(post => {
+    if (!selectedCategory) return true;
+    
+    if (selectedSubCategory) {
+      return post.category?._id === selectedCategory && 
+             post.subcategory?._id === selectedSubCategory;
+    }
+    
+    return post.category?._id === selectedCategory;
+  });
+
+  // Sort posts based on the selected option
+  const sortedPosts = [...filteredPosts].sort((a, b) => {
+    if (sortOrder === "newest") {
+      return new Date(b.createdAt) - new Date(a.createdAt);
+    } else if (sortOrder === "oldest") {
+      return new Date(a.createdAt) - new Date(b.createdAt);
+    } else {
+      // Popular - sort by likes + comments + views
+      const aPopularity = (a.likes?.length || 0) + (a.comments?.length || 0) + (a.views || 0);
+      const bPopularity = (b.likes?.length || 0) + (b.comments?.length || 0) + (b.views || 0);
+      return bPopularity - aPopularity;
+    }
   });
 
   return (
@@ -93,19 +132,11 @@ const Page = () => {
             <motion.div layout className="flex gap-5">
               {/* Left Column */}
               <motion.div layout className={`${isGrid2 ? 'w-3/12' : 'w-3/12 pr-6 sticky top-20 self-start'}`}>
-                <CategoriesSidebar />
-                <AnimatePresence>
-                  {isGrid2 && (
-                    <motion.div
-                      layout
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 4 }}
-                      exit={{ opacity: 0, height: 0 }}
-                      className="w-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full my-4"
-                    />
-                  )}
-                </AnimatePresence>
-                {isGrid2 && <TrendingTopics />}
+                <CategoriesSidebar 
+                  onSelectCategory={handleCategorySelect}
+                  selectedCategory={selectedCategory}
+                  selectedSubCategory={selectedSubCategory}
+                />
               </motion.div>
 
               {/* Main Feed */}
@@ -113,12 +144,101 @@ const Page = () => {
                 layout
                 className={`${isGrid2 ? 'w-9/12' : 'w-6/12'}`}
               >
-                <FeedNavigation handlefeedGrid={setGridNumber} />
-                <motion.div
-                  layout
-                  className={`grid ${isGrid2 ? 'grid-cols-2 gap-4' : 'grid-cols-1 gap-1'}`}
-                >
-                  {data?.data?.data?.map((post) => (
+                <FeedNavigation 
+                  handlefeedGrid={setGridNumber} 
+                  onSortChange={handleSortChange}
+                  currentSort={sortOrder}
+                />
+                
+                {/* Display current filter info */}
+                {(selectedCategory || selectedSubCategory) && (
+                  <div className="bg-white rounded-lg p-3 mb-4 flex items-center justify-between">
+                    <div className="flex items-center">
+                      <span className="text-gray-700 mr-2">Viewing:</span>
+                      <span className="font-medium text-blue-600">
+                        {selectedCategory ? (
+                          selectedSubCategory ? 
+                            `${data?.data?.data.find(post => post.subcategory?._id === selectedSubCategory)?.subcategory?.name || "Selected Subcategory"}` : 
+                            `${data?.data?.data.find(post => post.category?._id === selectedCategory)?.category?.name || "Selected Category"}`
+                        ) : "All Posts"}
+                      </span>
+                    </div>
+                    <button 
+                      onClick={() => handleCategorySelect("", "")}
+                      className="text-sm text-blue-500 hover:text-blue-700"
+                    >
+                      Clear Filter
+                    </button>
+                  </div>
+                )}
+                
+                {sortedPosts.length === 0 ? (
+                  <div className="bg-white rounded-lg p-8 text-center">
+                    <h3 className="text-lg font-medium text-gray-700">No posts found</h3>
+                    <p className="text-gray-500 mt-2">Try selecting a different category or subcategory</p>
+                  </div>
+                ) : (
+                  <motion.div
+                    layout
+                    className={`grid ${isGrid2 ? 'grid-cols-2 gap-4' : 'grid-cols-1 gap-1'}`}
+                  >
+                    {sortedPosts.map((post) => (
+                      <div key={post._id}>
+                        <PostCard
+                          postData={formatPostData(post)}
+                          currentUser={currentUser}
+                          onLike={handleLike}
+                          onCommentSubmit={handleCommentSubmit}
+                        />
+                      </div>
+                    ))}
+                  </motion.div>
+                )}
+              </motion.section>
+            </motion.div>
+          ) : (
+            <div className="flex flex-col">
+              <CategoriesSidebar 
+                onSelectCategory={handleCategorySelect}
+                selectedCategory={selectedCategory}
+                selectedSubCategory={selectedSubCategory}
+              />
+              <FeedNavigation 
+                handlefeedGrid={setGridNumber} 
+                onSortChange={handleSortChange}
+                currentSort={sortOrder}
+              />
+              
+              {/* Display current filter info */}
+              {(selectedCategory || selectedSubCategory) && (
+                <div className="bg-white rounded-lg p-3 mb-4 flex items-center justify-between">
+                  <div className="flex items-center">
+                    <span className="text-gray-700 mr-2">Viewing:</span>
+                    <span className="font-medium text-blue-600">
+                      {selectedCategory ? (
+                        selectedSubCategory ? 
+                          `${data?.data?.data.find(post => post.subcategory?._id === selectedSubCategory)?.subcategory?.name || "Selected Subcategory"}` : 
+                          `${data?.data?.data.find(post => post.category?._id === selectedCategory)?.category?.name || "Selected Category"}`
+                      ) : "All Posts"}
+                    </span>
+                  </div>
+                  <button 
+                    onClick={() => handleCategorySelect("", "")}
+                    className="text-sm text-blue-500 hover:text-blue-700"
+                  >
+                    Clear Filter
+                  </button>
+                </div>
+              )}
+              
+              {sortedPosts.length === 0 ? (
+                <div className="bg-white rounded-lg p-8 text-center">
+                  <h3 className="text-lg font-medium text-gray-700">No posts found</h3>
+                  <p className="text-gray-500 mt-2">Try selecting a different category or subcategory</p>
+                </div>
+              ) : (
+                <div className={`grid gap-5 ${gridNumber === 2 && windowWidth >= 640 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                  {sortedPosts.map((post) => (
                     <div key={post._id}>
                       <PostCard
                         postData={formatPostData(post)}
@@ -128,33 +248,8 @@ const Page = () => {
                       />
                     </div>
                   ))}
-                </motion.div>
-              </motion.section>
-
-              {/* Right Column */}
-              {!isGrid2 && (
-                <motion.div layout className="w-3/12 pl-6 sticky top-20 self-start">
-                  <TrendingTopics />
-                </motion.div>
+                </div>
               )}
-            </motion.div>
-          ) : (
-            <div className="flex flex-col">
-              <CategoriesSidebar />
-              <FeedNavigation handlefeedGrid={setGridNumber} />
-              <div className={`grid gap-5 ${gridNumber === 2 && windowWidth >= 640 ? 'grid-cols-2' : 'grid-cols-1'}`}>
-                {data?.data?.data?.map((post) => (
-                  <div key={post._id}>
-                    <PostCard
-                      postData={formatPostData(post)}
-                      currentUser={currentUser}
-                      onLike={handleLike}
-                      onCommentSubmit={handleCommentSubmit}
-                    />
-                  </div>
-                ))}
-              </div>
-              <TrendingTopics />
             </div>
           )}
         </LayoutGroup>

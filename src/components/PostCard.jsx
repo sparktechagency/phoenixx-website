@@ -1,12 +1,15 @@
 "use client";
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { AiOutlineEllipsis, AiOutlineLike } from 'react-icons/ai';
+import { AiOutlineEllipsis } from 'react-icons/ai';
 import { FaHeart, FaRegHeart } from "react-icons/fa";
 import Image from 'next/image';
+import { Dropdown , message} from 'antd';
 import { baseURL } from '../../utils/BaseURL';
 import { PostSEE } from '../../utils/svgImage';
-import { useSavepostMutation } from '@/features/SavePost/savepostApi';
+import { useGetSaveAllPostQuery, useSavepostMutation } from '@/features/SavePost/savepostApi';
+import ReportPostModal from './ReportPostModal';
+import { useGetPostQuery } from '@/features/post/postApi';
 
 const defaultPost = {
   author: {
@@ -59,17 +62,24 @@ const PostCard = ({
   currentUser = { name: "User", avatar: "" }
 }) => {
   const router = useRouter();
+  
   const [expanded, setExpanded] = useState(false);
-  const [showDropdown, setShowDropdown] = useState(false);
   const [commentText, setCommentText] = useState('');
-  const dropdownRef = useRef(null);
+  const [showReportModal, setShowReportModal] = useState(false);
   const windowSize = useWindowSize();
-  const [isSaved, setIsSaved] = useState(postData?.isSaved || false);
+  const login_user_id = typeof window !== 'undefined' ? localStorage.getItem("login_user_id") : null;
+    
+
+
   const [isSaving, setIsSaving] = useState(false);
   const [savepost] = useSavepostMutation();
+  const { data } = useGetSaveAllPostQuery()
+   const { data:allPost, isLoading, error } = useGetPostQuery();
+  const isSaved = data?.data?.some(savedPost => savedPost?.postId?._id === postData?.id);
 
-
-  console.log(true)
+  // console.log(postData.stats.likes)
+  const likePost = allPost?.data?.data?.some(post => post.likes.some(react => react === login_user_id));
+  
 
   const isMobile = windowSize.width < 640;
   const isTablet = windowSize.width >= 640 && windowSize.width < 1024;
@@ -83,21 +93,25 @@ const PostCard = ({
     const postId = post.id || post._id || 'placeholder-id';
     const postName = getPostNameSlug(post.title);
     const category = post.category || 'general';
-    router.push(`${postId}`);
+    router.push(`/posts/${postId}`);
   }, [post, getPostNameSlug, router]);
 
   const handleCommentClick = useCallback(() => {
     const postId = post.id || post._id || 'placeholder-id';
     const postName = getPostNameSlug(post.title);
     const category = post.category || 'general';
-    router.push(`/${category}/${postName}/${postId}#comments`);
+    router.push(`/posts/${postId}#comments`);
   }, [post, getPostNameSlug, router]);
 
   const handleLike = useCallback(() => onLike?.(post.id || post._id), [onLike, post]);
 
-  const toggleDropdown = useCallback(() => setShowDropdown(prev => !prev), []);
-
-  const handleShare = useCallback(() => onShare?.(post.id || post._id), [onShare, post]);
+  const handleShare = ()=> {
+    navigator.clipboard.writeText(`${baseURL}/posts/${postData?.id}`).then(()=>{
+      alert("link copy successfully")
+    }).catch((err)=>{
+      alert("Failed to copy link")
+    })
+  };
 
   const handleCommentSubmit = useCallback((e) => {
     e.preventDefault();
@@ -111,34 +125,79 @@ const PostCard = ({
     setIsSaving(true);
     try {
       const response = await savepost({ postId: id }).unwrap();
-      // console.log(response)
-      response?.data === null ? setIsSaved(false) : setIsSaved(true)
+      // Update saved state based on API response
+      // If response.data is null, post was unsaved, otherwise it was saved
+
+      setIsSaved(response?.data !== null);
+
+      // Optional: You could implement toast notifications here
+      // const message = response?.data !== null ? 'Post saved successfully' : 'Post removed from saved items';
+      // toast.success(message);
     } catch (error) {
       console.error('Save/Unsave error:', error);
+      // Optional: Error notification
+      // toast.error('Failed to update saved status');
     } finally {
       setIsSaving(false);
     }
   };
 
-  const handleOptionSelect = async (option, id) => {
-    if (option === 'save') {
-      await handleSaveUnsave(id);
+  const handleMenuClick = ({ key }) => {
+    const postId = post?.id || post?._id;
+
+    if (key === 'save') {
+      handleSaveUnsave(postId);
+    } else if (key === 'report') {
+      setShowReportModal(true);
     } else {
-      onOptionSelect?.(post.id || post._id, option);
+      onOptionSelect?.(postId, key);
     }
-    setShowDropdown(false);
   };
 
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setShowDropdown(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  // Dropdown menu items
+  const menuItems = [
+    {
+      key: 'hide',
+      label: (
+        <div className="flex items-center gap-2 py-1">
+          <span>✕</span>
+          <span>Hide Post</span>
+        </div>
+      ),
+    },
+    {
+      key: 'save',
+      label: (
+        <div className="flex items-center gap-2 py-1">
+          <Image
+            src={"/icons/save_post.png"}
+            width={16}
+            height={16}
+            alt={isSaved ? "unSave post" : "Save post"}
+          />
+          <span className="-mt-1">
+            {isSaving ? (
+              <span className="flex items-center">
+                <span className="mr-2 inline-block h-3 w-3 animate-spin rounded-full border-2 border-solid border-blue-500 border-r-transparent"></span>
+                Processing
+              </span>
+            ) : (
+              isSaved ? 'Unsave Post' : 'Save Post'
+            )}
+          </span>
+        </div>
+      ),
+    },
+    {
+      key: 'report',
+      label: (
+        <div className="flex items-center gap-2 py-1">
+          <Image src="/icons/report.png" height={16} width={16} alt="report" />
+          <span className="-mt-1">Report Post</span>
+        </div>
+      ),
+    },
+  ];
 
   const renderAuthorAvatar = () => (
     post.author.avatar ? (
@@ -154,41 +213,11 @@ const PostCard = ({
     )
   );
 
-  const renderDropdown = () => (
-    <div className={`absolute right-0 mt-1 ${isMobile ? 'w-32' : 'w-40'} bg-white rounded-lg shadow-lg border border-gray-200 z-10`}>
-      <div className="py-1">
-        <button onClick={() => handleOptionSelect('hide', post?.id)} className="w-full text-left px-3 py-2 flex cursor-pointer items-center gap-2 hover:bg-gray-100 text-sm">
-          <span>✕</span>
-          <span>Hide Post</span>
-        </button>
-        <button 
-          onClick={() => handleOptionSelect('save', post?.id)} 
-          disabled={isSaving}
-          className={`w-full text-left px-3 py-2 flex items-center gap-2 hover:bg-gray-100 text-sm ${isSaving ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-        >
-          <Image 
-            src={isSaved ? "/icons/saved_post.png" : "/icons/save_post.png"} 
-            width={16} 
-            height={16} 
-            alt="" 
-          />
-          <span className="-mt-1">
-            {isSaving ? 'Processing...' : (isSaved ? 'Unsave Post' : 'Save Post')}
-          </span>
-        </button>
-        <button onClick={() => handleOptionSelect('report', post?.id)} className="w-full text-left cursor-pointer px-3 py-2 flex items-center gap-2 hover:bg-gray-100 text-sm">
-          <Image src="/icons/report.png" height={16} width={16} alt="report" />
-          <span className="-mt-1">Report Post</span>
-        </button>
-      </div>
-    </div>
-  );
-
   const renderContent = () => (
     <div className={`mb-3 text-gray-700 ${isMobile ? 'text-sm' : 'text-base'}`}>
-      {post.content.split(' ').length > 20 ? (
+      {post.content.replace(/<[^>]+>/g, '').split(' ').length > 20 ? (
         <>
-          {post.content.split(' ').slice(0, 20).join(' ')}...
+          {post.content?.replace(/<[^>]+>/g, '')?.split(' ')?.slice(0, 20)?.join(' ')}...
           <button
             className="text-blue-600 hover:text-blue-800 cursor-pointer font-medium ml-1"
             onClick={handleCommentClick}
@@ -215,74 +244,88 @@ const PostCard = ({
   );
 
   return (
-    <div className={`rounded-lg bg-white shadow mb-4 ${isMobile ? 'p-3' : isTablet ? 'p-4' : 'p-5'}`}>
-      <div className="flex justify-between items-center mb-3">
-        <div className="flex items-center gap-2">
-          {renderAuthorAvatar()}
-          <div className="flex flex-col justify-center sm:items-center sm:gap-1">
-            <span className={`font-medium cursor-pointer ${isMobile ? 'text-xs' : 'text-sm'} text-gray-900`}>
-              {post.author.username || post.author.name}
-            </span>
-            <span className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-500 pl-2`}>{post.timePosted}</span>
+    <>
+      <div className={`rounded-lg bg-white shadow mb-4 ${isMobile ? 'p-3' : isTablet ? 'p-4' : 'p-5'}`}>
+        <div className="flex justify-between items-center mb-3">
+          <div className="flex items-center gap-2">
+            {renderAuthorAvatar()}
+            <div className="flex flex-col justify-start items-start sm:items-center sm:gap-1">
+              <span className={`font-medium cursor-pointer ${isMobile ? 'text-xs' : 'text-base'} text-gray-900`}>
+                {post.author.username || post.author.name}
+              </span>
+              <span className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-500 pl-2`}>
+                {post.timePosted}
+              </span>
+            </div>
           </div>
+
+          <Dropdown
+            menu={{ items: menuItems, onClick: handleMenuClick }}
+            placement="bottomRight"
+            trigger={['click']}
+          >
+            <button className="font-bold p-1 rounded hover:bg-gray-100 cursor-pointer">
+              <AiOutlineEllipsis className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'}`} />
+            </button>
+          </Dropdown>
         </div>
 
-        <div className="relative" ref={dropdownRef}>
-          <button className="font-bold p-1 rounded hover:bg-gray-100 cursor-pointer" onClick={toggleDropdown}>
-            <AiOutlineEllipsis className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'}`} />
-          </button>
-          {showDropdown && renderDropdown()}
+        {post.title && (
+          <h2 onClick={handlePostDetails} className={`${isMobile ? 'text-lg' : isTablet ? 'text-xl' : 'text-2xl'} cursor-pointer hover:text-blue-700 font-bold mb-3`}>
+            {post.title}
+          </h2>
+        )}
+
+        {renderContent()}
+
+        {post.image && (
+          <div className="mb-4">
+            <img
+              src={`${baseURL}${post.image}`}
+              alt="Post content"
+              className="w-full h-[350px] rounded-lg object-cover"
+            />
+          </div>
+        )}
+
+        <div className="flex justify-between items-center">
+          <div className="flex items-center gap-4 sm:gap-6">
+            <button onClick={handleLike} className="flex items-center cursor-pointer hover:bg-gray-100 p-1 rounded">
+              {likePost ?
+                <FaHeart className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} text-red-500`} /> :
+                <FaRegHeart className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} text-gray-500`} />
+              }
+              <span className={`ml-1 ${isMobile ? 'text-xs' : 'text-sm'} text-gray-700`}>{post.stats.likes || 0}</span>
+            </button>
+
+            <button onClick={handleCommentClick} className="flex items-center cursor-pointer hover:bg-gray-100 p-1 rounded">
+              <Image src="/icons/message.png" width={20} height={20} alt="message icons" />
+              <span className={`ml-1 -mt-[1px] ${isMobile ? 'text-xs' : 'text-sm'} text-gray-700`}>{post.stats.comments?.length || 0}</span>
+            </button>
+
+            {renderTags()}
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className={`flex items-center gap-1.5 ${isMobile ? 'text-xs' : 'text-sm'} text-gray-500`}>
+              <PostSEE />
+              <span className="">{post.stats.reads}</span>
+            </div>
+
+            <button onClick={handleShare} className="text-gray-500 px-2 py-1.5 cursor-pointer hover:bg-gray-100 rounded-sm">
+              <Image src="/icons/share.png" width={20} height={20} alt="share button" />
+            </button>
+          </div>
         </div>
       </div>
 
-      {post.title && (
-        <h2 onClick={handlePostDetails} className={`${isMobile ? 'text-lg' : isTablet ? 'text-xl' : 'text-2xl'} cursor-pointer hover:text-blue-700 font-bold mb-3`}>
-          {post.title}
-        </h2>
-      )}
-
-      {renderContent()}
-
-      {post.image && (
-        <div className="mb-4">
-          <img
-            src={`${baseURL}${post.image}`}
-            alt="Post content"
-            className="w-full h-[350px] rounded-lg object-cover"
-          />
-        </div>
-      )}
-
-      <div className="flex justify-between items-center">
-        <div className="flex items-center gap-4 sm:gap-6">
-          <button onClick={handleLike} className="flex items-center cursor-pointer hover:bg-gray-100 p-1 rounded">
-            {post.isLiked ?
-              <FaHeart className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} text-red-500`} /> :
-              <FaRegHeart className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} text-gray-500`} />
-            }
-            <span className={`ml-1 ${isMobile ? 'text-xs' : 'text-sm'} text-gray-700`}>{post.stats.likes || 0}</span>
-          </button>
-
-          <button onClick={handleCommentClick} className="flex items-center cursor-pointer hover:bg-gray-100 p-1 rounded">
-            <Image src="/icons/message.png" width={20} height={20} alt="message icons" />
-            <span className={`ml-1 -mt-[1px] ${isMobile ? 'text-xs' : 'text-sm'} text-gray-700`}>{post.stats.comments?.length || 0}</span>
-          </button>
-
-          {renderTags()}
-        </div>
-
-        <div className="flex items-center gap-3">
-          <div className={`flex items-center gap-1.5 ${isMobile ? 'text-xs' : 'text-sm'} text-gray-500`}>
-            <PostSEE />
-            <span className="">{post.stats.reads}</span>
-          </div>
-
-          <button onClick={handleShare} className="text-gray-500 px-2 py-1.5 cursor-pointer hover:bg-gray-100 rounded-sm">
-            <Image src="/icons/share.png" width={20} height={20} alt="share button" />
-          </button>
-        </div>
-      </div>
-    </div>
+      {/* Report Post Modal using Ant Design */}
+      <ReportPostModal
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        postId={post?.id || post?._id}
+      />
+    </>
   );
 };
 

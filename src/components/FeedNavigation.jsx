@@ -4,9 +4,8 @@ import { Dropdown, Button } from 'antd';
 import { AppstoreOutlined, DownOutlined } from '@ant-design/icons';
 import { RiArrowUpDownLine } from "react-icons/ri";
 
-const FeedNavigation = ({ handlefeedGrid }) => {
+const FeedNavigation = ({ handlefeedGrid, onSortChange, currentSort }) => {
   const [clickCount, setClickCount] = useState(1);
-  const [sortOption, setSortOption] = useState('Newest');
   const [isHovered, setIsHovered] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   
@@ -32,23 +31,22 @@ const FeedNavigation = ({ handlefeedGrid }) => {
     { 
       key: 'newest', 
       label: 'Newest',
-      className: sortOption === 'Newest' ? 'bg-gray-50' : '' 
+      className: currentSort === 'newest' ? 'bg-gray-100' : '' 
     },
     { 
       key: 'oldest', 
       label: 'Oldest',
-      className: sortOption === 'Oldest' ? 'bg-gray-50' : '' 
+      className: currentSort === 'oldest' ? 'bg-gray-100' : '' 
     },
     { 
       key: 'popular', 
       label: 'Popular',
-      className: sortOption === 'Popular' ? 'bg-gray-50' : '' 
+      className: currentSort === 'popular' ? 'bg-gray-100' : '' 
     },
   ];
   
   const handleMenuClick = (e) => {
-    const selectedOption = items.find(item => item.key === e.key)?.label;
-    setSortOption(selectedOption);
+    onSortChange(e.key);
   };
   
   const menuProps = {
@@ -59,7 +57,7 @@ const FeedNavigation = ({ handlefeedGrid }) => {
       minWidth: '120px',
     },
     selectable: true,
-    selectedKeys: [items.find(item => item.label === sortOption)?.key],
+    selectedKeys: [currentSort],
   };
   
   return (
@@ -96,7 +94,9 @@ const FeedNavigation = ({ handlefeedGrid }) => {
           } hover:border-blue-400 hover:text-blue-500 transition-colors duration-200`}
         >
           <RiArrowUpDownLine className={`${isMobile ? 'text-xs' : 'text-lg'} text-gray-500 mr-1`} />
-          <span className="font-medium mx-1">{sortOption}</span>
+          <span className="font-medium mx-1">
+            {items.find(item => item.key === currentSort)?.label}
+          </span>
           <DownOutlined className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-500 ml-1`} />
         </Button>
       </Dropdown>
