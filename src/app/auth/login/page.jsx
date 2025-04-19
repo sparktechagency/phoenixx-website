@@ -1,11 +1,12 @@
 "use client";
 import { useLoginMutation } from '@/features/auth/authApi';
 import { decodedUser, saveToken } from '@/features/auth/authService';
-import { message} from 'antd';
+import { message } from 'antd';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import React, { useState } from 'react';
+import { FaEye, FaEyeSlash } from 'react-icons/fa';
 
 const LoginPage = () => {
   const [formData, setFormData] = useState({
@@ -20,12 +21,14 @@ const LoginPage = () => {
     rememberMe: ''
   });
 
+  const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
-  
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [Login, { isLoading }] = useLoginMutation();
 
-  const [Login , {isLoading}] = useLoginMutation();
-
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -34,7 +37,6 @@ const LoginPage = () => {
       [name]: type === 'checkbox' ? checked : value
     }));
     
-    // Clear error when user starts typing
     if (errors[name]) {
       setErrors(prev => ({
         ...prev,
@@ -43,12 +45,10 @@ const LoginPage = () => {
     }
   };
 
-
   const validateForm = () => {
     let isValid = true;
     const newErrors = { ...errors };
 
-    // Username validation
     if (!formData.username.trim()) {
       newErrors.username = 'Username is required';
       isValid = false;
@@ -57,7 +57,6 @@ const LoginPage = () => {
       isValid = false;
     }
 
-    // Password validation
     if (!formData.password) {
       newErrors.password = 'Password is required';
       isValid = false;
@@ -65,12 +64,6 @@ const LoginPage = () => {
       newErrors.password = 'Password must be at least 6 characters';
       isValid = false;
     }
-
-    // Remember me validation (if you need to enforce it)
-    // if (!formData.rememberMe) {
-    //   newErrors.rememberMe = 'You must agree to remember me';
-    //   isValid = false;
-    // }
 
     setErrors(newErrors);
     return isValid;
@@ -83,10 +76,10 @@ const LoginPage = () => {
       setIsSubmitting(true);
       
       try {
-        const response = await Login({email:formData.username , password : formData.password}).unwrap();
-        saveToken(response?.data?.accessToken)
-        decodedUser(response?.data?.accessToken)
-        router.push("/")
+        const response = await Login({ email: formData.username, password: formData.password }).unwrap();
+        saveToken(response?.data?.accessToken);
+        decodedUser(response?.data?.accessToken);
+        router.push("/");
         setFormData({
           username: '',
           password: '',
@@ -95,8 +88,6 @@ const LoginPage = () => {
       } catch (error) {
         console.error('Login error:', error);
         alert(error?.data?.message);
-
-        console.log(error?.data?.message)
       } finally {
         setIsSubmitting(false);
       }
@@ -106,7 +97,7 @@ const LoginPage = () => {
   return (
     <div className="">
       <div className="flex h-screen justify-center">
-        {/* Left Section with Background Image and Overlay */}
+        {/* Left Section with Background Image */}
         <div className="hidden md:flex md:w-1/2 justify-center relative">
           <Image 
             src="/images/login.png" 
@@ -126,7 +117,7 @@ const LoginPage = () => {
 
             <form onSubmit={handleSubmit} noValidate>
               <div className="mb-4">
-                <label htmlFor="username" className="block text-gray-700 mb-2">Username</label>
+                <label htmlFor="username" className="block text-gray-700 mb-2">Email</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <svg className="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -139,7 +130,7 @@ const LoginPage = () => {
                     type="text"
                     value={formData.username}
                     onChange={handleChange}
-                    placeholder="James123"
+                    placeholder="james@gmail.com"
                     className={`w-full pl-10 pr-3 py-2 border ${errors.username ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500`}
                   />
                 </div>
@@ -157,12 +148,19 @@ const LoginPage = () => {
                   <input
                     id="password"
                     name="password"
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     value={formData.password}
                     onChange={handleChange}
                     placeholder="********"
-                    className={`w-full pl-10 pr-3 py-2 border ${errors.password ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+                    className={`w-full pl-10 pr-10 py-2 border ${errors.password ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500`}
                   />
+                  <button
+                    type="button"
+                    onClick={togglePasswordVisibility}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-indigo-500"
+                  >
+                    {showPassword ? <FaEyeSlash className="h-4 w-4 cursor-pointer" /> : <FaEye className="h-4 w-4 cursor-pointer" />}
+                  </button>
                 </div>
                 {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password}</p>}
               </div>
@@ -187,13 +185,11 @@ const LoginPage = () => {
                   </Link>
                 </div>
               </div>
-              {/* Uncomment if you need to validate the checkbox */}
-              {/* {errors.rememberMe && <p className="mt-1 text-sm text-red-600">{errors.rememberMe}</p>} */}
 
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className={`w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}
+                className={`w-full bg-indigo-600 cursor-pointer text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}
               >
                 {isSubmitting ? 'Signing In...' : 'Sign In'}
               </button>

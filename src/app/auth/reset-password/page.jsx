@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import React, { useState, useEffect } from 'react';
+import { FaEye, FaEyeSlash } from 'react-icons/fa';
 
 const ResetPasswordPage = () => {
   const [formData, setFormData] = useState({
@@ -17,6 +18,8 @@ const ResetPasswordPage = () => {
     confirmPassword: ''
   });
 
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const router = useRouter();
@@ -31,6 +34,14 @@ const ResetPasswordPage = () => {
     const tokenFromStorage = typeof window !== 'undefined' ? localStorage.getItem("forgot-password-otp-token") : null;
     setResetToken(tokenFromUrl || tokenFromStorage || '');
   }, [searchParams]);
+
+  const toggleNewPasswordVisibility = () => {
+    setShowNewPassword(!showNewPassword);
+  };
+
+  const toggleConfirmPasswordVisibility = () => {
+    setShowConfirmPassword(!showConfirmPassword);
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -61,14 +72,7 @@ const ResetPasswordPage = () => {
     } else if (formData.newPassword.length < 8) {
       newErrors.newPassword = 'Password must be at least 8 characters';
       isValid = false;
-    } else if (!/[A-Z]/.test(formData.newPassword)) {
-      newErrors.newPassword = 'Password must contain at least one uppercase letter';
-      isValid = false;
-    } else if (!/[0-9]/.test(formData.newPassword)) {
-      newErrors.newPassword = 'Password must contain at least one number';
-      isValid = false;
-    }
-
+    } 
     if (!formData.confirmPassword) {
       newErrors.confirmPassword = 'Please confirm your password';
       isValid = false;
@@ -167,12 +171,19 @@ const ResetPasswordPage = () => {
                     <input
                       id="newPassword"
                       name="newPassword"
-                      type="password"
+                      type={showNewPassword ? "text" : "password"}
                       value={formData.newPassword}
                       onChange={handleChange}
                       placeholder="Enter new password"
-                      className={`w-full pl-10 pr-3 py-2 border ${errors.newPassword ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+                      className={`w-full pl-10 pr-10 py-2 border ${errors.newPassword ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500`}
                     />
+                    <button
+                      type="button"
+                      onClick={toggleNewPasswordVisibility}
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-indigo-500"
+                    >
+                      {showNewPassword ? <FaEyeSlash className="h-4 w-4 cursor-pointer" /> : <FaEye className="h-4 w-4 cursor-pointer" />}
+                    </button>
                   </div>
                   {errors.newPassword && <p className="mt-1 text-sm text-red-600">{errors.newPassword}</p>}
                   <p className="mt-1 text-xs text-gray-500">
@@ -191,12 +202,19 @@ const ResetPasswordPage = () => {
                     <input
                       id="confirmPassword"
                       name="confirmPassword"
-                      type="password"
+                      type={showConfirmPassword ? "text" : "password"}
                       value={formData.confirmPassword}
                       onChange={handleChange}
                       placeholder="Confirm new password"
-                      className={`w-full pl-10 pr-3 py-2 border ${errors.confirmPassword ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+                      className={`w-full pl-10 pr-10 py-2 border ${errors.confirmPassword ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500`}
                     />
+                    <button
+                      type="button"
+                      onClick={toggleConfirmPasswordVisibility}
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-indigo-500"
+                    >
+                      {showConfirmPassword ? <FaEyeSlash className="h-4 w-4 cursor-pointer" /> : <FaEye className="h-4 w-4 cursor-pointer" />}
+                    </button>
                   </div>
                   {errors.confirmPassword && <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>}
                 </div>
@@ -204,7 +222,7 @@ const ResetPasswordPage = () => {
                 <button
                   type="submit"
                   disabled={isSubmitting || !resetToken}
-                  className={`w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${(isSubmitting || !resetToken) ? 'opacity-70 cursor-not-allowed' : ''}`}
+                  className={`w-full cursor-pointer bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${(isSubmitting || !resetToken) ? 'opacity-70 cursor-not-allowed' : ''}`}
                 >
                   {isSubmitting ? 'Resetting...' : 'Reset Password'}
                 </button>

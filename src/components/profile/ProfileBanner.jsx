@@ -111,7 +111,7 @@ const ProfileBanner = () => {
             <div className="relative">
               <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-300">
                 <img
-                  src={`${baseURL}${data?.data?.profile}`}
+                  src={data?.data?.profile ? `${baseURL}${data?.data?.profile}` : "/icons/user.png"}
                   alt="User"
                   className="w-full h-full object-cover"
                 />
@@ -188,7 +188,7 @@ const ProfileBanner = () => {
                 <Col xs={24} sm={8} lg={6}>
                   <div className="flex justify-center">
                     <img 
-                      src={`${baseURL}${data?.data?.profile}`} 
+                      src={data?.data?.profile ? `${baseURL}${data?.data?.profile}` : "/icons/user.png"} 
                       alt="Current profile" 
                       className="w-20 h-20 object-cover rounded-full"
                     />

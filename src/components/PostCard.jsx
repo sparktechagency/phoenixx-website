@@ -62,8 +62,6 @@ const PostCard = ({
   currentUser = { name: "User", avatar: "" }
 }) => {
   const router = useRouter();
-  
-  const [expanded, setExpanded] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [showReportModal, setShowReportModal] = useState(false);
   const windowSize = useWindowSize();
@@ -91,8 +89,6 @@ const PostCard = ({
 
   const handlePostDetails = useCallback(() => {
     const postId = post.id || post._id || 'placeholder-id';
-    const postName = getPostNameSlug(post.title);
-    const category = post.category || 'general';
     router.push(`/posts/${postId}`);
   }, [post, getPostNameSlug, router]);
 

@@ -1,3 +1,4 @@
+
 import { jwtDecode } from "jwt-decode";
 
 export const saveToken = (token) => {
@@ -5,11 +6,16 @@ export const saveToken = (token) => {
   };
   
   export const getToken = () => {
-    return localStorage?.getItem("loginToken");
+    if(window.localStorage){
+
+      return localStorage?.getItem("loginToken");
+    }
+    
   };
   
   export const removeToken = () => {
     localStorage.removeItem("loginToken");
+   
   };
   
   export const isAuthenticated = () => {

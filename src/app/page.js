@@ -5,18 +5,57 @@ import CategoriesSidebar from '@/components/CategoriesSidebar';
 import FeedNavigation from '@/components/FeedNavigation';
 import PostCard from '@/components/PostCard';
 import React, { useState, useEffect } from 'react';
-import { motion,LayoutGroup } from 'framer-motion';
+import { motion, LayoutGroup } from 'framer-motion';
 import { useGetPostQuery, useLikePostMutation } from '@/features/post/postApi';
 import moment from 'moment';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
+import { Pagination, Button, Card, Empty } from 'antd';
+import { LeftOutlined, RightOutlined, DoubleLeftOutlined, DoubleRightOutlined } from '@ant-design/icons';
 
 const Page = () => {
   const [gridNumber, setGridNumber] = useState(1);
   const [windowWidth, setWindowWidth] = useState(0);
-  const [selectedCategory, setSelectedCategory] = useState("");
-  const [selectedSubCategory, setSelectedSubCategory] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [selectedSubCategory, setSelectedSubCategory] = useState(null);
   const [sortOrder, setSortOrder] = useState("newest");
+  const [currentPage, setCurrentPage] = useState(1);
+  const postsPerPage = 10;
 
-  const { data, isLoading, error } = useGetPostQuery();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const searchValue = searchParams.get("search");
+  
+  const pageParam = searchParams.get("page");
+  const categoryParam = searchParams.get("category");
+  const subcategoryParam = searchParams.get("subcategory");
+
+  useEffect(() => {
+    if (pageParam) {
+      setCurrentPage(parseInt(pageParam));
+    }
+    
+    if (categoryParam) {
+      setSelectedCategory(categoryParam);
+    }
+    
+    if (subcategoryParam) {
+      setSelectedSubCategory(subcategoryParam);
+    }
+  }, [pageParam, categoryParam, subcategoryParam]);
+
+  // Build query object carefully, only including defined parameters
+  // FIX: Separate category and subcategory params as required by the API
+  const queryParams = {
+    ...(searchValue && { searchTerm: searchValue }),
+    ...(selectedCategory && { category: selectedCategory }),
+    ...(selectedSubCategory && { subCategory: selectedSubCategory }), // Changed from subcategory to subCategory to match API expectation
+    sort: sortOrder,
+    page: currentPage,
+    limit: postsPerPage
+  };
+
+  const { data, isLoading, error } = useGetPostQuery(queryParams);
   const [likePost] = useLikePostMutation();
 
   useEffect(() => {
@@ -41,47 +80,89 @@ const Page = () => {
     console.log("Comment on post:", postId, "Text:", commentText);
   };
 
-  const handleCategorySelect = (categoryId, subCategoryId = "") => {
+  const handleCategorySelect = (categoryId, subCategoryId = null) => {
     setSelectedCategory(categoryId);
     setSelectedSubCategory(subCategoryId);
+    setCurrentPage(1);
+    
+    // FIX: Update URL params with correct parameter names
+    updateUrlParams({ 
+      category: categoryId || undefined,
+      subcategory: subCategoryId || undefined,
+      page: 1 
+    });
   };
 
   const handleSortChange = (sortOption) => {
     setSortOrder(sortOption);
+    setCurrentPage(1);
+    updateUrlParams({ sort: sortOption, page: 1 });
   };
 
-  const TrendingTopics = () => (
-    <div className="bg-white rounded-lg p-4 sticky top-20">
-      <h3 className="text-lg font-semibold mb-4">Trending Topics</h3>
-      {["WebDevelopment", "UXDesign", "JavaScript", "ResponsiveDesign"].map(topic => (
-        <div key={topic} className="text-sm text-gray-600 hover:text-primary cursor-pointer py-1">
-          {topic}
-        </div>
-      ))}
-    </div>
-  );
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+    updateUrlParams({ page });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const updateUrlParams = (params) => {
+    const newParams = new URLSearchParams(searchParams.toString());
+    
+    Object.entries(params).forEach(([key, value]) => {
+      if (value) {
+        newParams.set(key, value);
+      } else {
+        newParams.delete(key);
+      }
+    });
+    
+    router.push(`${pathname}?${newParams.toString()}`);
+  };
+
+  const clearAllFilters = () => {
+    setSelectedCategory(null);
+    setSelectedSubCategory(null);
+    setCurrentPage(1);
+    router.push(pathname);
+  };
 
   const isDesktop = windowWidth >= 1024;
   const isGrid2 = gridNumber === 2 && isDesktop;
 
   if (isLoading) {
-    return <div className="flex justify-center items-center h-screen">Loading...</div>;
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <Card loading={true} style={{ width: 300 }} />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <Card className="text-center">
+          <Empty
+            description={
+              <span className="text-red-500">
+                Error loading posts. Please try again later.
+              </span>
+            }
+          />
+        </Card>
+      </div>
+    );
   }
 
   const formatTime = (timestamp) => {
     if (!timestamp) return "Just now";
-    
-    // Set Bangladesh time (UTC+6)
     const bangladeshTime = moment.utc(timestamp).utcOffset(6);
-    
     return bangladeshTime.fromNow();
   };
 
   const formatPostData = (post) => ({
     id: post._id,
     author: {
-      name: post.author.userName,
-      username: `@${post.author.userName}`,
+      username: `${post?.author?.userName}`,
       avatar: `${post?.author?.profile}`
     },
     timePosted: formatTime(post.createdAt),
@@ -97,31 +178,21 @@ const Page = () => {
     isLiked: false
   });
 
-  // Filter posts based on selected category and subcategory
-  const filteredPosts = (data?.data?.data || []).filter(post => {
-    if (!selectedCategory) return true;
-    
-    if (selectedSubCategory) {
-      return post.category?._id === selectedCategory && 
-             post.subcategory?._id === selectedSubCategory;
-    }
-    
-    return post.category?._id === selectedCategory;
-  });
+  const posts = data?.data?.data || [];
+  const totalPosts = data?.data?.meta?.total || 0; // Fixed: Using meta.total instead of pagination.total
+  const totalPages = Math.ceil(totalPosts / postsPerPage);
 
-  // Sort posts based on the selected option
-  const sortedPosts = [...filteredPosts].sort((a, b) => {
-    if (sortOrder === "newest") {
-      return new Date(b.createdAt) - new Date(a.createdAt);
-    } else if (sortOrder === "oldest") {
-      return new Date(a.createdAt) - new Date(b.createdAt);
-    } else {
-      // Popular - sort by likes + comments + views
-      const aPopularity = (a.likes?.length || 0) + (a.comments?.length || 0) + (a.views || 0);
-      const bPopularity = (b.likes?.length || 0) + (b.comments?.length || 0) + (b.views || 0);
-      return bPopularity - aPopularity;
+  // Helper function to find category/subcategory names
+  const getCategoryName = () => {
+    if (selectedSubCategory) {
+      const post = posts.find(p => p.subcategory?._id === selectedSubCategory);
+      return post?.subcategory?.name || "Selected Subcategory";
+    } else if (selectedCategory) {
+      const post = posts.find(p => p.category?._id === selectedCategory);
+      return post?.category?.name || "Selected Category";
     }
-  });
+    return "All Posts";
+  };
 
   return (
     <div className='bg-[#F2F4F7]'>
@@ -150,49 +221,89 @@ const Page = () => {
                   currentSort={sortOrder}
                 />
                 
-                {/* Display current filter info */}
-                {(selectedCategory || selectedSubCategory) && (
-                  <div className="bg-white rounded-lg p-3 mb-4 flex items-center justify-between">
-                    <div className="flex items-center">
-                      <span className="text-gray-700 mr-2">Viewing:</span>
-                      <span className="font-medium text-blue-600">
-                        {selectedCategory ? (
-                          selectedSubCategory ? 
-                            `${data?.data?.data.find(post => post.subcategory?._id === selectedSubCategory)?.subcategory?.name || "Selected Subcategory"}` : 
-                            `${data?.data?.data.find(post => post.category?._id === selectedCategory)?.category?.name || "Selected Category"}`
-                        ) : "All Posts"}
-                      </span>
+                {(selectedCategory || selectedSubCategory || searchValue) && (
+                  <Card className="mb-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        <span className="text-gray-700 mr-2">Viewing:</span>
+                        <span className="font-medium text-blue-600">
+                          {searchValue ? (
+                            `Search results for "${searchValue}"`
+                          ) : (
+                            getCategoryName()
+                          )}
+                        </span>
+                      </div>
+                      <Button 
+                        type="link" 
+                        onClick={clearAllFilters}
+                      >
+                        Clear All Filters
+                      </Button>
                     </div>
-                    <button 
-                      onClick={() => handleCategorySelect("", "")}
-                      className="text-sm text-blue-500 hover:text-blue-700"
-                    >
-                      Clear Filter
-                    </button>
-                  </div>
+                  </Card>
                 )}
                 
-                {sortedPosts.length === 0 ? (
-                  <div className="bg-white rounded-lg p-8 text-center">
-                    <h3 className="text-lg font-medium text-gray-700">No posts found</h3>
-                    <p className="text-gray-500 mt-2">Try selecting a different category or subcategory</p>
-                  </div>
+                {posts.length === 0 ? (
+                  <Card className="text-center">
+                    <Empty
+                      description={
+                        <>
+                          <h3 className="text-lg font-medium text-gray-700">No posts found</h3>
+                          <p className="text-gray-500 mt-2">
+                            {searchValue 
+                              ? "Try a different search term" 
+                              : "Try selecting a different category or subcategory"}
+                          </p>
+                        </>
+                      }
+                    />
+                  </Card>
                 ) : (
-                  <motion.div
-                    layout
-                    className={`grid ${isGrid2 ? 'grid-cols-2 gap-4' : 'grid-cols-1 gap-1'}`}
-                  >
-                    {sortedPosts.map((post) => (
-                      <div key={post._id}>
-                        <PostCard
-                          postData={formatPostData(post)}
-                          currentUser={currentUser}
-                          onLike={handleLike}
-                          onCommentSubmit={handleCommentSubmit}
+                  <>
+                    <motion.div
+                      layout
+                      className={`grid ${isGrid2 ? 'grid-cols-2 gap-4' : 'grid-cols-1 gap-1'} mb-6`}
+                    >
+                      {posts.map((post) => (
+                        <div key={post._id}>
+                          <PostCard
+                            postData={formatPostData(post)}
+                            currentUser={currentUser}
+                            onLike={handleLike}
+                            onCommentSubmit={handleCommentSubmit}
+                          />
+                        </div>
+                      ))}
+                    </motion.div>
+                    
+                    {totalPages > 1 && (
+                      <div className="flex justify-center mt-6">
+                        <Pagination
+                          current={currentPage}
+                          total={totalPosts}
+                          pageSize={postsPerPage}
+                          onChange={handlePageChange}
+                          showSizeChanger={false}
+                          itemRender={(current, type, originalElement) => {
+                            if (type === 'prev') {
+                              return <Button icon={<LeftOutlined />} />;
+                            }
+                            if (type === 'next') {
+                              return <Button icon={<RightOutlined />} />;
+                            }
+                            if (type === 'jump-prev') {
+                              return <Button icon={<DoubleLeftOutlined />} />;
+                            }
+                            if (type === 'jump-next') {
+                              return <Button icon={<DoubleRightOutlined />} />;
+                            }
+                            return originalElement;
+                          }}
                         />
                       </div>
-                    ))}
-                  </motion.div>
+                    )}
+                  </>
                 )}
               </motion.section>
             </motion.div>
@@ -209,46 +320,86 @@ const Page = () => {
                 currentSort={sortOrder}
               />
               
-              {/* Display current filter info */}
-              {(selectedCategory || selectedSubCategory) && (
-                <div className="bg-white rounded-lg p-3 mb-4 flex items-center justify-between">
-                  <div className="flex items-center">
-                    <span className="text-gray-700 mr-2">Viewing:</span>
-                    <span className="font-medium text-blue-600">
-                      {selectedCategory ? (
-                        selectedSubCategory ? 
-                          `${data?.data?.data.find(post => post.subcategory?._id === selectedSubCategory)?.subcategory?.name || "Selected Subcategory"}` : 
-                          `${data?.data?.data.find(post => post.category?._id === selectedCategory)?.category?.name || "Selected Category"}`
-                      ) : "All Posts"}
-                    </span>
+              {(selectedCategory || selectedSubCategory || searchValue) && (
+                <Card className="mb-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      <span className="text-gray-700 mr-2">Viewing:</span>
+                      <span className="font-medium text-blue-600">
+                        {searchValue ? (
+                          `Search results for "${searchValue}"`
+                        ) : (
+                          getCategoryName()
+                        )}
+                      </span>
+                    </div>
+                    <Button 
+                      type="link" 
+                      onClick={clearAllFilters}
+                    >
+                      Clear All Filters
+                    </Button>
                   </div>
-                  <button 
-                    onClick={() => handleCategorySelect("", "")}
-                    className="text-sm text-blue-500 hover:text-blue-700"
-                  >
-                    Clear Filter
-                  </button>
-                </div>
+                </Card>
               )}
               
-              {sortedPosts.length === 0 ? (
-                <div className="bg-white rounded-lg p-8 text-center">
-                  <h3 className="text-lg font-medium text-gray-700">No posts found</h3>
-                  <p className="text-gray-500 mt-2">Try selecting a different category or subcategory</p>
-                </div>
+              {posts.length === 0 ? (
+                <Card className="text-center">
+                  <Empty
+                    description={
+                      <>
+                        <h3 className="text-lg font-medium text-gray-700">No posts found</h3>
+                        <p className="text-gray-500 mt-2">
+                          {searchValue 
+                            ? "Try a different search term" 
+                            : "Try selecting a different category or subcategory"}
+                        </p>
+                      </>
+                    }
+                  />
+                </Card>
               ) : (
-                <div className={`grid gap-5 ${gridNumber === 2 && windowWidth >= 640 ? 'grid-cols-2' : 'grid-cols-1'}`}>
-                  {sortedPosts.map((post) => (
-                    <div key={post._id}>
-                      <PostCard
-                        postData={formatPostData(post)}
-                        currentUser={currentUser}
-                        onLike={handleLike}
-                        onCommentSubmit={handleCommentSubmit}
+                <>
+                  <div className={`grid gap-5 ${gridNumber === 2 && windowWidth >= 640 ? 'grid-cols-2' : 'grid-cols-1'} mb-6`}>
+                    {posts.map((post) => (
+                      <div key={post._id}>
+                        <PostCard
+                          postData={formatPostData(post)}
+                          currentUser={currentUser}
+                          onLike={handleLike}
+                          onCommentSubmit={handleCommentSubmit}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                  
+                  {totalPages > 1 && (
+                    <div className="flex justify-center mt-6">
+                      <Pagination
+                        current={currentPage}
+                        total={totalPosts}
+                        pageSize={postsPerPage}
+                        onChange={handlePageChange}
+                        showSizeChanger={false}
+                        itemRender={(current, type, originalElement) => {
+                          if (type === 'prev') {
+                            return <Button icon={<LeftOutlined />} />;
+                          }
+                          if (type === 'next') {
+                            return <Button icon={<RightOutlined />} />;
+                          }
+                          if (type === 'jump-prev') {
+                            return <Button icon={<DoubleLeftOutlined />} />;
+                          }
+                          if (type === 'jump-next') {
+                            return <Button icon={<DoubleRightOutlined />} />;
+                          }
+                          return originalElement;
+                        }}
                       />
                     </div>
-                  ))}
-                </div>
+                  )}
+                </>
               )}
             </div>
           )}

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import React, { useState } from 'react';
 import { toast } from 'react-toastify';
+import { FaEye, FaEyeSlash } from 'react-icons/fa'; // Import eye icons from react-icons
 
 const SignUp = () => {
   const router = useRouter();
@@ -21,6 +22,8 @@ const SignUp = () => {
     password: '',
     rememberMe: ''
   });
+
+  const [showPassword, setShowPassword] = useState(false); // State for password visibility
   
   const [signUp, { isLoading }] = useSignupMutation();
 
@@ -82,11 +85,9 @@ const SignUp = () => {
           password: formData.password
         }).unwrap();
 
-
-        // toast.success('Account created successfully! Please check your email for verification.');
-       if(response.success){
-        router.push(`/auth/verify-otp?email=${formData.email}`)
-       }
+        if(response.success){
+          router.push(`/auth/verify-otp?email=${formData.email}`)
+        }
         setFormData({
           username: '',
           email: '',
@@ -94,13 +95,10 @@ const SignUp = () => {
           rememberMe: false
         });
 
-        // Redirect to login after 3 seconds
-
       } catch (error) {
         console.error('Sign up error:', error);
         
         if (error.data) {
-          // Handle specific backend errors
           if (error.data.message.includes('email')) {
             setErrors(prev => ({ ...prev, email: error.data.message }));
           } else if (error.data.message.includes('username')) {
@@ -113,6 +111,10 @@ const SignUp = () => {
         }
       }
     }
+  };
+
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
   };
 
   return (
@@ -191,12 +193,19 @@ const SignUp = () => {
                   <input
                     id="password"
                     name="password"
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     value={formData.password}
                     onChange={handleChange}
                     placeholder="********"
-                    className={`w-full pl-10 pr-3 py-2 border ${errors.password ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+                    className={`w-full pl-10 pr-10 py-2 border ${errors.password ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500`}
                   />
+                  <button
+                    type="button"
+                    onClick={togglePasswordVisibility}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-indigo-500"
+                  >
+                    {showPassword ? <FaEyeSlash className="h-4 w-4 cursor-pointer" /> : <FaEye className="h-4 w-4 cursor-pointer" />}
+                  </button>
                 </div>
                 {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password}</p>}
               </div>
@@ -215,14 +224,12 @@ const SignUp = () => {
                 </label>
               </div>
 
-
               <button
                 type="submit"
                 disabled={isLoading}
-                className={`w-full bg-indigo-600 text-white py-2 px-4  rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:border-none  {isLoading ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer'}`}
+                className={`w-full bg-indigo-600 text-white py-2 px-4 cursor-pointer rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:border-none ${isLoading ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer'}`}
               >
                 {isLoading ? 'Signing Up...' : 'Sign Up'}
-                Sign Up
               </button>
             </form>
 

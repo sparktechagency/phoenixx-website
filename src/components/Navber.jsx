@@ -11,9 +11,7 @@ import {
   Typography,
   Grid,
   Drawer,
-  Menu,
-  List,
-  AutoComplete
+  Menu
 } from 'antd';
 import { 
   PlusOutlined, 
@@ -22,8 +20,6 @@ import {
   SearchOutlined,
   UserOutlined,
   QuestionCircleOutlined,
-  FileTextOutlined,
-  LockOutlined,
   CommentOutlined,
   SettingOutlined,
   MoonOutlined,
@@ -34,14 +30,12 @@ import {
 import Link from 'next/link';
 import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
-import debounce from 'lodash/debounce';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Message, Notification } from '../../utils/svgImage';
 import { useGetProfileQuery } from '@/features/profile/profileApi';
 import { baseURL } from '../../utils/BaseURL';
 
 const { Header } = Layout;
-const { Search } = Input;
 const { Text } = Typography;
 const { useBreakpoint } = Grid;
 
@@ -49,13 +43,25 @@ export default function Navbar() {
   const screens = useBreakpoint();
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [showMobileSearch, setShowMobileSearch] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [suggestions, setSuggestions] = useState([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('')
   const searchRef = useRef(null);
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const {data, isLoading} = useGetProfileQuery();
+
+  // Initialize search query from URL
+  useEffect(() => {
+    const query = searchParams.get('search');
+    if (query) {
+      // Remove quotes if they exist in the query
+      const cleanQuery = query.replace(/^"|"$/g, '');
+     
+      setSearchQuery(cleanQuery);
+    } else {
+      setSearchQuery('');
+    }
+  }, [searchParams]);
 
   const handleNavigation = (path) => {
     router.push(path);
@@ -66,11 +72,16 @@ export default function Navbar() {
     {
       key: 'profile-header',
       label: (
-        <Flex gap="small" align="center" className="p-2 cursor-pointer">
-          <Avatar size={40} src={`${baseURL}${data?.data?.profile}`} />
+        <Flex gap="small" align="center" className="p-2 cursor-pointer hover:bg-gray-50">
+          <Avatar 
+            src={data?.data?.profile ? `${baseURL}${data?.data?.profile}` : "/icons/user.png"} 
+            size={44} 
+          />
           <Space direction="vertical" size={0}>
-            <Text strong>{data?.data?.name? data?.data?.name : ""}</Text>
-            <Text type={`${data?.data?.name ? "":"secondary"}`}>{data?.data?.userName ? "@"+data?.data?.userName : ""}</Text>
+            <Text strong>{data?.data?.name || ""}</Text>
+            <Text type={data?.data?.name ? undefined : "secondary"}>
+              {data?.data?.userName ? `@${data?.data?.userName}` : ""}
+            </Text>
           </Space>
         </Flex>
       ),
@@ -83,32 +94,35 @@ export default function Navbar() {
       key: 'about',
       icon: <UserOutlined />,
       label: 'About us',
-      onClick: () => handleNavigation('/about')
+      onClick: () => handleNavigation('/about'),
+      className: 'hover:bg-gray-50'
     },
     {
       key: 'help',
       icon: <QuestionCircleOutlined />,
       label: 'Help & Support',
-      onClick: () => handleNavigation('/help&support')
+      onClick: () => handleNavigation('/help&support'),
+      className: 'hover:bg-gray-50'
     },
     {
       key: 'feedback',
       icon: <CommentOutlined />,
       label: 'Feedback',
-      onClick: () => handleNavigation('/feedback')
+      onClick: () => handleNavigation('/feedback'),
+      className: 'hover:bg-gray-50'
     },
     {
       key: 'settings',
       icon: <SettingOutlined />,
       label: 'Settings',
-      onClick: () => handleNavigation('/settings')
+      onClick: () => handleNavigation('/settings'),
+      className: 'hover:bg-gray-50'
     },
     {
       key: 'darkmode',
       icon: <MoonOutlined />,
       label: 'Switch to Dark Mode',
-      
-
+      className: 'hover:bg-gray-50'
     },
     {
       type: 'divider',
@@ -119,71 +133,50 @@ export default function Navbar() {
       label: 'Sign Out',
       danger: true,
       onClick: () => {
-        handleNavigation('/auth/login')
+        handleNavigation('/auth/login');
         localStorage.clear();
-      }
+      },
+      className: 'hover:bg-gray-50'
     },
   ];
 
-  const fetchSuggestions = debounce(async (query) => {
-    if (!query) {
-      setSuggestions([]);
-      return;
-    }
-    
-    const mockSuggestions = [
-      { value: `${query} tutorial` },
-      { value: `${query} for beginners` },
-      { value: `how to ${query}` },
-      { value: `best ${query} techniques` },
-      { value: `${query} advanced` },
-    ];
-    
-    setSuggestions(mockSuggestions);
-  }, 300);
-
-  useEffect(() => {
-    fetchSuggestions(searchQuery);
-    
-    return () => {
-      fetchSuggestions.cancel();
-    };
-  }, [searchQuery]);
-
+  // Function to handle search
   const handleSearch = (value) => {
-    if (value.trim()) {
-      router.push(`/search?q=${encodeURIComponent(value)}`);
-      setShowSuggestions(false);
+    const trimmedValue = value?.trim();
+    if (trimmedValue) {
+      // Update URL with search parameter
+      router.push(`/?search=${encodeURIComponent(trimmedValue)}`);
+    } else {
+      // If search is empty, remove the search parameter
+      router.push('/');
     }
   };
 
-  const handleSelect = (value) => {
-    handleSearch(value);
-  };
-
-  const handleInputChange = (value) => {
+  // Function to handle input change
+  const handleInputChange = (e) => {
+    const value = e.target.value;
+    // Update the search query state
     setSearchQuery(value);
-    setShowSuggestions(true);
+    
+    // When input is cleared, remove the search parameter
+    if (!value) {
+      router.push('/');
+    }
   };
 
+  // Function to handle when Enter key is pressed
   const handleKeyDown = (e) => {
     if (e.key === 'Enter') {
       handleSearch(searchQuery);
     }
   };
 
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (searchRef.current && !searchRef.current.contains(event.target)) {
-        setShowSuggestions(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
+  // Function to clear the search input
+  const handleClear = () => {
+    setSearchQuery('');
+    // Remove search parameter from URL
+    router.push('/');
+  };
 
   const showDrawer = () => {
     setDrawerVisible(true);
@@ -195,9 +188,10 @@ export default function Navbar() {
 
   const toggleMobileSearch = () => {
     setShowMobileSearch(!showMobileSearch);
-    setSearchQuery('');
-    setSuggestions([]);
-    setShowSuggestions(false);
+    if (!showMobileSearch) {
+      setSearchQuery('');
+      router.push('/');
+    }
   };
 
   const searchFieldStyles = {
@@ -219,12 +213,106 @@ export default function Navbar() {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    border: '1px solid #808080',
+    border: '1px solid #e5e7eb',
     padding: '8px',
     width: '40px',
     height: '40px',
-    borderRadius: '50%'
+    borderRadius: '50%',
+    backgroundColor: '#f9fafb'
   };
+
+  // Desktop search component
+  const renderDesktopSearch = () => (
+    <div style={{ 
+      width: '35%', 
+      paddingLeft: "100px",
+      minWidth: '200px',
+    }}>
+      <Flex 
+        align="center" 
+        style={{ 
+          width: '100%',
+          height: '40px',
+          backgroundColor: '#f3f2fa',
+          borderRadius: '10px',
+          border: '1px solid #D8D8D8',
+          overflow: 'hidden'
+        }}
+      >
+        <Input
+          value={searchQuery}
+          placeholder="Search topics"
+          prefix={<SearchOutlined style={searchFieldStyles.searchIcon} />}
+          style={{
+            ...searchFieldStyles.input,
+            width: '100%',
+          }}
+          onChange={handleInputChange}
+          onPressEnter={handleKeyDown}
+          allowClear={{ 
+            clearIcon: <CloseOutlined onClick={handleClear} /> 
+          }}
+        />
+        <Button 
+          type="primary" 
+          icon={<SearchOutlined />} 
+          onClick={() => handleSearch(searchQuery)}
+          style={{ 
+            height: '100%',
+            width: '50px',
+            borderRadius: '0 10px 10px 0',
+            border: 'none',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+        />
+      </Flex>
+    </div>
+  );
+
+  // Mobile search component
+  const renderMobileSearch = () => (
+    <div style={{ 
+      flex: 1,
+      display: 'flex',
+      alignItems: 'center',
+      height: '100%',
+      padding: '0 8px',
+    }}>
+      <Input
+        value={searchQuery}
+        placeholder="Search topics"
+        prefix={<SearchOutlined style={searchFieldStyles.searchIcon} />}
+        style={{
+          ...searchFieldStyles.input, 
+          width: '100%', 
+          background: '#f3f2fa', 
+          borderRadius: '10px'
+        }}
+        autoFocus
+        onChange={handleInputChange}
+        onPressEnter={handleKeyDown}
+        allowClear={{ 
+          clearIcon: <CloseOutlined onClick={handleClear} /> 
+        }}
+        suffix={
+          <Button 
+            type="text"
+            icon={<CloseOutlined />}
+            onClick={toggleMobileSearch}
+            style={{ 
+              border: 'none', 
+              background: 'transparent',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          />
+        }
+      />
+    </div>
+  );
 
   return (
     <>
@@ -270,126 +358,7 @@ export default function Navbar() {
         )}
         
         {/* Middle - Search Bar */}
-        {screens.md ? (
-          <div style={{ 
-            width: '35%', 
-            paddingLeft: "100px",
-            minWidth: '200px',
-            position: 'relative',
-          }} ref={searchRef}>
-            <Flex 
-              align="center" 
-              style={{ 
-                width: '100%',
-                height: '40px',
-                backgroundColor: '#f3f2fa',
-                borderRadius: '10px',
-                border: '1px solid #D8D8D8',
-                overflow: 'hidden'
-              }}
-            >
-              <AutoComplete
-                options={suggestions}
-                onSelect={handleSelect}
-                onSearch={handleInputChange}
-                onKeyDown={handleKeyDown}
-                value={searchQuery}
-                style={{ 
-                  flex: 1,
-                  height: '100%',
-                  border: 'none',
-                  background: 'transparent'
-                }}
-                open={showSuggestions && suggestions.length > 0}
-                onDropdownVisibleChange={(open) => setShowSuggestions(open)}
-                popupMatchSelectWidth={true}
-                dropdownStyle={{
-                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
-                  padding: '8px 0'
-                }}
-              >
-                <Input
-                  placeholder="Search topics"
-                  prefix={<SearchOutlined style={searchFieldStyles.searchIcon} />}
-                  style={{
-                    ...searchFieldStyles.input,
-                    width: '100%',
-                  }}
-                  onPressEnter={() => handleSearch(searchQuery)}
-                  allowClear
-                />
-              </AutoComplete>
-              <Button 
-                type="primary" 
-                icon={<SearchOutlined />} 
-                onClick={() => handleSearch(searchQuery)}
-                style={{ 
-                  height: '100%',
-                  width: '50px',
-                  borderRadius: '0 10px 10px 0',
-                  border: 'none',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-              />
-            </Flex>
-          </div>
-        ) : showMobileSearch && (
-          <div style={{ 
-            flex: 1,
-            display: 'flex',
-            alignItems: 'center',
-            height: '100%',
-            padding: '0 8px',
-            position: 'relative'
-          }} ref={searchRef}>
-            <AutoComplete
-              options={suggestions}
-              onSelect={handleSelect}
-              onSearch={handleInputChange}
-              onKeyDown={handleKeyDown}
-              value={searchQuery}
-              style={{ width: '100%' }}
-              open={showSuggestions && suggestions.length > 0}
-              onDropdownVisibleChange={(open) => setShowSuggestions(open)}
-              dropdownMatchSelectWidth={true}
-              dropdownStyle={{
-                borderRadius: '8px',
-                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
-                padding: '8px 0'
-              }}
-            >
-              <Input
-                placeholder="Search topics"
-                prefix={<SearchOutlined style={searchFieldStyles.searchIcon} />}
-                style={{
-                  ...searchFieldStyles.input, 
-                  width: '100%', 
-                  background: '#f3f2fa', 
-                  borderRadius: '10px'
-                }}
-                autoFocus
-                onPressEnter={() => handleSearch(searchQuery)}
-                allowClear
-                suffix={
-                  <Button 
-                    type="text"
-                    icon={<CloseOutlined />}
-                    onClick={toggleMobileSearch}
-                    style={{ 
-                      border: 'none', 
-                      background: 'transparent',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}
-                  />
-                }
-              />
-            </AutoComplete>
-          </div>
-        )}
+        {screens.md ? renderDesktopSearch() : (showMobileSearch && renderMobileSearch())}
         
         {/* Right Side Actions */}
         {!showMobileSearch && (
@@ -410,7 +379,7 @@ export default function Navbar() {
                   {screens.lg ? 'New Post' : ''}
                 </Button>
                 
-                <Badge style={{ backgroundColor: "#2930FF" }} count={5}>
+                <Badge style={{ backgroundColor: "#2930FF", marginTop:"5px", marginRight:"5px" }} count={5}>
                   <Button 
                     onClick={() => handleNavigation("/chat")}
                     type="text" 
@@ -419,7 +388,7 @@ export default function Navbar() {
                   />
                 </Badge>
                 
-                <Badge style={{ backgroundColor: "#2930FF" }} count={3}>
+                <Badge style={{ backgroundColor: "#2930FF", marginTop:"5px", marginRight:"5px"}} count={3}>
                   <Button 
                     onClick={() => handleNavigation("/notification")}
                     type="text" 
@@ -451,8 +420,8 @@ export default function Navbar() {
             >
               <div style={{ display: 'flex', alignItems: 'center', height: '100%', padding: '0 8px' }}>
                 <Avatar 
-                  src={`${baseURL}${data?.data?.profile}`} 
-                  size={40} 
+                  src={data?.data?.profile ? `${baseURL}${data?.data?.profile}` : "/icons/user.png"} 
+                  size={44} 
                   style={{ 
                     cursor: 'pointer',
                   }} 
