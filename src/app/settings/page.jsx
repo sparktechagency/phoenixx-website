@@ -29,7 +29,7 @@ const AccountTabs = () => {
   return (
   <div>
     <CustomBanner routeName={"Settings"} />
-      <div className="max-w-xl mx-auto mt-8">
+      <div className="max-w-xl mx-auto mt-8 sm:p-0 p-3">
       <Tabs
         activeKey={activeKey}
         items={items}

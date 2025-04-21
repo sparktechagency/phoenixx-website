@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import { Modal, Input, Form, Button, Grid, Upload, Row, Col } from 'antd';
+import { Modal, Input, Form, Button, Grid, Upload, Row, Col, message } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import { useGetProfileQuery, useUpdateProfileMutation } from '@/features/profile/profileApi';
 import { baseURL } from '../../../utils/BaseURL';
@@ -8,10 +8,7 @@ import { baseURL } from '../../../utils/BaseURL';
 const ProfileBanner = () => {
   const { data, error, isLoading: profileLoading } = useGetProfileQuery();
   const [updateProfile, { isLoading: updateProfileLoading }] = useUpdateProfileMutation();
-
-  console.log(data?.data)
   
-  // Use Grid.useBreakpoint directly since destructuring doesn't work properly
   const screens = Grid.useBreakpoint();
   const isMobile = !screens.md;
   
@@ -19,11 +16,10 @@ const ProfileBanner = () => {
   const [form] = Form.useForm();
   const [fileList, setFileList] = useState([]);
   
-  // Set form values when profile data is available and modal is opened
   useEffect(() => {
     if (isModalOpen && data?.data) {
       form.setFieldsValue({
-        name: data.data.name || data.data.userName, // Use name if available, otherwise fallback to userName
+        name: data.data.name || data.data.userName,
         email: data.data.email,
         contact: data.data.contact || '',
       });
@@ -50,41 +46,54 @@ const ProfileBanner = () => {
     try {
       const values = await form.validateFields();
       
-      // Create a FormData object to handle file uploads
+      // Create FormData object for file upload
       const formData = new FormData();
-      
-      // Add form fields to FormData
       formData.append('name', values.name);
-      
-      // Only add contact if it exists
       if (values.contact) {
         formData.append('contact', values.contact);
       }
       
-      // Only add image if a new one was selected
-      if (fileList.length > 0) {
+      if (fileList.length > 0 && fileList[0].originFileObj) {
         formData.append('image', fileList[0].originFileObj);
       }
       
-      // Call the update profile mutation
-      const response = await updateProfile(formData).unwrap();
-      if(response.success){
-        alert("Profile updated successfully");
+      // Debug FormData contents
+      console.log("Submitting form data:");
+      for (let [key, value] of formData.entries()) {
+        console.log(key, value);
       }
-      setIsModalOpen(false);
+      
+      // Send the update request
+      const response = await updateProfile(formData).unwrap();
+      console.log("Update response:", response);
+      
+      if (response.success) {
+        message.success("Profile updated successfully");
+        setIsModalOpen(false);
+      } else {
+        message.error(response.message || "Failed to update profile");
+      }
     } catch (error) {
-      console.log(error);
+      console.error("Update error:", error);
+      message.error(error.data?.message || "Failed to update profile");
     }
   };
 
   const uploadProps = {
     beforeUpload: (file) => {
-      // Validate file type
       const isImage = file.type.startsWith('image/');
       if (!isImage) {
-        console.error('You can only upload image files!');
+        message.error('You can only upload image files!');
         return Upload.LIST_IGNORE;
       }
+      
+      // Validate file size (2MB max)
+      const isLt2M = file.size / 1024 / 1024 < 2;
+      if (!isLt2M) {
+        message.error('Image must be smaller than 2MB!');
+        return Upload.LIST_IGNORE;
+      }
+      
       return false; // Prevent auto upload
     },
     onChange: ({ fileList: newFileList }) => {
@@ -93,6 +102,7 @@ const ProfileBanner = () => {
     fileList,
     maxCount: 1,
     listType: 'picture-card',
+    accept: 'image/*'
   };
 
   if (profileLoading) {
@@ -183,7 +193,6 @@ const ProfileBanner = () => {
         >
           <Form.Item label="Profile Picture">
             <Row gutter={16} align="middle">
-              {/* Profile Image */}
               {fileList.length === 0 && (
                 <Col xs={24} sm={8} lg={6}>
                   <div className="flex justify-center">
@@ -199,7 +208,6 @@ const ProfileBanner = () => {
                 </Col>
               )}
 
-              {/* Upload Section */}
               <Col xs={24} sm={16} lg={18}>
                 <Upload {...uploadProps}>
                   {fileList.length === 0 && (
@@ -216,7 +224,10 @@ const ProfileBanner = () => {
           <Form.Item
             name="name"
             label="Full Name*"
-            rules={[{ required: true, message: 'Please enter your name' }]}
+            rules={[
+              { required: true, message: 'Please enter your name' },
+              { min: 2, message: 'Name must be at least 2 characters' }
+            ]}
           >
             <Input placeholder='Name' />
           </Form.Item>
@@ -231,6 +242,9 @@ const ProfileBanner = () => {
           <Form.Item
             name="contact"
             label="Phone"
+            rules={[
+              { pattern: /^[0-9+]+$/, message: 'Please enter a valid phone number' }
+            ]}
           >
             <Input placeholder='Phone Number' />
           </Form.Item>

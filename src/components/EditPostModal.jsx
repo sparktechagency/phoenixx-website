@@ -1,22 +1,18 @@
-// EditPostModal.jsx
 "use client";
 import React, { useEffect, useState } from 'react';
 import { Modal } from 'antd';
 import BlogPostForm from '@/app/new/page';
 
-
 const EditPostModal = ({ visible, onClose, postData }) => {
-  // Initialize form data from postData
   const [initialData, setInitialData] = useState(null);
+
 
   useEffect(() => {
     if (visible && postData) {
-      // Transform postData into the format expected by BlogPostForm
-      // This mapping depends on your exact data structure
       const formattedData = {
         title: postData.title || '',
-        category: postData.category || null,
-        subcategory: postData.subcategory || null,
+        category: postData.category?._id || postData.category || null,
+        subcategory: postData.subCategory?._id || postData.subCategory || null,
         description: postData.content || '',
         fileList: postData.image ? [{
           uid: '-1',
@@ -31,7 +27,6 @@ const EditPostModal = ({ visible, onClose, postData }) => {
   }, [visible, postData]);
 
   const handleUpdateSuccess = () => {
-    // Handle successful update
     onClose();
   };
 

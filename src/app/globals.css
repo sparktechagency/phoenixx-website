@@ -3,9 +3,8 @@
 @theme {
   --color-primary: #0001FB;
   --color-secendary: #000000;
-  
-}
 
+}
 
 /* Add to your global CSS */
 .subcategory-enter {
@@ -26,7 +25,3 @@
   transition: all 300ms ease;
 }
 
-
-.dark {
-  color-scheme: dark;
-}

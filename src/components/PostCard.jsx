@@ -11,26 +11,7 @@ import { useGetSaveAllPostQuery, useSavepostMutation } from '@/features/SavePost
 import ReportPostModal from './ReportPostModal';
 import { useGetPostQuery } from '@/features/post/postApi';
 
-const defaultPost = {
-  author: {
-    name: "Anonymous",
-    avatar: "",
-    username: "anonymous"
-  },
-  timePosted: "Just now",
-  title: "",
-  content: "",
-  image: "",
-  tags: [],
-  stats: {
-    likes: 0,
-    comments: [],
-    reads: 0
-  },
-  isLiked: false,
-  isSaved: false,
-  category: "general"
-};
+
 
 const useWindowSize = () => {
   const [windowSize, setWindowSize] = useState({
@@ -54,7 +35,7 @@ const useWindowSize = () => {
 };
 
 const PostCard = ({
-  postData = defaultPost,
+  postData,
   onLike,
   onCommentSubmit,
   onShare,
@@ -66,8 +47,7 @@ const PostCard = ({
   const [showReportModal, setShowReportModal] = useState(false);
   const windowSize = useWindowSize();
   const login_user_id = typeof window !== 'undefined' ? localStorage.getItem("login_user_id") : null;
-    
-
+  
 
   const [isSaving, setIsSaving] = useState(false);
   const [savepost] = useSavepostMutation();
@@ -81,7 +61,7 @@ const PostCard = ({
 
   const isMobile = windowSize.width < 640;
   const isTablet = windowSize.width >= 640 && windowSize.width < 1024;
-  const post = { ...defaultPost, ...postData };
+  const post = {...postData };
 
   const getPostNameSlug = useCallback((title) => (
     title ? title.toLowerCase().replace(/[^\w\s]/gi, '').replace(/\s+/g, '-') : 'post'
@@ -195,10 +175,11 @@ const PostCard = ({
     },
   ];
 
+
   const renderAuthorAvatar = () => (
     post.author.avatar ? (
       <img
-        src={post.author.avatar}
+        src={`${baseURL}${post.author.avatar}`}
         alt="Author avatar"
         className={`${isMobile ? 'w-6 h-6' : 'w-8 h-8'} rounded-full cursor-pointer`}
       />

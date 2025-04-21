@@ -6,10 +6,7 @@ export const saveToken = (token) => {
   };
   
   export const getToken = () => {
-    if(window.localStorage){
-
       return localStorage?.getItem("loginToken");
-    }
     
   };
   

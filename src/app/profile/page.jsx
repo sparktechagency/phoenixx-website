@@ -16,67 +16,52 @@ const ProfilePage = () => {
     const { data: postsData, isLoading, isError: isPostsError, refetch } = useMyPostQuery();
     const { data: savePostData, isError: isSavePostError } = useGetSaveAllPostQuery();
     const [deletePost] = useDeletePostMutation();
-    const [userPosts, setUserPosts] = useState([]);
-
-    // State for UI - with localStorage persistence
-    const [activeTab, setActiveTab] = useState(() => {
-        if (typeof window !== 'undefined') {
-            return localStorage.getItem('profileActiveTab') || 'totalPosts';
-        }
-        return 'totalPosts';
-    });
+    
+    // State management
+    const [activeTab, setActiveTab] = useState(() => 
+        typeof window !== 'undefined' ? localStorage.getItem('profileActiveTab') || 'totalPosts' : 'totalPosts'
+    );
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [postToDelete, setPostToDelete] = useState(null);
     const [editingPost, setEditingPost] = useState(null);
     const [form] = Form.useForm();
 
-    // Save activeTab to localStorage whenever it changes
+    // Store active tab in localStorage
     useEffect(() => {
         if (typeof window !== 'undefined') {
             localStorage.setItem('profileActiveTab', activeTab);
         }
     }, [activeTab]);
 
-    // Update local state when data is fetched
+    // Error handling
     useEffect(() => {
-        if (postsData?.data) {
-            setUserPosts(postsData.data);
-        }
-    }, [postsData]);
-
-    // Handle errors
-    useEffect(() => {
-        if (isPostsError) {
-            message.error('Failed to load your posts');
-        }
-        if (isSavePostError) {
-            message.error('Failed to load saved posts');
-        }
+        if (isPostsError) message.error('Failed to load your posts');
+        if (isSavePostError) message.error('Failed to load saved posts');
     }, [isPostsError, isSavePostError]);
 
-    // Get saved posts array from savePostData
+    // Data preparation
+    const userPosts = postsData?.data || [];
     const savedPosts = savePostData?.data || [];
-
-    // Stats based on actual data
+    
+    // Activity stats
     const stats = {
-        totalPosts: userPosts?.length || 0,
-        savedPosts: savedPosts?.length || 0,
-        comments: userPosts?.reduce((sum, post) => sum + (post.comments?.length || 0), 0) || 0
+        totalPosts: userPosts.length || 0,
+        savedPosts: savedPosts.length || 0,
+        comments: userPosts.reduce((sum, post) => sum + (post.comments?.length || 0), 0) || 0
     };
 
-    // Format date to relative time
+    // Format date helper
     const formatDate = (dateString) => {
         if (!dateString) return 'Just now';
         try {
             return formatDistanceToNow(new Date(dateString), { addSuffix: true });
         } catch (error) {
-            console.error("Error formatting date:", error);
             return 'Just now';
         }
     };
 
-    // Transform API data to match your card component's expected format
+    // Transform post data for rendering
     const transformPostData = (post) => ({
         id: post?._id || '',
         title: post?.title || 'No title',
@@ -85,7 +70,7 @@ const ProfilePage = () => {
         author: {
             name: post?.author?.userName || 'User',
             username: `@${(post?.author?.userName || 'user').toLowerCase()}`,
-            avatar: post?.author?.avatar || '/images/default-avatar.png'
+            avatar: post?.author?.profile
         },
         timePosted: formatDate(post?.createdAt),
         stats: {
@@ -95,7 +80,7 @@ const ProfilePage = () => {
         }
     });
 
-    // Transform saved post data (which has a different structure)
+    // Transform saved post data
     const transformSavedPostData = (savedPost) => {
         const post = savedPost?.postId || {};
         return {
@@ -117,78 +102,48 @@ const ProfilePage = () => {
         };
     };
 
-    // Handle opening the edit modal
+    // Handle post actions
     const handleEditPost = (postId) => {
         const postToEdit = userPosts.find(post => post._id === postId);
         if (postToEdit) {
             setEditingPost(postToEdit);
             form.setFieldsValue({
                 title: postToEdit.title,
-                content: postToEdit.content?.replace(/<[^>]*>/g, '') || '' // Remove HTML tags for editing
+                content: postToEdit.content?.replace(/<[^>]*>/g, '') || ''
             });
             setIsEditModalOpen(true);
         }
     };
 
-    // Handle modal closes
-    const handleEditModalCancel = () => {
-        setIsEditModalOpen(false);
-        setEditingPost(null);
-        form.resetFields();
-    };
-
-    const handleDeleteModalCancel = () => {
-        setIsDeleteModalOpen(false);
-        setPostToDelete(null);
-    };
-
-    // Handle form submission for editing a post
     const handleEditFormSubmit = async (values) => {
         if (!editingPost) return;
         
         try {
-            // Here you would typically make an API call to update the post
-            // For now, we'll just close the modal
+            // API call would go here
             setIsEditModalOpen(false);
             setEditingPost(null);
             form.resetFields();
             message.success('Post updated successfully');
-            refetch(); // Refresh the data
+            refetch();
         } catch (error) {
             message.error('Failed to update post');
-            console.error("Failed to update the post", error);
         }
     };
 
-    // Handle delete confirmation
     const handleConfirmDelete = async () => {
         if (!postToDelete) return;
         
         try {
-            // Call the API to delete the post first
             await deletePost(postToDelete).unwrap();
-            
-            // Then update the UI
-            setUserPosts(prevPosts => prevPosts.filter(post => post._id !== postToDelete));
-            
-            // Show success message
             message.success('Post deleted successfully');
-            
-            // Close the delete modal
+            refetch();
             setIsDeleteModalOpen(false);
             setPostToDelete(null);
-            
         } catch (error) {
-            // If there's an error, revert the UI change
-            if (postsData?.data) {
-                setUserPosts(postsData.data);
-            }
             message.error('Failed to delete post');
-            console.error("Failed to delete the post", error);
         }
     };
 
-    // Handle option select from ProfilePostCard
     const handleOptionSelect = (postId, option) => {
         if (option === 'edit') {
             handleEditPost(postId);
@@ -198,23 +153,28 @@ const ProfilePage = () => {
         }
     };
 
-    // Get posts to display based on active tab
+    // Get posts based on active tab
     const getPostsToDisplay = () => {
-        if (!userPosts || !savedPosts) return [];
-        
         switch (activeTab) {
             case 'totalPosts':
-                return userPosts.map(post => transformPostData(post));
+                return userPosts.map(transformPostData);
             case 'savedPosts':
-                return savedPosts.map(savedPost => transformSavedPostData(savedPost));
+                return savedPosts.map(transformSavedPostData);
             case 'comments':
-                return userPosts.filter(post => post.comments?.length > 0).map(post => transformPostData(post));
+                return userPosts.filter(post => post.comments?.length > 0).map(transformPostData);
             default:
-                return userPosts.map(post => transformPostData(post));
+                return userPosts.map(transformPostData);
         }
     };
 
     const postsToDisplay = getPostsToDisplay();
+
+    // Tab configuration
+    const tabs = [
+        { key: 'totalPosts', icon: <FiFile />, label: 'Total Posts' },
+        { key: 'savedPosts', icon: <FiBookmark />, label: 'Saved Posts' },
+        { key: 'comments', icon: <FiMessageSquare />, label: 'Comments' }
+    ];
 
     return (
         <div className="bg-[#E5E7EB] min-h-screen">
@@ -230,15 +190,11 @@ const ProfilePage = () => {
                             bodyStyle={{ padding: screens.md ? '16px' : '12px' }}
                         >
                             <Space direction="vertical" size="middle" className="w-full">
-                                {[
-                                    { key: 'totalPosts', icon: <FiFile />, label: 'Total Posts' },
-                                    { key: 'savedPosts', icon: <FiBookmark />, label: 'Saved Posts' },
-                                    { key: 'comments', icon: <FiMessageSquare />, label: 'Comments' }
-                                ].map(({ key, icon, label }) => (
+                                {tabs.map(({ key, icon, label }) => (
                                     <button 
                                         key={key}
                                         onClick={() => setActiveTab(key)} 
-                                        className={`flex items-center justify-between w-full p-3 cursor-pointer rounded-md transition-all ${
+                                        className={`flex items-center justify-between w-full p-3 rounded-md transition-all ${
                                             activeTab === key ? 'bg-indigo-50 text-indigo-700' : 'hover:bg-gray-100 text-gray-700'
                                         }`}
                                     >
@@ -266,28 +222,28 @@ const ProfilePage = () => {
                                 {activeTab === 'comments' && 'Your Comments'}
                             </h2>
                         </div>
-                        <div className="flex flex-col gap-4">
-                            {isLoading ? (
-                                <div>Loading...</div>
-                            ) : postsToDisplay.length > 0 ? (
-                                postsToDisplay.map((post) => (
-                                    <div key={post.id} className="transition-all duration-300">
-                                        <ProfilePostCard
-                                            postData={post}
-                                            onOptionSelect={handleOptionSelect}
-                                        />
-                                    </div>
-                                ))
-                            ) : (
-                                <div className="text-center p-8 bg-white rounded-lg shadow-sm">
-                                    <p className="text-gray-500">
-                                        {activeTab === 'totalPosts' ? 'No posts to display' : 
-                                         activeTab === 'savedPosts' ? 'No saved posts to display' : 
-                                         'No comments to display'}
-                                    </p>
-                                </div>
-                            )}
-                        </div>
+                        
+                        {isLoading ? (
+                            <div>Loading...</div>
+                        ) : postsToDisplay.length > 0 ? (
+                            <div className="flex flex-col gap-4">
+                                {postsToDisplay.map((post) => (
+                                    <ProfilePostCard
+                                        key={post.id}
+                                        postData={post}
+                                        onOptionSelect={handleOptionSelect}
+                                    />
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="text-center p-8 bg-white rounded-lg shadow-sm">
+                                <p className="text-gray-500">
+                                    {activeTab === 'totalPosts' ? 'No posts to display' : 
+                                     activeTab === 'savedPosts' ? 'No saved posts to display' : 
+                                     'No comments to display'}
+                                </p>
+                            </div>
+                        )}
                     </section>
                 </div>
             </main>
@@ -296,7 +252,11 @@ const ProfilePage = () => {
             <Modal
                 title="Edit Post"
                 open={isEditModalOpen}
-                onCancel={handleEditModalCancel}
+                onCancel={() => {
+                    setIsEditModalOpen(false);
+                    setEditingPost(null);
+                    form.resetFields();
+                }}
                 footer={null}
                 destroyOnClose
             >
@@ -326,12 +286,8 @@ const ProfilePage = () => {
                     </Form.Item>
 
                     <div className="flex justify-end gap-2 mt-4">
-                        <Button onClick={handleEditModalCancel}>
-                            Cancel
-                        </Button>
-                        <Button type="primary" htmlType="submit">
-                            Save Changes
-                        </Button>
+                        <Button onClick={() => setIsEditModalOpen(false)}>Cancel</Button>
+                        <Button type="primary" htmlType="submit">Save Changes</Button>
                     </div>
                 </Form>
             </Modal>
@@ -340,11 +296,9 @@ const ProfilePage = () => {
             <Modal
                 title="Delete Post"
                 open={isDeleteModalOpen}
-                onCancel={handleDeleteModalCancel}
+                onCancel={() => setIsDeleteModalOpen(false)}
                 footer={[
-                    <Button key="cancel" onClick={handleDeleteModalCancel}>
-                        Cancel
-                    </Button>,
+                    <Button key="cancel" onClick={() => setIsDeleteModalOpen(false)}>Cancel</Button>,
                     <Button 
                         key="delete" 
                         type="primary" 
@@ -353,7 +307,7 @@ const ProfilePage = () => {
                         loading={isLoading}
                     >
                         Delete
-                    </Button>,
+                    </Button>
                 ]}
                 centered
             >

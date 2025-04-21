@@ -3,11 +3,18 @@ import { baseApi } from "../../../utils/apiBaseQuery";
 export const postApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     updateProfile: builder.mutation({
-      query: (data) => ({
-        url: "/users/update-profile",
-        method: "PATCH",
-        body: data,
-      }),
+      query: (data) => {
+        // Check if data is FormData (has append method)
+        const isFormData = data && typeof data.append === 'function';
+        
+        return {
+          url: "/users/update-profile",
+          method: "PATCH",
+          body: data,
+          // Add this to ensure proper handling of FormData
+          formData: isFormData,
+        };
+      },
       invalidatesTags: ['profile'], 
     }),
 
@@ -20,7 +27,6 @@ export const postApi = baseApi.injectEndpoints({
       invalidatesTags: ['profile'], 
     }),
 
-
     getProfile: builder.query({
       query: () => ({
         url: "/users/profile",
@@ -28,7 +34,6 @@ export const postApi = baseApi.injectEndpoints({
       }),
       providesTags: ['profile'],
     })
-
   }),
 });
 
@@ -37,5 +42,4 @@ export const {
   useUpdateProfileMutation,
   useGetProfileQuery,
   useDeleteAccountMutation
-
 } = postApi;

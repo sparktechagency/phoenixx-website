@@ -179,6 +179,7 @@ const Page = () => {
   });
 
   const posts = data?.data?.data || [];
+
   const totalPosts = data?.data?.meta?.total || 0; // Fixed: Using meta.total instead of pagination.total
   const totalPages = Math.ceil(totalPosts / postsPerPage);
 
@@ -364,7 +365,7 @@ const Page = () => {
                     {posts.map((post) => (
                       <div key={post._id}>
                         <PostCard
-                          postData={formatPostData(post)}
+                          postData={post}
                           currentUser={currentUser}
                           onLike={handleLike}
                           onCommentSubmit={handleCommentSubmit}

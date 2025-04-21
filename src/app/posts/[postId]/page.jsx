@@ -1,19 +1,29 @@
 "use client";
-import React, { useState, useRef } from 'react';
-import { useParams } from 'next/navigation';
-import { Avatar, Card, Button, Input, Select, Dropdown, Menu } from 'antd';
-import { LikeOutlined, LikeFilled, MessageOutlined, ShareAltOutlined, EllipsisOutlined } from '@ant-design/icons';
+import React, { useState, useEffect, useRef } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import { Avatar, Card, Button, Input, Select, Dropdown, Menu, Empty, message } from 'antd';
+import { MessageOutlined, EllipsisOutlined } from '@ant-design/icons';
+import { FaHeart, FaRegHeart, FaEye } from "react-icons/fa";
 import Image from 'next/image';
-import { usePostDetailsQuery } from '@/features/post/postApi';
+import { usePostDetailsQuery, useLikePostMutation } from '@/features/post/postApi';
 import { formatDistanceToNow } from 'date-fns';
+import { useGetSaveAllPostQuery, useSavepostMutation } from '@/features/SavePost/savepostApi';
+import ReportPostModal from '@/components/ReportPostModal';
+import { baseURL } from '../../../../utils/BaseURL';
+import { toast } from 'react-toastify';
 
-export default function PostDetailsPage() {
+const PostDetailsPage = () => {
   const params = useParams();
+  const router = useRouter();
   const { postId } = params;
-  const { data: postdetails, isLoading } = usePostDetailsQuery(postId);
-  const post = postdetails?.data;
+  
+  // API hooks
+  const { data: postDetails, isLoading, error: postError } = usePostDetailsQuery(postId);
+  const [likePost] = useLikePostMutation();
+  const [savepost, { isLoading: isSaving }] = useSavepostMutation();
+  const { data: savedPostsData } = useGetSaveAllPostQuery();
 
-  // Comments state
+  // State management
   const [comments, setComments] = useState([]);
   const [commentText, setCommentText] = useState('');
   const [editingCommentId, setEditingCommentId] = useState(null);
@@ -21,25 +31,98 @@ export default function PostDetailsPage() {
   const [replyingTo, setReplyingTo] = useState(null);
   const [replyText, setReplyText] = useState('');
   const [commentSort, setCommentSort] = useState('relevant');
+  const [windowWidth, setWindowWidth] = useState(0);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [login_user_id, setLoginUserId] = useState(null);
   const commentInputRef = useRef(null);
 
-  // Mock current user - replace with your actual auth user
+  // Derived state
+  const post = postDetails?.data;
+  const isSaved = savedPostsData?.data?.some(savedPost => savedPost?.postId?._id === postId);
+  const isLiked = post?.likes?.includes(login_user_id);
+  const isMobile = windowWidth < 640;
+  const isTablet = windowWidth >= 640 && windowWidth < 1024;
+
+  // Current user data
   const currentUser = { 
-    _id: "user1",
+    _id: login_user_id || "user1",
     userName: "Current User", 
+    name: "Current User",
     email: "current@user.com",
-    avatar: "/images/profile2.jpg" 
+    avatar: "/images/profile2.jpg",
+    username: "@currentuser"
   };
 
-  // Format date to relative time (e.g., "2 hours ago")
+  // Effects
+  useEffect(() => {
+    setLoginUserId(localStorage.getItem("login_user_id"));
+  }, []);
+
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
+    if (post?.comments && Array.isArray(post.comments)) {
+      setComments(post.comments);
+    }
+  }, [post]);
+
+  // Helper functions
   const formatDate = (dateString) => {
+    if (!dateString) return "Just now";
     return formatDistanceToNow(new Date(dateString), { addSuffix: true });
   };
 
-  // Comment actions
+  const sortComments = (comments) => {
+    const sorted = [...comments];
+    return commentSort === 'recent'
+      ? sorted.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      : sorted.sort((a, b) => b.likes.length - a.likes.length);
+  };
+
+  // Event handlers
+  const handleLike = async () => {
+    if (!login_user_id) return message.warning("Please login to like this post");
+    try {
+      await likePost(postId).unwrap();
+    } catch (error) {
+      console.error("Error liking post:", error);
+      message.error("Failed to like post");
+    }
+  };
+
+  const handleSaveUnsave = async () => {
+    if (!login_user_id) return message.warning("Please login to save this post");
+    try {
+      const response = await savepost({ postId }).unwrap();
+      message.success(response?.data !== null ? 'Post saved successfully' : 'Post removed from saved items');
+    } catch (error) {
+      console.error('Save/Unsave error:', error);
+      message.error('Failed to update saved status');
+    }
+  };
+
+  const handleShare = () => {
+    const url = `${window.location.origin}/posts/${postId}`;
+    navigator.clipboard.writeText(url)
+      .then(() => toast.success("URL copied to clipboard"))
+      .catch(() => message.error("Failed to copy URL"));
+  };
+
+  const handleCommentButtonClick = () => {
+    // Focus the comment input when comment button is clicked
+    if (commentInputRef.current) {
+      commentInputRef.current.focus();
+    }
+  };
+
   const handleCommentSubmit = (e) => {
     e.preventDefault();
-    if (!commentText.trim()) return;
+    if (!commentText.trim() || !login_user_id) return;
     
     const newComment = {
       _id: `c${Date.now()}`,
@@ -52,17 +135,18 @@ export default function PostDetailsPage() {
     
     setComments([newComment, ...comments]);
     setCommentText('');
+    message.success("Comment added successfully");
   };
 
   const handleCommentLike = (commentId) => {
     setComments(prev => prev.map(comment => {
       if (comment._id === commentId) {
-        const isLiked = comment.likes.includes(currentUser._id);
+        const isLiked = comment.likes.includes(login_user_id);
         return {
           ...comment,
           likes: isLiked 
-            ? comment.likes.filter(id => id !== currentUser._id)
-            : [...comment.likes, currentUser._id]
+            ? comment.likes.filter(id => id !== login_user_id)
+            : [...comment.likes, login_user_id]
         };
       }
       
@@ -73,9 +157,9 @@ export default function PostDetailsPage() {
             child._id === commentId 
               ? {
                   ...child,
-                  likes: child.likes.includes(currentUser._id)
-                    ? child.likes.filter(id => id !== currentUser._id)
-                    : [...child.likes, currentUser._id]
+                  likes: child.likes.includes(login_user_id)
+                    ? child.likes.filter(id => id !== login_user_id)
+                    : [...child.likes, login_user_id]
                 }
               : child
           )
@@ -87,7 +171,7 @@ export default function PostDetailsPage() {
   };
 
   const handleReplySubmit = (parentCommentId) => {
-    if (!replyText.trim()) return;
+    if (!replyText.trim() || !login_user_id) return;
     
     const newReply = {
       _id: `c${Date.now()}`,
@@ -110,6 +194,7 @@ export default function PostDetailsPage() {
     
     setReplyText('');
     setReplyingTo(null);
+    message.success("Reply added successfully");
   };
 
   const handleEditComment = (commentId, currentText) => {
@@ -141,6 +226,7 @@ export default function PostDetailsPage() {
     
     setEditingCommentId(null);
     setEditCommentText('');
+    message.success("Comment updated successfully");
   };
 
   const handleDeleteComment = (commentId) => {
@@ -156,21 +242,29 @@ export default function PostDetailsPage() {
            return comment;
          })
     );
+    message.success("Comment deleted successfully");
   };
 
-  const sortComments = (comments) => {
-    const sorted = [...comments];
-    if (commentSort === 'recent') {
-      sorted.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    } else {
-      // Sort by likes count (most liked first)
-      sorted.sort((a, b) => b.likes.length - a.likes.length);
-    }
-    return sorted;
+  // Render functions
+  const postMenuItems = [
+    {
+      key: 'report',
+      label: (
+        <div className="flex items-center gap-2 py-1">
+          <Image src="/icons/report.png" height={16} width={16} alt="report" />
+          <span>Report Post</span>
+        </div>
+      ),
+    },
+  ];
+
+  const handlePostMenuClick = ({ key }) => {
+    if (key === 'save') handleSaveUnsave();
+    else if (key === 'report') setShowReportModal(true);
   };
 
   const renderCommentMenu = (comment) => {
-    const isCurrentUserComment = comment.author._id === currentUser._id;
+    const isCurrentUserComment = comment.author._id === login_user_id;
     
     return (
       <Menu>
@@ -193,7 +287,8 @@ export default function PostDetailsPage() {
 
   const renderComment = (comment, depth = 0) => {
     const isEditing = editingCommentId === comment._id;
-    const isLiked = comment.likes.includes(currentUser._id);
+    const isCommentLiked = comment.likes.includes(login_user_id);
+    const commentAuthor = comment.author || { userName: "Unknown", avatar: null };
     
     return (
       <div 
@@ -201,10 +296,14 @@ export default function PostDetailsPage() {
         className={`mb-4 ${depth > 0 ? 'ml-8 border-l-2 border-gray-200 pl-4' : ''}`}
       >
         <Card className="rounded-2xl">
-          <div className="flex items-center mb-3">
-            <Avatar src={comment.author.avatar} size={32} />
+          <div className="flex items-center justify-start mb-3">
+            {commentAuthor.avatar ? (
+              <Avatar src={commentAuthor.avatar} size={32} />
+            ) : (
+              <Avatar size={32}>{commentAuthor.userName?.charAt(0).toUpperCase() || 'U'}</Avatar>
+            )}
             <div className="ml-2">
-              <div className="font-medium">{comment.author.userName}</div>
+              <div className="font-medium">{commentAuthor.userName}</div>
               <div className="text-xs text-gray-500">{formatDate(comment.createdAt)}</div>
             </div>
             <div className="ml-auto">
@@ -249,10 +348,10 @@ export default function PostDetailsPage() {
               className="flex items-center mr-4 hover:text-blue-500"
               onClick={() => handleCommentLike(comment._id)}
             >
-              {isLiked ? (
-                <LikeFilled className="mr-1 text-blue-500" />
+              {isCommentLiked ? (
+                <FaHeart className="mr-1 text-red-500" />
               ) : (
-                <LikeOutlined className="mr-1" />
+                <FaRegHeart className="mr-1" />
               )}
               <span>{comment.likes.length}</span>
             </button>
@@ -296,92 +395,139 @@ export default function PostDetailsPage() {
     );
   };
 
-  if (isLoading) return <div className="min-h-screen bg-gray-100 p-4 flex items-center justify-center">Loading...</div>;
-  if (!post) return <div className="min-h-screen bg-gray-100 p-4 flex items-center justify-center">Post not found</div>;
+  // Loading and error states
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-100 p-4 flex items-center justify-center">
+        <Card loading={true} style={{ width: 300 }} />
+      </div>
+    );
+  }
+
+  if (postError || !post) {
+    return (
+      <div className="min-h-screen bg-gray-100 p-4 flex items-center justify-center">
+        <Card className="text-center">
+          <Empty
+            description={
+              <span className="text-red-500">
+                {postError?.message || 'Post not found. It may have been deleted.'}
+              </span>
+            }
+          />
+          <Button type="primary" onClick={() => router.push('/')} className="mt-4">
+            Return to Home
+          </Button>
+        </Card>
+      </div>
+    );
+  }
+
 
   return (
-    <div className="min-h-screen bg-gray-100 p-4">
-      <main className="max-w-2xl mx-auto">
+    <div className="min-h-screen bg-[#F2F4F7] p-4">
+      <main className="max-w-3xl mx-auto">
         {/* Post card */}
         <div className="mb-6">
-          <div className="rounded-lg bg-white shadow p-4 md:p-5">
+          <div className={`rounded-lg bg-white shadow ${isMobile ? 'p-3' : isTablet ? 'p-4' : 'p-5'}`}>
             <div className="flex justify-between items-center mb-3">
               <div className="flex items-center gap-2">
-                <Avatar src={post.author?.avatar} size={40} />
-                <div>
-                  <div className="font-medium">{post.author?.userName}</div>
-                  <div className="text-sm text-gray-500">
-                    {formatDate(post.createdAt)}
+                {post.author?.profile ? (
+                  <Image
+                    src={post.author.profile}
+                    alt="Author avatar"
+                    width={isMobile ? 24 : 32}
+                    height={isMobile ? 24 : 32}
+                    className="rounded-full cursor-pointer"
+                  />
+                ) : (
+                  <div className={`${isMobile ? 'w-6 h-6' : 'w-8 h-8'} rounded-full bg-gray-300 flex items-center justify-center text-xs`}>
+                    {post.author?.userName?.charAt(0).toUpperCase() || 'A'}
                   </div>
+                )}
+                <div className="flex flex-col justify-start items-start">
+                  <span className={`font-medium cursor-pointer ${isMobile ? 'text-xs' : 'text-base'} text-gray-900`}>
+                    {post.author?.userName || "Anonymous"}
+                  </span>
+                  <span className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-500`}>
+                    {formatDate(post.createdAt)}
+                  </span>
                 </div>
               </div>
-              
-              <Dropdown 
-                menu={{
-                  items: [
-                    { key: 'report', label: 'Report Post' }
-                  ]
-                }}
+
+              <Dropdown
+                menu={{ items: postMenuItems, onClick: handlePostMenuClick }}
+                placement="bottomRight"
                 trigger={['click']}
               >
-                <Button type="text" icon={<EllipsisOutlined />} />
+                <button className="font-bold p-1 rounded hover:bg-gray-100 cursor-pointer">
+                  <EllipsisOutlined className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'}`} />
+                </button>
               </Dropdown>
             </div>
-            
-            <h2 className="text-xl md:text-2xl font-bold mb-3">
-              {post.title}
-            </h2>
-            
+
+            {post.title && (
+              <h2 className={`${isMobile ? 'text-lg' : isTablet ? 'text-xl' : 'text-2xl'} font-bold mb-3`}>
+                {post.title}
+              </h2>
+            )}
+
             <div 
-              className="mb-3 text-gray-700 prose max-w-none" 
+              className={`mb-3 text-gray-700 ${isMobile ? 'text-sm' : 'text-base'}`}
               dangerouslySetInnerHTML={{ __html: post.content }} 
             />
-            
-            {post.image && (
+
+            {post?.image && (
               <div className="mb-4">
-                <img 
-                  src={post.image} 
-                  alt="Post content" 
-                  className="w-full h-auto rounded-lg object-cover"
+                <Image
+                  src={`${baseURL}${post?.image}`}
+                  alt={post.title}
+                  width={800}
+                  height={350}
+                  className="w-full h-[350px] rounded-lg object-cover"
                 />
               </div>
             )}
-            
+
             <div className="flex justify-between items-center">
-              <div className="flex items-center gap-4">
-                <button className="flex items-center cursor-pointer hover:bg-gray-100 p-1 rounded">
-                  {post.likes.includes(currentUser._id) ? 
-                    <LikeFilled className="w-5 h-5 text-[#4096FF]" /> : 
-                    <LikeOutlined className="w-5 h-5 text-gray-500" />
+              <div className="flex items-center gap-4 sm:gap-6">
+                <button onClick={handleLike} className="flex items-center cursor-pointer hover:bg-gray-100 p-1 rounded">
+                  {isLiked ?
+                    <FaHeart className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} text-red-500`} /> :
+                    <FaRegHeart className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} text-gray-500`} />
                   }
-                  <span className="ml-1 text-sm text-gray-700">
-                    {post.likes.length}
-                  </span>
+                  <span className={`ml-1 ${isMobile ? 'text-xs' : 'text-sm'} text-gray-700`}>{post.likes?.length || 0}</span>
                 </button>
 
                 <button 
-                  className="flex items-center cursor-pointer hover:bg-gray-100 p-1 rounded"
                   onClick={() => {
-                    document.getElementById('comments')?.scrollIntoView({ behavior: 'smooth' });
+                    handleCommentButtonClick();
+                    if (login_user_id) {
+                      // Scroll to comment box
+                      commentInputRef.current?.scrollIntoView({ behavior: 'smooth' });
+                    }
                   }}
+                  className="flex items-center cursor-pointer hover:bg-gray-100 p-1 rounded"
                 >
-                  <MessageOutlined className="w-5 h-5 text-gray-500" />
-                  <span className="ml-1 text-sm text-gray-700">
-                    {comments.length}
-                  </span>
+                  <MessageOutlined className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'}`} />
+                  <span className={`ml-1 ${isMobile ? 'text-xs' : 'text-sm'} text-gray-700`}>{comments.length}</span>
                 </button>
+
+                {post.category && (
+                  <span className="bg-[#E6E6FF] text-xs py-1 px-2 rounded">
+                    {post.category?.name || "General"}
+                  </span>
+                )}
               </div>
 
               <div className="flex items-center gap-3">
-                {post.views > 0 && (
-                  <div className="flex items-center gap-1 text-sm text-gray-500">
-                    <Image src="/icons/read.png" width={20} height={20} alt="views" />
-                    <span>{post.views}</span>
-                  </div>
-                )}
-                
-                <button className="text-gray-500 px-2 py-1.5 cursor-pointer hover:bg-gray-100 rounded-sm">
-                  <ShareAltOutlined className="w-5 h-5" />
+                <div className={`flex items-center gap-1.5 ${isMobile ? 'text-xs' : 'text-sm'} text-gray-500`}>
+                  <FaEye className={`${isMobile ? 'w-3 h-3' : 'w-4 h-4'}`} />
+                  <span>{post.views || 0}</span>
+                </div>
+
+                <button onClick={handleShare} className="text-gray-500 px-2 py-1.5 cursor-pointer hover:bg-gray-100 rounded-sm">
+                  <Image src="/icons/share.png" width={20} height={20} alt="share button" />
                 </button>
               </div>
             </div>
@@ -391,33 +537,43 @@ export default function PostDetailsPage() {
         {/* Comment form */}
         <form onSubmit={handleCommentSubmit} className="mb-4">
           <div className="flex gap-3 items-center">
-            <Avatar src={currentUser.avatar} size={32} />
+            {currentUser.avatar ? (
+              <Avatar src={currentUser.avatar} size={32} />
+            ) : (
+              <Avatar size={32}>{currentUser.name?.charAt(0).toUpperCase() || 'U'}</Avatar>
+            )}
             <Input
               ref={commentInputRef}
-              placeholder="Add Comment"
+              placeholder="Add a comment..."
               value={commentText}
               onChange={(e) => setCommentText(e.target.value)}
               className="rounded-full bg-gray-100 border-gray-200"
+              disabled={!login_user_id}
             />
           </div>
           <Button 
             type="primary" 
             htmlType="submit" 
             className="mt-2 ml-12"
-            disabled={!commentText.trim()}
+            disabled={!commentText.trim() || !login_user_id}
           >
             Post Comment
           </Button>
+          {!login_user_id && (
+            <span className="text-sm text-gray-500 ml-2">
+              Please login to comment
+            </span>
+          )}
         </form>
 
         {/* Comments section */}
         <div id="comments" className='flex flex-col gap-3'>
-          <div className="flex items-center justify-start -ml-3">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-lg font-medium text-gray-800">Comments ({comments.length})</h3>
             <Select
               value={commentSort}
               onChange={setCommentSort}
-              bordered={false}
-              className="text-gray-600 font-medium"
+              className="text-gray-600"
               options={[
                 { value: 'relevant', label: 'Most relevant' },
                 { value: 'recent', label: 'Most recent' },
@@ -425,9 +581,29 @@ export default function PostDetailsPage() {
             />
           </div>
 
-          {sortComments(comments).map(comment => renderComment(comment))}
+          {comments.length === 0 ? (
+            <Card className="text-center p-8">
+              <Empty
+                description={
+                  <span className="text-gray-500">
+                    No comments yet. Be the first to comment!
+                  </span>
+                }
+              />
+            </Card>
+          ) : (
+            sortComments(comments).map(comment => renderComment(comment))
+          )}
         </div>
       </main>
+
+      <ReportPostModal
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        postId={postId}
+      />
     </div>
   );
-}
+};
+
+export default PostDetailsPage;

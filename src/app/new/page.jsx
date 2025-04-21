@@ -21,7 +21,7 @@ import {
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
-import { useCreatePostMutation } from '@/features/post/postApi';
+import { useCreatePostMutation, useEditPostMutation } from '@/features/post/postApi';
 import { useCategoriesQuery, useSubCategoriesQuery } from '@/features/Category/CategoriesApi';
 
 const JoditEditor = dynamic(() => import('jodit-react'), { 
@@ -43,7 +43,6 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
   const router = useRouter();
   const screens = useBreakpoint();
 
-  
   useEffect(() => {
     if (initialValues) {
       setTitle(initialValues.title || '');
@@ -61,14 +60,13 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
   const [createPost, { isLoading }] = useCreatePostMutation();
   const { data:categoryData } = useCategoriesQuery();
   const {data: subcategoryData, isLoading: isSubcategoriesLoading} = useSubCategoriesQuery(category);
+  const [editPost] = useEditPostMutation();
 
-  // Transform API data to Select options
   const categoryOptions = categoryData?.data?.result?.map(item => ({
     value: item.category._id,
     label: item.category.name
   })) || [];
 
-  // Get subcategories for the selected category
   const getSubcategories = () => {
     if (!category || !subcategoryData?.data?.length) {
       return [];
@@ -127,7 +125,29 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
       message.error('Please fill all required fields');
       return;
     }
-  
+
+    // Check if subcategory is required (for editing)
+    if (isEditing && !subcategory) {
+      // Get the category name from the options
+      const selectedCategory = categoryOptions.find(cat => cat.value === category);
+      const categoryName = selectedCategory?.label || 'selected category';
+      
+      // Get subcategories for the alert
+      const availableSubcategories = getSubcategories();
+      const subcategoryNames = availableSubcategories.map(sub => sub.label).join(', ');
+      
+      if (availableSubcategories.length > 0) {
+        message.error(
+          `Please select a subcategory for ${categoryName}. Available subcategories: ${subcategoryNames}`
+        );
+      } else {
+        message.error(
+          `No subcategories available for ${categoryName}. Please contact support.`
+        );
+      }
+      return;
+    }
+
     try {
       setLoading(true);
       const formData = new FormData();
@@ -143,11 +163,17 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
           formData.append("image", file.originFileObj);
         }
       });
-  
-      const response = await createPost(formData).unwrap();
-      
-      // Show success message for post upload
-      alert('Post successfully uploaded');
+
+      let response;
+      if (isEditing && postId) {
+        // Edit existing post
+        response = await editPost({ id: postId, body: formData }).unwrap();
+        message.success('Post updated successfully');
+      } else {
+        // Create new post
+        response = await createPost(formData).unwrap();
+        message.success('Post created successfully');
+      }
       
       if (onSuccess) {
         onSuccess();
@@ -161,19 +187,11 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
         setFileList([]);
       }
     } catch (error) {
-      alert('Error:', error);
-      
-      // Handle validation errors or other errors
-      if (error.data && error.data.message) {
-        // Show server-side validation error message
-        alert(error.data.message);
-      } else if (error.status === 'VALIDATION_ERROR') {
-        // Handle specific validation errors if your API returns them
-        alert('Validation error: Please check your input data');
-      } else {
-        // Generic error message
-        alert(isEditing ? 'Failed to update post' : 'Failed to publish post');
-      }
+      console.error('Error:', error);
+      message.error(
+        error.data?.message || 
+        (isEditing ? 'Failed to update post' : 'Failed to create post')
+      );
     } finally {
       setLoading(false);
     }
@@ -288,7 +306,7 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
                   onChange={handleFileChange}
                   beforeUpload={beforeUpload}
                   className="flex justify-center"
-                  multiple
+                  maxCount={1}
                 >
                   {isMobile ? (
                     <Button icon={<UploadOutlined />} size="middle">

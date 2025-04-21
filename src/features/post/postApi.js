@@ -57,6 +57,17 @@ export const postApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ["post"],
     }),
+
+    editPost: builder.mutation({
+      query: ({ id, body }) => {  // Destructure the id and body
+        return {
+          url: `/posts/${id}`,  // Use the post ID in the URL
+          method: "PATCH",
+          body: body,           // Send only the form data as body
+        };
+      },
+      invalidatesTags: ['post'], 
+    }),
   }),
 });
 
@@ -67,4 +78,5 @@ export const {
   useLikePostMutation,
   usePostDetailsQuery,
   useDeletePostMutation,  
+  useEditPostMutation
 } = postApi;
