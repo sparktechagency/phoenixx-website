@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import {
   AppstoreOutlined,
   ToolOutlined,
@@ -12,6 +12,8 @@ import {
 } from '@ant-design/icons';
 import { Manufacturing, Marketing, Selling, SvgImage } from '../../utils/svgImage';
 import { useCategoriesQuery, useSubCategoryQuery } from '@/features/Category/CategoriesApi';
+import { Spin } from 'antd';
+import { ThemeContext } from '@/app/layout';
 
 const CategoriesSidebar = ({ onSelectCategory, selectedCategory, selectedSubCategory }) => {
   const [expandedKeys, setExpandedKeys] = useState([]);
@@ -22,6 +24,8 @@ const CategoriesSidebar = ({ onSelectCategory, selectedCategory, selectedSubCate
 
   const { data: categoryData, isLoading: categoryLoading } = useCategoriesQuery();
   const categories = categoryData?.data?.result || [];
+
+  const { isDarkMode } = useContext(ThemeContext);
 
   useEffect(() => {
     const handleResize = () => {
@@ -110,16 +114,14 @@ const CategoriesSidebar = ({ onSelectCategory, selectedCategory, selectedSubCate
     }
   };
 
-  if (categoryLoading) {
-    return <div>Loading categories...</div>;
-  }
+  
 
   return (
-    <div className={`w-full bg-white rounded-xl ${getPadding()} sm:sticky sm:top-20`}>
+    <div className={`w-full ${isDarkMode ? 'dark-mode' : 'light-mode'} rounded-xl ${getPadding()} sm:sticky sm:top-20`}>
       <h5 className={`${getTitleSize()} font-semibold px-2 mb-4`}>Categories</h5>
       
       {/* All Posts Button */}
-      <div 
+      {categoryLoading ? <div className='flex justify-center'><Spin size='small' /></div> : <><div 
         className={`${isMobile ? 'py-2' : 'py-3'} px-2 cursor-pointer hover:bg-gray-50 rounded-md transition-all duration-200 ease-in-out mb-3 ${
           !selectedCategory && !selectedSubCategory ? 'bg-blue-50 border-l-4 border-blue-500' : ''
         }`}
@@ -230,7 +232,7 @@ const CategoriesSidebar = ({ onSelectCategory, selectedCategory, selectedSubCate
             </React.Fragment>
           );
         })}
-      </ul>
+      </ul></>}
     </div>
   );
 };

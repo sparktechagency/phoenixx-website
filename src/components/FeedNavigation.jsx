@@ -1,13 +1,16 @@
 "use client"
-import React, { useEffect, useState } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import { Dropdown, Button } from 'antd';
 import { AppstoreOutlined, DownOutlined } from '@ant-design/icons';
 import { RiArrowUpDownLine } from "react-icons/ri";
+import { ThemeContext } from '@/app/layout';
 
 const FeedNavigation = ({ handlefeedGrid, onSortChange, currentSort }) => {
   const [clickCount, setClickCount] = useState(1);
   const [isHovered, setIsHovered] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+
+  const { isDarkMode } = useContext(ThemeContext);
   
   useEffect(() => {
     const handleResize = () => {
@@ -61,17 +64,16 @@ const FeedNavigation = ({ handlefeedGrid, onSortChange, currentSort }) => {
   };
   
   return (
-    <div className="flex justify-between items-center py-4 w-full select-none">
+    <div className={`flex ${isDarkMode ? 'dark-mode' : 'light-mode'} justify-between items-center py-4 w-full select-none`}>
       <div 
         onClick={handleFeedsClick} 
         onMouseEnter={() => !isMobile && setIsHovered(true)}
         onMouseLeave={() => !isMobile && setIsHovered(false)}
-        className={`cursor-pointer flex items-center gap-1 p-1 md:p-1.5 rounded-lg transition-all duration-200 ${
-          isHovered ? 'bg-gray-100' : 'bg-transparent'
-        } hover:shadow-sm active:scale-95`}
+        className={`cursor-pointer flex items-center gap-1 p-1 md:p-1.5 rounded-lg transition-all duration-200
+         hover:shadow-sm active:scale-95`}
       >
         <AppstoreOutlined className={`mr-1 text-blue-500 ${isMobile ? 'text-base' : 'text-xl'}`} />
-        <span className={`font-semibold text-gray-900 ${isMobile ? 'text-sm' : 'text-base'}`}>
+        <span className={`font-semibold ${isMobile ? 'text-sm' : 'text-base'}`}>
           Your Feeds
         </span>
       </div>

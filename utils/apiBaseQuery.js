@@ -24,5 +24,5 @@ export const baseApi = createApi({
 },
   }),
   endpoints: () => ({}),
-  tagTypes: ["post","category",'about', 'savepost', 'faq' , 'feedback' , 'report'],
+  tagTypes: ["post","category",'about', 'savepost', 'faq' , 'feedback' , 'report',"comment"],
 });

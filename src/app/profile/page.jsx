@@ -4,9 +4,10 @@ import { Card, Space, Grid, Modal, Form, Input, Button, message } from 'antd';
 import { FiFile, FiBookmark, FiMessageSquare } from 'react-icons/fi';
 import ProfilePostCard from '@/components/ProfilePostCard';
 import ProfileBanner from '@/components/profile/ProfileBanner';
-import { useDeletePostMutation, useMyPostQuery } from '@/features/post/postApi';
+import { useDeletePostMutation, useLikePostMutation, useMyPostQuery } from '@/features/post/postApi';
 import { formatDistanceToNow } from 'date-fns';
 import { useGetSaveAllPostQuery } from '@/features/SavePost/savepostApi';
+import { toast } from 'react-toastify';
 
 const { useBreakpoint } = Grid;
 const { TextArea } = Input;
@@ -26,6 +27,8 @@ const ProfilePage = () => {
     const [postToDelete, setPostToDelete] = useState(null);
     const [editingPost, setEditingPost] = useState(null);
     const [form] = Form.useForm();
+    const [likePost] = useLikePostMutation();
+    const [isDeleting, setIsDeleting] = useState(false);
 
     // Store active tab in localStorage
     useEffect(() => {
@@ -38,7 +41,7 @@ const ProfilePage = () => {
     useEffect(() => {
         if (isPostsError) message.error('Failed to load your posts');
         if (isSavePostError) message.error('Failed to load saved posts');
-    }, [isPostsError, isSavePostError]);
+    }, [isPostsError, isSavePostError, message]);
 
     // Data preparation
     const userPosts = postsData?.data || [];
@@ -63,44 +66,15 @@ const ProfilePage = () => {
 
     // Transform post data for rendering
     const transformPostData = (post) => ({
-        id: post?._id || '',
-        title: post?.title || 'No title',
-        content: post?.content || '',
-        image: post?.image || null,
-        author: {
-            name: post?.author?.userName || 'User',
-            username: `@${(post?.author?.userName || 'user').toLowerCase()}`,
-            avatar: post?.author?.profile
-        },
-        timePosted: formatDate(post?.createdAt),
-        stats: {
-            likes: post?.likes?.length || 0,
-            comments: post?.comments?.length || 0,
-            reads: post?.views || 0
-        }
+        ...post,
+        createdAt: formatDate(post.createdAt)
     });
 
     // Transform saved post data
-    const transformSavedPostData = (savedPost) => {
-        const post = savedPost?.postId || {};
-        return {
-            id: post?._id || '',
-            title: post?.title || 'No title',
-            content: post?.content || '',
-            image: post?.image || null,
-            author: {
-                name: post?.author?.userName || 'User',
-                username: `@${(post?.author?.userName || 'user').toLowerCase()}`,
-                avatar: post?.author?.avatar || '/images/default-avatar.png'
-            },
-            timePosted: formatDate(post?.createdAt),
-            stats: {
-                likes: post?.likes?.length || 0,
-                comments: post?.comments?.length || 0,
-                reads: post?.views || 0
-            }
-        };
-    };
+    const transformSavedPostData = (savedPost) => ({
+        ...savedPost?.postId,
+        savedAt: formatDate(savedPost.createdAt)
+    });
 
     // Handle post actions
     const handleEditPost = (postId) => {
@@ -133,6 +107,7 @@ const ProfilePage = () => {
     const handleConfirmDelete = async () => {
         if (!postToDelete) return;
         
+        setIsDeleting(true);
         try {
             await deletePost(postToDelete).unwrap();
             message.success('Post deleted successfully');
@@ -141,6 +116,8 @@ const ProfilePage = () => {
             setPostToDelete(null);
         } catch (error) {
             message.error('Failed to delete post');
+        } finally {
+            setIsDeleting(false);
         }
     };
 
@@ -150,6 +127,17 @@ const ProfilePage = () => {
         } else if (option === 'delete') {
             setPostToDelete(postId);
             setIsDeleteModalOpen(true);
+        }
+    };
+
+    const handleLike = async (postId) => {
+        try {
+            await likePost(postId).unwrap();
+            // toast.success('Post liked!');
+            refetch();
+        } catch (error) {
+            message.error('Failed to like post');
+            console.error('Like error:', error);
         }
     };
 
@@ -225,12 +213,13 @@ const ProfilePage = () => {
                         
                         {isLoading ? (
                             <div>Loading...</div>
-                        ) : postsToDisplay.length > 0 ? (
+                        ) : postsToDisplay.filter(post => post).length > 0 ? (
                             <div className="flex flex-col gap-4">
-                                {postsToDisplay.map((post) => (
+                                {postsToDisplay.filter(post => post).map((post) => (
                                     <ProfilePostCard
-                                        key={post.id}
+                                        key={post._id}
                                         postData={post}
+                                        onLike={handleLike}
                                         onOptionSelect={handleOptionSelect}
                                     />
                                 ))}
@@ -304,7 +293,7 @@ const ProfilePage = () => {
                         type="primary" 
                         danger
                         onClick={handleConfirmDelete}
-                        loading={isLoading}
+                        loading={isDeleting}
                     >
                         Delete
                     </Button>

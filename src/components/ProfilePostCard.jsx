@@ -8,6 +8,8 @@ import { Dropdown, message } from 'antd';
 import { baseURL } from '../../utils/BaseURL';
 import { PostSEE } from '../../utils/svgImage';
 import EditPostModal from './EditPostModal';
+import { useMyPostQuery } from '@/features/post/postApi';
+import { toast } from 'react-toastify';
 
 const defaultPost = {
   author: {
@@ -42,6 +44,11 @@ const ProfilePostCard = ({
   });
   const [editModalVisible, setEditModalVisible] = useState(false);
   const dropdownRef = useRef(null);
+  const login_user_id = typeof window !== 'undefined' ? localStorage.getItem("login_user_id") : null;
+
+  const {data , isLoading} = useMyPostQuery();
+
+  const likePost = data?.data.some(post => post?.likes?.some(react => react === login_user_id));
 
   
 
@@ -80,7 +87,7 @@ const ProfilePostCard = ({
 
   const handleShare = () => {
     navigator.clipboard.writeText(`${baseURL}/posts/${post.id || post._id}`).then(() => {
-      message.success("Link copied successfully");
+      toast.success("Link copied successfully");
     }).catch(() => {
       message.error("Failed to copy link");
     });
@@ -164,21 +171,24 @@ const ProfilePostCard = ({
     }
   ];
 
+  console.log(post)
+
   return (
     <>
       <div className={`rounded-lg bg-white shadow mb-4 ${isMobile ? 'p-3' : isTablet ? 'p-4' : 'p-5'}`}>
-        <div className="flex justify-between items-center mb-3">
-          <div className="flex items-center gap-2">
-            {renderAuthorAvatar()}
-            <div className="flex flex-col justify-start items-start sm:items-center sm:gap-1">
-              <span className={`font-medium cursor-pointer ${isMobile ? 'text-xs' : 'text-base'} text-gray-900`}>
-                {post.author.username || post.author.name}
-              </span>
-              <span className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-500 pl-2`}>
-                {post.timePosted}
-              </span>
-            </div>
-          </div>
+      <div className="flex justify-between items-center mb-3">
+  <div className="flex items-center gap-2">
+    {renderAuthorAvatar()}
+    <div className="flex flex-col items-start"> {/* Removed justify-start as it's default */}
+      <span className={`font-medium cursor-pointer ${isMobile ? 'text-xs' : 'text-base'} text-gray-900`}>
+        {post.author.userName || post.author.name}
+      </span>
+      <span className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-500`}> {/* Removed pl-2 */}
+        {post.timePosted}
+      </span>
+    </div>
+  </div>
+
 
           <Dropdown
             menu={{ items: menuItems, onClick: handleOptionSelect }}
@@ -212,11 +222,11 @@ const ProfilePostCard = ({
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-4 sm:gap-6">
             <button onClick={handleLike} className="flex items-center cursor-pointer hover:bg-gray-100 p-1 rounded">
-              {post.isLiked ?
-                <FaHeart className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} text-red-500`} /> :
-                <FaRegHeart className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} text-gray-500`} />
-              }
-              <span className={`ml-1 ${isMobile ? 'text-xs' : 'text-sm'} text-gray-700`}>{post.stats.likes || 0}</span>
+               {likePost ?
+                              <FaHeart className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} text-red-500`} /> :
+                              <FaRegHeart className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} text-gray-500`} />
+                }
+              <span className={`ml-1 ${isMobile ? 'text-xs' : 'text-sm'} text-gray-700`}>{post?.likes?.length || 0}</span>
             </button>
 
             <button onClick={handleCommentClick} className="flex items-center cursor-pointer hover:bg-gray-100 p-1 rounded">

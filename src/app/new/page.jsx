@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useContext } from 'react';
 import { 
   Typography, 
   Input, 
@@ -23,6 +23,9 @@ import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import { useCreatePostMutation, useEditPostMutation } from '@/features/post/postApi';
 import { useCategoriesQuery, useSubCategoriesQuery } from '@/features/Category/CategoriesApi';
+import { toast } from 'react-toastify';
+import { baseURL } from '../../../utils/BaseURL';
+import { ThemeContext } from '../layout';
 
 const JoditEditor = dynamic(() => import('jodit-react'), { 
   ssr: false,
@@ -33,23 +36,40 @@ const { Title, Text } = Typography;
 const { useBreakpoint } = Grid;
 
 const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) => {
-  const [title, setTitle] = useState(initialValues?.title || '');
-  const [category, setCategory] = useState(initialValues?.category || null);
-  const [subcategory, setSubcategory] = useState(initialValues?.subcategory || null);
-  const [description, setDescription] = useState(initialValues?.description || '');
-  const [fileList, setFileList] = useState(initialValues?.fileList || []);
+  const [title, setTitle] = useState('');
+  const [category, setCategory] = useState(null);
+  const [subcategory, setSubcategory] = useState(null);
+  const [description, setDescription] = useState('');
+  const [fileList, setFileList] = useState([]);
   const [loading, setLoading] = useState(false);
   const editorRef = useRef(null);
   const router = useRouter();
   const screens = useBreakpoint();
+  const { isDarkMode } = useContext(ThemeContext);
+
+ 
 
   useEffect(() => {
     if (initialValues) {
       setTitle(initialValues.title || '');
       setCategory(initialValues.category || null);
-      setSubcategory(initialValues.subcategory || null);
-      setDescription(initialValues.description || '');
-      setFileList(initialValues.fileList || []);
+      setSubcategory(initialValues.subCategory || null);
+      setDescription(initialValues.content || '');
+      
+      // Set image if it exists
+      if (initialValues.image) {
+        const imageUrl = initialValues.image.startsWith('http') 
+          ? initialValues.image 
+          : `${baseURL}${initialValues.image}`;
+        
+        setFileList([{
+          uid: '-1',
+          name: 'current-image',
+          status: 'done',
+          url: imageUrl,
+          thumbUrl: imageUrl
+        }]);
+      }
     }
   }, [initialValues]);
 
@@ -117,7 +137,27 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
   };
 
   const beforeUpload = (file) => {
-    return false;
+    const isImage = file.type.startsWith('image/');
+    if (!isImage) {
+      message.error('You can only upload image files!');
+    }
+    return isImage || Upload.LIST_IGNORE;
+  };
+
+  const handlePreview = async (file) => {
+    if (!file.url && !file.preview) {
+      file.preview = await getBase64(file.originFileObj);
+    }
+    window.open(file.url || file.preview, '_blank');
+  };
+
+  const getBase64 = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = error => reject(error);
+    });
   };
 
   const handleSubmit = async () => {
@@ -126,13 +166,9 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
       return;
     }
 
-    // Check if subcategory is required (for editing)
     if (isEditing && !subcategory) {
-      // Get the category name from the options
       const selectedCategory = categoryOptions.find(cat => cat.value === category);
       const categoryName = selectedCategory?.label || 'selected category';
-      
-      // Get subcategories for the alert
       const availableSubcategories = getSubcategories();
       const subcategoryNames = availableSubcategories.map(sub => sub.label).join(', ');
       
@@ -158,21 +194,21 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
       }
       formData.append('content', description);
       
-      fileList.forEach((file) => {
-        if (file.originFileObj) {
-          formData.append("image", file.originFileObj);
-        }
-      });
+      // Only append image if a new one was uploaded
+      if (fileList.length > 0 && fileList[0].originFileObj) {
+        formData.append("image", fileList[0].originFileObj);
+      } else if (isEditing && fileList.length === 0) {
+        // If editing and image was removed
+        formData.append("image", "");
+      }
 
       let response;
       if (isEditing && postId) {
-        // Edit existing post
         response = await editPost({ id: postId, body: formData }).unwrap();
-        message.success('Post updated successfully');
+        toast.success('Post updated successfully');
       } else {
-        // Create new post
         response = await createPost(formData).unwrap();
-        message.success('Post created successfully');
+        toast.success('Post created successfully');
       }
       
       if (onSuccess) {
@@ -206,7 +242,8 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
       files: fileList.map(file => ({
         name: file.name,
         size: file.size,
-        type: file.type
+        type: file.type,
+        url: file.url
       }))
     };
     
@@ -215,14 +252,20 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
   };
 
   return (
-    <div className={isEditing ? "py-4 px-4" : "min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 py-4 sm:py-8 px-2 sm:px-4"}>
+    <div className={isEditing ? "py-4 px-4" : `min-h-screen ${isDarkMode ? 'dark-mode' : 'light-mode'} py-4 sm:py-8 px-2 sm:px-4`}>
       <div className="max-w-4xl mx-auto">
         <Card 
           className={isEditing ? "border-0 shadow-none" : "rounded-xl shadow-lg border-0 overflow-hidden"}
         >
           {!isEditing && (
             <div className="">
-              <Image src={"/images/create-post-image.png"} height={1000} width={1000} alt='' /> 
+              <Image 
+                src={"/images/create-post-image.png"} 
+                height={1000} 
+                width={1000} 
+                alt='Create post header image'
+                priority
+              /> 
             </div>
           )}
           
@@ -304,19 +347,22 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
                   listType={isMobile ? "picture" : "picture-card"}
                   fileList={fileList}
                   onChange={handleFileChange}
+                  onPreview={handlePreview}
                   beforeUpload={beforeUpload}
                   className="flex justify-center"
                   maxCount={1}
                 >
-                  {isMobile ? (
-                    <Button icon={<UploadOutlined />} size="middle">
-                      Add Photo
-                    </Button>
-                  ) : (
-                    <div className="flex flex-col items-center text-gray-500 p-4">
-                      <UploadOutlined className="text-2xl mb-2" />
-                      <Text type="secondary">Click or drag files to upload</Text>
-                    </div>
+                  {fileList.length === 0 && (
+                    isMobile ? (
+                      <Button icon={<UploadOutlined />} size="middle">
+                        Add Photo
+                      </Button>
+                    ) : (
+                      <div className="flex flex-col items-center text-gray-500 p-4">
+                        <UploadOutlined className="text-2xl mb-2" />
+                        <Text type="secondary">Click or drag files to upload</Text>
+                      </div>
+                    )
                   )}
                 </Upload>
               </Card>
@@ -324,7 +370,8 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
             
             <Row justify="end" gutter={[8, 8]}>
               <Col>
-                <Button 
+                {
+                  initialValues ? "" : <Button 
                   icon={<SaveOutlined />} 
                   size={isMobile ? "middle" : "large"}
                   className="flex items-center"
@@ -332,6 +379,7 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
                 >
                   {isMobile ? 'Save' : 'Save draft'}
                 </Button>
+                }
               </Col>
               <Col>
                 <Button 

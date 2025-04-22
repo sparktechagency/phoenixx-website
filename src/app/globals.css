@@ -1,9 +1,64 @@
 @import "tailwindcss";
 
+/* globals.css */
+:root {
+  --background: #ffffff;
+  --foreground: #f5f5f5;
+  --text: rgba(0, 0, 0, 0.88);
+  --text-secondary: rgba(0, 0, 0, 0.65);
+  --border: #E5E4E2;
+  --card-bg: #ffffff;
+  --input-bg: #ffffff;
+}
+
+.dark {
+  --background: #121212;
+  --foreground: #1a1a1a;
+  --text: rgba(255, 255, 255, 0.85);
+  --text-secondary: rgba(255, 255, 255, 0.65);
+  --border: #424242;
+  --card-bg: #1f1f1f;
+  --input-bg: #1f1f1f;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--text);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Ant Design component overrides for better dark mode */
+.ant-layout {
+  background: var(--background) !important;
+}
+
+.ant-layout-header {
+  background: var(--foreground) !important;
+}
+
+.ant-card {
+  background: var(--card-bg) !important;
+}
+
+.ant-input, .ant-select-selector, .ant-input-affix-wrapper {
+  background-color: var(--input-bg) !important;
+}
+
+.ant-table {
+  background: var(--background) !important;
+}
+
+.ant-table-thead > tr > th {
+  background: var(--foreground) !important;
+}
+
+.ant-menu {
+  background: var(--background) !important;
+}
+
 @theme {
   --color-primary: #0001FB;
-  --color-secendary: #000000;
-
+  --color-secondary: #000000;
 }
 
 /* Add to your global CSS */
@@ -24,4 +79,3 @@
   transform: translateY(-10px);
   transition: all 300ms ease;
 }
-

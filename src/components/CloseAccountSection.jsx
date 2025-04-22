@@ -47,7 +47,7 @@ const CloseAccountSection = () => {
       <Modal
         centered
         title="Please confirm your password"
-        visible={isPasswordModalVisible}
+        open={isPasswordModalVisible}
         onOk={handleAccountDeletion}
         onCancel={() => setIsPasswordModalVisible(false)}
         loading={isLoading}

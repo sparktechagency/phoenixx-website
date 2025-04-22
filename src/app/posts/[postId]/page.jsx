@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Avatar, Card, Button, Input, Select, Dropdown, Menu, Empty, message } from 'antd';
+import { Avatar, Card, Button, Input, Select, Dropdown, Menu, Empty, message, Modal } from 'antd';
 import { MessageOutlined, EllipsisOutlined } from '@ant-design/icons';
 import { FaHeart, FaRegHeart, FaEye } from "react-icons/fa";
 import Image from 'next/image';
@@ -11,20 +11,32 @@ import { useGetSaveAllPostQuery, useSavepostMutation } from '@/features/SavePost
 import ReportPostModal from '@/components/ReportPostModal';
 import { baseURL } from '../../../../utils/BaseURL';
 import { toast } from 'react-toastify';
+import moment from 'moment';
+import { 
+  useCreateCommentMutation, 
+  useDeleteCommentMutation, 
+  useLikeCommentMutation, 
+  useReplayCommentMutation, 
+  useUpdateCommentMutation 
+} from '@/features/comments/commentApi';
 
 const PostDetailsPage = () => {
   const params = useParams();
   const router = useRouter();
   const { postId } = params;
-  
+
   // API hooks
-  const { data: postDetails, isLoading, error: postError } = usePostDetailsQuery(postId);
+  const { data: postDetails, isLoading, error: postError, refetch } = usePostDetailsQuery(postId);
   const [likePost] = useLikePostMutation();
   const [savepost, { isLoading: isSaving }] = useSavepostMutation();
   const { data: savedPostsData } = useGetSaveAllPostQuery();
+  const [createComment, { isLoading: createCommentLoading }] = useCreateCommentMutation();
+  const [deleteComment, { isLoading: deleteCommentLoading }] = useDeleteCommentMutation();
+  const [likeComment, { isLoading: likeCommentLoading }] = useLikeCommentMutation();
+  const [replayComment, { isLoading: replayCommentLoading }] = useReplayCommentMutation();
+  const [editComment, { isLoading: editCommentLoading }] = useUpdateCommentMutation();
 
   // State management
-  const [comments, setComments] = useState([]);
   const [commentText, setCommentText] = useState('');
   const [editingCommentId, setEditingCommentId] = useState(null);
   const [editCommentText, setEditCommentText] = useState('');
@@ -38,6 +50,7 @@ const PostDetailsPage = () => {
 
   // Derived state
   const post = postDetails?.data;
+  const comments = post?.comments || [];
   const isSaved = savedPostsData?.data?.some(savedPost => savedPost?.postId?._id === postId);
   const isLiked = post?.likes?.includes(login_user_id);
   const isMobile = windowWidth < 640;
@@ -45,7 +58,7 @@ const PostDetailsPage = () => {
 
   // Current user data
   const currentUser = { 
-    _id: login_user_id || "user1",
+    _id: login_user_id || "",
     userName: "Current User", 
     name: "Current User",
     email: "current@user.com",
@@ -55,7 +68,8 @@ const PostDetailsPage = () => {
 
   // Effects
   useEffect(() => {
-    setLoginUserId(localStorage.getItem("login_user_id"));
+    const userId = localStorage.getItem("login_user_id");
+    setLoginUserId(userId);
   }, []);
 
   useEffect(() => {
@@ -65,30 +79,38 @@ const PostDetailsPage = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  useEffect(() => {
-    if (post?.comments && Array.isArray(post.comments)) {
-      setComments(post.comments);
-    }
-  }, [post]);
-
   // Helper functions
-  const formatDate = (dateString) => {
-    if (!dateString) return "Just now";
-    return formatDistanceToNow(new Date(dateString), { addSuffix: true });
+  const formatDate = (timestamp) => {
+    if (!timestamp) return "Just now";
+    const bangladeshTime = moment.utc(timestamp).utcOffset(6);
+    return bangladeshTime.fromNow();
   };
 
   const sortComments = (comments) => {
+    if (!comments || !Array.isArray(comments)) return [];
+    
     const sorted = [...comments];
-    return commentSort === 'recent'
-      ? sorted.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-      : sorted.sort((a, b) => b.likes.length - a.likes.length);
+    
+    if (commentSort === 'recent') {
+      return sorted.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    } else { // 'relevant' - sort by likes count
+      return sorted.sort((a, b) => {
+        const bLikes = b.likes?.length || 0;
+        const aLikes = a.likes?.length || 0;
+        return bLikes - aLikes;
+      });
+    }
   };
 
   // Event handlers
   const handleLike = async () => {
-    if (!login_user_id) return message.warning("Please login to like this post");
+    if (!login_user_id) {
+      return message.warning("Please login to like this post");
+    }
+    
     try {
-      await likePost(postId).unwrap();
+      const response = await likePost(postId).unwrap();
+      toast.success("Post like status updated");
     } catch (error) {
       console.error("Error liking post:", error);
       message.error("Failed to like post");
@@ -96,10 +118,13 @@ const PostDetailsPage = () => {
   };
 
   const handleSaveUnsave = async () => {
-    if (!login_user_id) return message.warning("Please login to save this post");
+    if (!login_user_id) {
+      return message.warning("Please login to save this post");
+    }
+    
     try {
       const response = await savepost({ postId }).unwrap();
-      message.success(response?.data !== null ? 'Post saved successfully' : 'Post removed from saved items');
+      toast.success(response?.data !== null ? 'Post saved successfully' : 'Post removed from saved items');
     } catch (error) {
       console.error('Save/Unsave error:', error);
       message.error('Failed to update saved status');
@@ -114,87 +139,73 @@ const PostDetailsPage = () => {
   };
 
   const handleCommentButtonClick = () => {
-    // Focus the comment input when comment button is clicked
     if (commentInputRef.current) {
       commentInputRef.current.focus();
     }
   };
 
-  const handleCommentSubmit = (e) => {
+  const handleCommentSubmit = async (e) => {
     e.preventDefault();
-    if (!commentText.trim() || !login_user_id) return;
+    if (!commentText.trim() || !login_user_id) {
+      if (!login_user_id) {
+        return message.warning("Please login to add a comment");
+      }
+      return;
+    }
     
-    const newComment = {
-      _id: `c${Date.now()}`,
-      author: currentUser,
-      content: commentText,
-      createdAt: new Date().toISOString(),
-      likes: [],
-      comments: []
-    };
-    
-    setComments([newComment, ...comments]);
-    setCommentText('');
-    message.success("Comment added successfully");
+    try {
+      await createComment({
+        postId,
+        content: commentText
+      }).unwrap();
+      
+      setCommentText('');
+      toast.success("Comment added successfully");
+      refetch();
+    } catch (error) {
+      console.error("Error creating comment:", error);
+      message.error("Failed to add comment");
+    }
   };
 
-  const handleCommentLike = (commentId) => {
-    setComments(prev => prev.map(comment => {
-      if (comment._id === commentId) {
-        const isLiked = comment.likes.includes(login_user_id);
-        return {
-          ...comment,
-          likes: isLiked 
-            ? comment.likes.filter(id => id !== login_user_id)
-            : [...comment.likes, login_user_id]
-        };
-      }
-      
-      if (comment.comments?.length) {
-        return {
-          ...comment,
-          comments: comment.comments.map(child => 
-            child._id === commentId 
-              ? {
-                  ...child,
-                  likes: child.likes.includes(login_user_id)
-                    ? child.likes.filter(id => id !== login_user_id)
-                    : [...child.likes, login_user_id]
-                }
-              : child
-          )
-        };
-      }
-      
-      return comment;
-    }));
+  const handleCommentLike = async (commentId) => {
+    if (!login_user_id) {
+      return message.warning("Please login to like this comment");
+    }
+    
+    try {
+      const result = await likeComment(commentId).unwrap();
+      toast.success(result.message || "Comment like status updated");
+      refetch();
+    } catch (error) {
+      console.error("Error liking comment:", error);
+      message.error(error.data?.message || "Failed to like comment");
+    }
   };
 
-  const handleReplySubmit = (parentCommentId) => {
-    if (!replyText.trim() || !login_user_id) return;
-    
-    const newReply = {
-      _id: `c${Date.now()}`,
-      author: currentUser,
-      content: replyText,
-      createdAt: new Date().toISOString(),
-      likes: [],
-      comments: []
-    };
-    
-    setComments(prev => prev.map(comment => {
-      if (comment._id === parentCommentId) {
-        return {
-          ...comment,
-          comments: [...(comment.comments || []), newReply]
-        };
-      }
-      return comment;
-    }));
-    
-    setReplyText('');
-    setReplyingTo(null);
-    message.success("Reply added successfully");
+  const handleReplySubmit = async (parentCommentId) => {
+    if (!replyText.trim() || !login_user_id) {
+      if (!login_user_id) return message.warning("Please login to reply to comments");
+      return;
+    }
+
+    try {
+      await replayComment({
+        id: parentCommentId,
+        body: {
+          postId,
+          content: replyText
+        }
+      }).unwrap();
+      
+      setReplyText('');
+      setReplyingTo(null);
+      toast.success("Reply added successfully");
+      refetch();
+    } catch (error) {
+      console.error("Error replying to comment:", error);
+      message.error(error.data?.message || "Failed to add reply");
+    }
   };
 
   const handleEditComment = (commentId, currentText) => {
@@ -202,51 +213,67 @@ const PostDetailsPage = () => {
     setEditCommentText(currentText);
   };
 
-  const handleUpdateComment = (commentId) => {
+  const handleUpdateComment = async (commentId) => {
     if (!editCommentText.trim()) return;
     
-    setComments(prev => prev.map(comment => {
-      if (comment._id === commentId) {
-        return { ...comment, content: editCommentText };
-      }
+    try {
+      await editComment({
+        id: commentId,
+        body: {
+          content: editCommentText
+        }
+      }).unwrap();
       
-      if (comment.comments?.length) {
-        return {
-          ...comment,
-          comments: comment.comments.map(child => 
-            child._id === commentId 
-              ? { ...child, content: editCommentText }
-              : child
-          )
-        };
-      }
-      
-      return comment;
-    }));
-    
-    setEditingCommentId(null);
-    setEditCommentText('');
-    message.success("Comment updated successfully");
+      setEditingCommentId(null);
+      setEditCommentText('');
+      toast.success("Comment updated successfully");
+      refetch();
+    } catch (error) {
+      console.error("Error updating comment:", error);
+      message.error("Failed to update comment");
+    }
   };
 
-  const handleDeleteComment = (commentId) => {
-    setComments(prev => 
-      prev.filter(comment => comment._id !== commentId)
-         .map(comment => {
-           if (comment.comments?.length) {
-             return {
-               ...comment,
-               comments: comment.comments.filter(child => child._id !== commentId)
-             };
-           }
-           return comment;
-         })
-    );
-    message.success("Comment deleted successfully");
+  const handleDeleteComment = async (commentId) => {
+    if (!login_user_id) {
+      return message.warning("Please login to delete this comment");
+    }
+    
+    try {
+      Modal.confirm({
+        title: 'Confirm Delete',
+        content: 'Are you sure you want to delete this comment?',
+        okText: 'Delete',
+        okType: 'danger',
+        cancelText: 'Cancel',
+        onOk: async () => {
+          await deleteComment(commentId).unwrap();
+          toast.success("Comment deleted successfully");
+          refetch();
+        }
+      });
+    } catch (error) {
+      console.error("Delete comment error:", error);
+      message.error(error.data?.message || "Failed to delete comment");
+    }
   };
 
   // Render functions
   const postMenuItems = [
+    {
+      key: 'save',
+      label: (
+        <div className="flex items-center gap-2 py-1">
+          <Image 
+            src={isSaved ? "/icons/bookmark-filled.png" : "/icons/bookmark.png"} 
+            height={16} 
+            width={16} 
+            alt="save" 
+          />
+          <span>{isSaved ? "Remove from saved" : "Save post"}</span>
+        </div>
+      ),
+    },
     {
       key: 'report',
       label: (
@@ -264,7 +291,7 @@ const PostDetailsPage = () => {
   };
 
   const renderCommentMenu = (comment) => {
-    const isCurrentUserComment = comment.author._id === login_user_id;
+    const isCurrentUserComment = comment.author?._id === login_user_id;
     
     return (
       <Menu>
@@ -286,9 +313,12 @@ const PostDetailsPage = () => {
   };
 
   const renderComment = (comment, depth = 0) => {
+    if (!comment) return null;
+    
     const isEditing = editingCommentId === comment._id;
-    const isCommentLiked = comment.likes.includes(login_user_id);
-    const commentAuthor = comment.author || { userName: "Unknown", avatar: null };
+    const isCommentLiked = comment.likes?.includes(login_user_id);
+    const commentAuthor = comment.author || { userName: "Unknown" };
+    const authorImage = commentAuthor.profile || commentAuthor.avatar;
     
     return (
       <div 
@@ -297,8 +327,8 @@ const PostDetailsPage = () => {
       >
         <Card className="rounded-2xl">
           <div className="flex items-center justify-start mb-3">
-            {commentAuthor.avatar ? (
-              <Avatar src={commentAuthor.avatar} size={32} />
+            {authorImage ? (
+              <Avatar src={authorImage} size={32} />
             ) : (
               <Avatar size={32}>{commentAuthor.userName?.charAt(0).toUpperCase() || 'U'}</Avatar>
             )}
@@ -331,7 +361,8 @@ const PostDetailsPage = () => {
                 <Button 
                   type="primary" 
                   onClick={() => handleUpdateComment(comment._id)}
-                  disabled={!editCommentText.trim()}
+                  disabled={!editCommentText.trim() || editCommentLoading}
+                  loading={editCommentLoading && editingCommentId === comment._id}
                 >
                   Update
                 </Button>
@@ -347,13 +378,14 @@ const PostDetailsPage = () => {
             <button 
               className="flex items-center mr-4 hover:text-blue-500"
               onClick={() => handleCommentLike(comment._id)}
+              disabled={likeCommentLoading}
             >
               {isCommentLiked ? (
                 <FaHeart className="mr-1 text-red-500" />
               ) : (
                 <FaRegHeart className="mr-1" />
               )}
-              <span>{comment.likes.length}</span>
+              <span>{comment.likes?.length || 0}</span>
             </button>
 
             <button 
@@ -366,27 +398,32 @@ const PostDetailsPage = () => {
           </div>
 
           {replyingTo === comment._id && (
-            <div className="mt-3 flex gap-2">
+            <div className="mt-3 ml-10">
               <Input.TextArea
                 placeholder="Write your reply..."
                 value={replyText}
                 onChange={(e) => setReplyText(e.target.value)}
                 autoSize={{ minRows: 1, maxRows: 4 }}
               />
-              <Button 
-                type="primary" 
-                onClick={() => handleReplySubmit(comment._id)}
-                disabled={!replyText.trim()}
-              >
-                Post
-              </Button>
+              <div className="flex gap-2 mt-2">
+                <Button onClick={() => setReplyingTo(null)}>
+                  Cancel
+                </Button>
+                <Button 
+                  type="primary" 
+                  onClick={() => handleReplySubmit(comment._id)}
+                  loading={replayCommentLoading}
+                >
+                  Reply
+                </Button>
+              </div>
             </div>
           )}
 
-          {comment.comments?.length > 0 && (
-            <div className="mt-3">
-              {comment.comments.map(childComment => 
-                renderComment(childComment, depth + 1)
+          {comment.replies?.length > 0 && (
+            <div className="mt-3 ml-6 border-l-2 border-gray-200 pl-4">
+              {sortComments(comment.replies).map(reply => 
+                renderComment(reply, depth + 1)
               )}
             </div>
           )}
@@ -395,7 +432,6 @@ const PostDetailsPage = () => {
     );
   };
 
-  // Loading and error states
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-100 p-4 flex items-center justify-center">
@@ -422,7 +458,6 @@ const PostDetailsPage = () => {
       </div>
     );
   }
-
 
   return (
     <div className="min-h-screen bg-[#F2F4F7] p-4">
@@ -481,7 +516,7 @@ const PostDetailsPage = () => {
               <div className="mb-4">
                 <Image
                   src={`${baseURL}${post?.image}`}
-                  alt={post.title}
+                  alt={post.title || "Post image"}
                   width={800}
                   height={350}
                   className="w-full h-[350px] rounded-lg object-cover"
@@ -503,7 +538,6 @@ const PostDetailsPage = () => {
                   onClick={() => {
                     handleCommentButtonClick();
                     if (login_user_id) {
-                      // Scroll to comment box
                       commentInputRef.current?.scrollIntoView({ behavior: 'smooth' });
                     }
                   }}
@@ -537,14 +571,18 @@ const PostDetailsPage = () => {
         {/* Comment form */}
         <form onSubmit={handleCommentSubmit} className="mb-4">
           <div className="flex gap-3 items-center">
-            {currentUser.avatar ? (
-              <Avatar src={currentUser.avatar} size={32} />
+            {login_user_id ? (
+              currentUser.avatar ? (
+                <Avatar src={currentUser.avatar} size={32} />
+              ) : (
+                <Avatar size={32}>{currentUser.name?.charAt(0).toUpperCase() || 'U'}</Avatar>
+              )
             ) : (
-              <Avatar size={32}>{currentUser.name?.charAt(0).toUpperCase() || 'U'}</Avatar>
+              <Avatar size={32} icon={<MessageOutlined />} />
             )}
             <Input
               ref={commentInputRef}
-              placeholder="Add a comment..."
+              placeholder={login_user_id ? "Add a comment..." : "Login to comment"}
               value={commentText}
               onChange={(e) => setCommentText(e.target.value)}
               className="rounded-full bg-gray-100 border-gray-200"
@@ -555,7 +593,8 @@ const PostDetailsPage = () => {
             type="primary" 
             htmlType="submit" 
             className="mt-2 ml-12"
-            disabled={!commentText.trim() || !login_user_id}
+            disabled={!commentText.trim() || !login_user_id || createCommentLoading}
+            loading={createCommentLoading}
           >
             Post Comment
           </Button>
