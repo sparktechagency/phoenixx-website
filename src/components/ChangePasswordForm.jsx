@@ -1,5 +1,5 @@
 import React from 'react';
-import { Form, Input, Button, notification } from 'antd';
+import { Form, Input, Button, notification, message } from 'antd';
 import { EyeInvisibleOutlined, EyeTwoTone } from '@ant-design/icons';
 import { useChangePasswordMutation } from '@/features/auth/authApi';
 
@@ -17,7 +17,7 @@ const ChangePasswordForm = () => {
       //   placement: 'topRight',
       // });
 
-      alert("successfully change password")
+      message.success("successfully change password")
       form.resetFields(); // Reset form after successful submission
     } catch (error) {
       // Show error notification

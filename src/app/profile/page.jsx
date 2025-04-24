@@ -6,20 +6,30 @@ import ProfilePostCard from '@/components/ProfilePostCard';
 import ProfileBanner from '@/components/profile/ProfileBanner';
 import { useDeletePostMutation, useLikePostMutation, useMyPostQuery } from '@/features/post/postApi';
 import { formatDistanceToNow } from 'date-fns';
-import { useGetSaveAllPostQuery } from '@/features/SavePost/savepostApi';
-import { toast } from 'react-toastify';
+import { useGetSaveAllPostQuery, useSavepostMutation } from '@/features/SavePost/savepostApi';
+import toast from 'react-hot-toast';
+import { useMyCommentPostQuery } from '@/features/comments/commentApi';
 
 const { useBreakpoint } = Grid;
 const { TextArea } = Input;
 
 const ProfilePage = () => {
     const screens = useBreakpoint();
-    const { data: postsData, isLoading, isError: isPostsError, refetch } = useMyPostQuery();
-    const { data: savePostData, isError: isSavePostError } = useGetSaveAllPostQuery();
+    const { data: postsData, isLoading: isPostsLoading, isError: isPostsError, refetch: refetchPosts } = useMyPostQuery();
+    const {
+        data: savePostData,
+        isLoading: isSavePostsLoading,
+        isError: isSavePostError,
+        refetch: refetchSavedPosts
+    } = useGetSaveAllPostQuery();
+
+    const { data: myCommentPost, isLoading: myCommentPostLoading } = useMyCommentPostQuery();
+
     const [deletePost] = useDeletePostMutation();
-    
+    const [savepost, { isLoading: isUnsaving }] = useSavepostMutation();
+
     // State management
-    const [activeTab, setActiveTab] = useState(() => 
+    const [activeTab, setActiveTab] = useState(() =>
         typeof window !== 'undefined' ? localStorage.getItem('profileActiveTab') || 'totalPosts' : 'totalPosts'
     );
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -41,17 +51,18 @@ const ProfilePage = () => {
     useEffect(() => {
         if (isPostsError) message.error('Failed to load your posts');
         if (isSavePostError) message.error('Failed to load saved posts');
-    }, [isPostsError, isSavePostError, message]);
+    }, [isPostsError, isSavePostError]);
 
     // Data preparation
     const userPosts = postsData?.data || [];
     const savedPosts = savePostData?.data || [];
-    
+    const myComment = myCommentPost?.data || [];
+
     // Activity stats
     const stats = {
         totalPosts: userPosts.length || 0,
         savedPosts: savedPosts.length || 0,
-        comments: userPosts.reduce((sum, post) => sum + (post.comments?.length || 0), 0) || 0
+        comments: myComment.length || 0
     };
 
     // Format date helper
@@ -67,14 +78,22 @@ const ProfilePage = () => {
     // Transform post data for rendering
     const transformPostData = (post) => ({
         ...post,
-        createdAt: formatDate(post.createdAt)
+        createdAt: formatDate(post.createdAt),
+        isSavedPost: false
     });
 
     // Transform saved post data
-    const transformSavedPostData = (savedPost) => ({
-        ...savedPost?.postId,
-        savedAt: formatDate(savedPost.createdAt)
-    });
+    const transformSavedPostData = (savedPost) => {
+        if (!savedPost || !savedPost.postId) return null;
+
+        return {
+            ...savedPost.postId,
+            _id: savedPost.postId._id, // Original post ID
+            savedPostId: savedPost._id, // Saved post record ID for unsaving
+            savedAt: formatDate(savedPost.createdAt),
+            isSavedPost: true // Flag to identify as a saved post
+        };
+    };
 
     // Handle post actions
     const handleEditPost = (postId) => {
@@ -91,14 +110,14 @@ const ProfilePage = () => {
 
     const handleEditFormSubmit = async (values) => {
         if (!editingPost) return;
-        
+
         try {
             // API call would go here
             setIsEditModalOpen(false);
             setEditingPost(null);
             form.resetFields();
             message.success('Post updated successfully');
-            refetch();
+            refetchPosts();
         } catch (error) {
             message.error('Failed to update post');
         }
@@ -106,12 +125,12 @@ const ProfilePage = () => {
 
     const handleConfirmDelete = async () => {
         if (!postToDelete) return;
-        
+
         setIsDeleting(true);
         try {
             await deletePost(postToDelete).unwrap();
             message.success('Post deleted successfully');
-            refetch();
+            refetchPosts();
             setIsDeleteModalOpen(false);
             setPostToDelete(null);
         } catch (error) {
@@ -133,11 +152,40 @@ const ProfilePage = () => {
     const handleLike = async (postId) => {
         try {
             await likePost(postId).unwrap();
-            // toast.success('Post liked!');
-            refetch();
+            refetchPosts();
+            // Also refetch saved posts if we're in that tab to keep likes in sync
+            if (activeTab === 'savedPosts') {
+                refetchSavedPosts();
+            }
         } catch (error) {
             message.error('Failed to like post');
             console.error('Like error:', error);
+        }
+    };
+
+    // Handle unsaving a post
+    const handleUnsave = async (postId) => {
+        // Find the saved post record that contains this post
+        const savedPostRecord = savedPosts.find(item =>
+            item.postId && item.postId._id === postId
+        );
+
+        // console.log(savedPostRecord?.postId?._id)
+
+        if (!savedPostRecord) {
+            message.error('Could not find saved post record');
+            return;
+        }
+
+        try {
+            // Use the saved post record ID (not the original post ID)
+            const response = await savepost({ postId: savedPostRecord?.postId?._id }).unwrap();
+            console.log(response)
+            toast.success('Post removed from saved items');
+            refetchSavedPosts();
+        } catch (error) {
+            console.error('Error unsaving post:', error);
+            toast.error('Failed to unsave post');
         }
     };
 
@@ -147,15 +195,20 @@ const ProfilePage = () => {
             case 'totalPosts':
                 return userPosts.map(transformPostData);
             case 'savedPosts':
-                return savedPosts.map(transformSavedPostData);
+                return savedPosts
+                    .map(transformSavedPostData)
+                    .filter(Boolean);
             case 'comments':
-                return userPosts.filter(post => post.comments?.length > 0).map(transformPostData);
+                return userPosts
+                    .filter(post => post.comments?.length > 0)
+                    .map(transformPostData);
             default:
                 return userPosts.map(transformPostData);
         }
     };
 
     const postsToDisplay = getPostsToDisplay();
+    const isLoading = isPostsLoading || (activeTab === 'savedPosts' && isSavePostsLoading);
 
     // Tab configuration
     const tabs = [
@@ -167,24 +220,25 @@ const ProfilePage = () => {
     return (
         <div className="bg-[#E5E7EB] min-h-screen">
             <ProfileBanner />
-            
+
             <main className="py-4 sm:py-6 lg:py-8 container mx-auto px-2 sm:px-4 lg:px-32">
                 <div className={`flex ${screens.md ? 'flex-row' : 'flex-col'} gap-4 sm:gap-6`}>
                     {/* Sidebar - Activity Stats */}
                     <aside className={`${screens.md ? screens.lg ? 'w-1/4' : 'w-1/3' : 'w-full'}`}>
-                        <Card 
-                            title="Your Activity" 
+                        <Card
+                            title="Your Activity"
                             className="shadow-sm hover:shadow transition-shadow"
                             bodyStyle={{ padding: screens.md ? '16px' : '12px' }}
                         >
                             <Space direction="vertical" size="middle" className="w-full">
                                 {tabs.map(({ key, icon, label }) => (
-                                    <button 
+                                    <button
                                         key={key}
-                                        onClick={() => setActiveTab(key)} 
-                                        className={`flex items-center justify-between w-full p-3 rounded-md transition-all ${
-                                            activeTab === key ? 'bg-indigo-50 text-indigo-700' : 'hover:bg-gray-100 text-gray-700'
-                                        }`}
+                                        onClick={() => setActiveTab(key)}
+                                        className={`flex items-center justify-between w-full p-3 rounded-md transition-all ${activeTab === key
+                                            ? 'bg-indigo-50 text-indigo-700'
+                                            : 'hover:bg-gray-100 text-gray-700'
+                                            }`}
                                     >
                                         <span className="flex items-center">
                                             {React.cloneElement(icon, {
@@ -200,7 +254,7 @@ const ProfilePage = () => {
                             </Space>
                         </Card>
                     </aside>
-                    
+
                     {/* Posts Feed */}
                     <section className={`${screens.md ? screens.lg ? 'w-3/4' : 'w-2/3' : 'w-full'}`}>
                         <div className="mb-6">
@@ -210,26 +264,29 @@ const ProfilePage = () => {
                                 {activeTab === 'comments' && 'Your Comments'}
                             </h2>
                         </div>
-                        
+
                         {isLoading ? (
-                            <div>Loading...</div>
-                        ) : postsToDisplay.filter(post => post).length > 0 ? (
+                            <div className="text-center p-8 bg-white rounded-lg shadow-sm">
+                                <p className="text-gray-500">Loading...</p>
+                            </div>
+                        ) : postsToDisplay.length > 0 ? (
                             <div className="flex flex-col gap-4">
-                                {postsToDisplay.filter(post => post).map((post) => (
+                                {postsToDisplay.map((post) => (
                                     <ProfilePostCard
-                                        key={post._id}
+                                        key={`${post.isSavedPost ? 'saved-' : ''}${post._id}`}
                                         postData={post}
                                         onLike={handleLike}
                                         onOptionSelect={handleOptionSelect}
+                                        onUnsave={handleUnsave}
                                     />
                                 ))}
                             </div>
                         ) : (
                             <div className="text-center p-8 bg-white rounded-lg shadow-sm">
                                 <p className="text-gray-500">
-                                    {activeTab === 'totalPosts' ? 'No posts to display' : 
-                                     activeTab === 'savedPosts' ? 'No saved posts to display' : 
-                                     'No comments to display'}
+                                    {activeTab === 'totalPosts' ? 'No posts to display' :
+                                        activeTab === 'savedPosts' ? 'No saved posts to display' :
+                                            'No comments to display'}
                                 </p>
                             </div>
                         )}
@@ -267,8 +324,8 @@ const ProfilePage = () => {
                         label="Post Content"
                         rules={[{ required: true, message: 'Please enter some content' }]}
                     >
-                        <TextArea 
-                            placeholder="Enter post content" 
+                        <TextArea
+                            placeholder="Enter post content"
                             rows={6}
                             autoSize={{ minRows: 6, maxRows: 12 }}
                         />
@@ -288,9 +345,9 @@ const ProfilePage = () => {
                 onCancel={() => setIsDeleteModalOpen(false)}
                 footer={[
                     <Button key="cancel" onClick={() => setIsDeleteModalOpen(false)}>Cancel</Button>,
-                    <Button 
-                        key="delete" 
-                        type="primary" 
+                    <Button
+                        key="delete"
+                        type="primary"
                         danger
                         onClick={handleConfirmDelete}
                         loading={isDeleting}

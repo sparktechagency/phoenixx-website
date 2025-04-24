@@ -87,7 +87,7 @@ const LoginPage = () => {
         });
       } catch (error) {
         console.error('Login error:', error);
-        alert(error?.data?.message);
+        message.error(error?.data?.message);
       } finally {
         setIsSubmitting(false);
       }

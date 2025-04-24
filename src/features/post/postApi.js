@@ -58,6 +58,15 @@ export const postApi = baseApi.injectEndpoints({
       invalidatesTags: ["post"],
     }),
 
+
+    getByUserId: builder.query({
+      query: (id) => ({
+        url: `/posts/get-all-post-by-user-id/${id}`,
+        method: "GET",
+      }),
+      providesTags: ["post"],
+    }),
+
     editPost: builder.mutation({
       query: ({ id, body }) => {  // Destructure the id and body
         return {
@@ -66,7 +75,7 @@ export const postApi = baseApi.injectEndpoints({
           body: body,           // Send only the form data as body
         };
       },
-      invalidatesTags: ['post'], 
+      invalidatesTags: ['post'],
     }),
   }),
 });
@@ -77,6 +86,7 @@ export const {
   useMyPostQuery,
   useLikePostMutation,
   usePostDetailsQuery,
-  useDeletePostMutation,  
-  useEditPostMutation
+  useDeletePostMutation,
+  useEditPostMutation,
+  useGetByUserIdQuery
 } = postApi;

@@ -26,7 +26,7 @@ const CloseAccountSection = () => {
     console.log(response)
     router.push("/auth/login")
    } catch (error) {
-    alert(error.data.message)
+    message.error(error.data.message)
    }
   };
 

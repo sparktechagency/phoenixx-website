@@ -1,10 +1,10 @@
 "use client";
 import { useSignupMutation } from '@/features/auth/authApi';
+import { message } from 'antd';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import React, { useState } from 'react';
-import { toast } from 'react-toastify';
 import { FaEye, FaEyeSlash } from 'react-icons/fa'; // Import eye icons from react-icons
 
 const SignUp = () => {
@@ -104,10 +104,10 @@ const SignUp = () => {
           } else if (error.data.message.includes('username')) {
             setErrors(prev => ({ ...prev, username: error.data.message }));
           } else {
-            toast.error(error.data.message || 'Signup failed. Please try again.');
+            message.error(error.data.message || 'Signup failed. Please try again.');
           }
         } else {
-          toast.error('Network error. Please try again.');
+          message('Network error. Please try again.');
         }
       }
     }

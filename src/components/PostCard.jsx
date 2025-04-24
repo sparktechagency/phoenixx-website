@@ -10,6 +10,7 @@ import { PostSEE } from '../../utils/svgImage';
 import { useGetSaveAllPostQuery, useSavepostMutation } from '@/features/SavePost/savepostApi';
 import ReportPostModal from './ReportPostModal';
 import { ThemeContext } from '@/app/layout';
+import toast from 'react-hot-toast';
 
 const useWindowSize = () => {
   const [windowSize, setWindowSize] = useState({
@@ -70,8 +71,8 @@ const PostCard = ({
 
   const handleShare = useCallback(() => {
     navigator.clipboard.writeText(`${baseURL}/posts/${postData.id}`)
-      .then(() => message.success("Link copied to clipboard"))
-      .catch(() => message.error("Failed to copy link"));
+      .then(() => toast.success("Link copied to clipboard"))
+      .catch(() => toast.error("Failed to copy link"));
   }, [postData.id]);
 
   const handleSaveUnsave = useCallback(async () => {
@@ -167,11 +168,13 @@ const PostCard = ({
     )
   ), [postData.tags]);
 
+  
+
   return (
     <>
       <div className={`rounded-lg ${isDarkMode ? 'dark-mode' : 'light-mode'} shadow mb-4 ${isMobile ? 'p-3' : isTablet ? 'p-4' : 'p-5'}`}>
         <div className="flex justify-between items-center mb-3">
-          <div className="flex items-center gap-2">
+          <div onClick={()=> router.push(`profiles/${postData?.author?.id}`)} className="flex items-center gap-2">
             {renderAuthorAvatar}
             <div className="flex flex-col justify-start items-start">
               <span className={`font-medium cursor-pointer ${isMobile ? 'text-xs' : 'text-base'}`}>

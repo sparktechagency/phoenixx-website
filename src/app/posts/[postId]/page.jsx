@@ -5,38 +5,51 @@ import { Avatar, Card, Button, Input, Select, Dropdown, Menu, Empty, message, Mo
 import { MessageOutlined, EllipsisOutlined } from '@ant-design/icons';
 import { FaHeart, FaRegHeart, FaEye } from "react-icons/fa";
 import Image from 'next/image';
-import { usePostDetailsQuery, useLikePostMutation } from '@/features/post/postApi';
-import { formatDistanceToNow } from 'date-fns';
-import { useGetSaveAllPostQuery, useSavepostMutation } from '@/features/SavePost/savepostApi';
-import ReportPostModal from '@/components/ReportPostModal';
-import { baseURL } from '../../../../utils/BaseURL';
-import { toast } from 'react-toastify';
 import moment from 'moment';
-import { 
-  useCreateCommentMutation, 
-  useDeleteCommentMutation, 
-  useLikeCommentMutation, 
-  useReplayCommentMutation, 
-  useUpdateCommentMutation 
+import toast from 'react-hot-toast';
+
+// API hooks
+import { usePostDetailsQuery, useLikePostMutation } from '@/features/post/postApi';
+import { useGetSaveAllPostQuery, useSavepostMutation } from '@/features/SavePost/savepostApi';
+import {
+  useCreateCommentMutation,
+  useDeleteCommentMutation,
+  useLikeCommentMutation,
+  useReplayCommentMutation,
+  useUpdateCommentMutation
 } from '@/features/comments/commentApi';
+
+// Components
+import ReportPostModal from '@/components/ReportPostModal';
+
+// Utils
+import { baseURL } from '../../../../utils/BaseURL';
+import { useGetProfileQuery } from '@/features/profile/profileApi';
 
 const PostDetailsPage = () => {
   const params = useParams();
   const router = useRouter();
   const { postId } = params;
 
-  // API hooks
-  const { data: postDetails, isLoading, error: postError, refetch } = usePostDetailsQuery(postId);
+  const commentInputRef = useRef(null);
+
+  const {
+    data: postDetails,
+    isLoading,
+    error: postError,
+    refetch
+  } = usePostDetailsQuery(postId);
+
   const [likePost] = useLikePostMutation();
-  const [savepost, { isLoading: isSaving }] = useSavepostMutation();
+  const [savepost] = useSavepostMutation();
   const { data: savedPostsData } = useGetSaveAllPostQuery();
   const [createComment, { isLoading: createCommentLoading }] = useCreateCommentMutation();
-  const [deleteComment, { isLoading: deleteCommentLoading }] = useDeleteCommentMutation();
+  const [deleteComment] = useDeleteCommentMutation();
   const [likeComment, { isLoading: likeCommentLoading }] = useLikeCommentMutation();
   const [replayComment, { isLoading: replayCommentLoading }] = useReplayCommentMutation();
   const [editComment, { isLoading: editCommentLoading }] = useUpdateCommentMutation();
+  const { data: profile } = useGetProfileQuery();
 
-  // State management
   const [commentText, setCommentText] = useState('');
   const [editingCommentId, setEditingCommentId] = useState(null);
   const [editCommentText, setEditCommentText] = useState('');
@@ -46,9 +59,7 @@ const PostDetailsPage = () => {
   const [windowWidth, setWindowWidth] = useState(0);
   const [showReportModal, setShowReportModal] = useState(false);
   const [login_user_id, setLoginUserId] = useState(null);
-  const commentInputRef = useRef(null);
 
-  // Derived state
   const post = postDetails?.data;
   const comments = post?.comments || [];
   const isSaved = savedPostsData?.data?.some(savedPost => savedPost?.postId?._id === postId);
@@ -56,17 +67,12 @@ const PostDetailsPage = () => {
   const isMobile = windowWidth < 640;
   const isTablet = windowWidth >= 640 && windowWidth < 1024;
 
-  // Current user data
-  const currentUser = { 
+  const currentUser = {
     _id: login_user_id || "",
-    userName: "Current User", 
     name: "Current User",
-    email: "current@user.com",
     avatar: "/images/profile2.jpg",
-    username: "@currentuser"
   };
 
-  // Effects
   useEffect(() => {
     const userId = localStorage.getItem("login_user_id");
     setLoginUserId(userId);
@@ -79,38 +85,60 @@ const PostDetailsPage = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Helper functions
   const formatDate = (timestamp) => {
     if (!timestamp) return "Just now";
-    const bangladeshTime = moment.utc(timestamp).utcOffset(6);
-    return bangladeshTime.fromNow();
-  };
+    if (timestamp === "Just now") return timestamp;
 
-  const sortComments = (comments) => {
-    if (!comments || !Array.isArray(comments)) return [];
-    
-    const sorted = [...comments];
-    
+    const now = moment();
+    const commentTime = moment(timestamp);
+
+    if (now.diff(commentTime, 'seconds') < 60) {
+      return "Just now";
+    }
+
+    return commentTime.fromNow();
+  };
+  const sortComments = (commentsToSort) => {
+    if (!commentsToSort || !Array.isArray(commentsToSort)) return [];
+
+    const sorted = [...commentsToSort];
+
     if (commentSort === 'recent') {
-      return sorted.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    } else { // 'relevant' - sort by likes count
+      // Sort by creation date, newest first
+      return sorted.sort((a, b) => {
+        // Handle "Just now" comments
+        const aDate = a.createdAt === "Just now" ? new Date() : new Date(a.createdAt);
+        const bDate = b.createdAt === "Just now" ? new Date() : new Date(b.createdAt);
+        return bDate - aDate; // Newest first
+      });
+    } else if (commentSort === 'relevant') {
+      // Sort by relevance (likes count first, then recency)
       return sorted.sort((a, b) => {
         const bLikes = b.likes?.length || 0;
         const aLikes = a.likes?.length || 0;
-        return bLikes - aLikes;
+
+        // First sort by likes count
+        if (bLikes !== aLikes) return bLikes - aLikes;
+
+        // If likes are equal, sort by recency
+        const aDate = a.createdAt === "Just now" ? new Date() : new Date(a.createdAt);
+        const bDate = b.createdAt === "Just now" ? new Date() : new Date(b.createdAt);
+        return bDate - aDate; // Newer comments are more relevant if likes are equal
       });
     }
-  };
 
-  // Event handlers
+    // Default to relevant sorting
+    return sorted;
+  };
   const handleLike = async () => {
     if (!login_user_id) {
       return message.warning("Please login to like this post");
     }
-    
+
     try {
-      const response = await likePost(postId).unwrap();
-      toast.success("Post like status updated");
+      await likePost(postId).unwrap();
+      refetch();
+      message.success("Post like status updated");
     } catch (error) {
       console.error("Error liking post:", error);
       message.error("Failed to like post");
@@ -121,10 +149,10 @@ const PostDetailsPage = () => {
     if (!login_user_id) {
       return message.warning("Please login to save this post");
     }
-    
+
     try {
       const response = await savepost({ postId }).unwrap();
-      toast.success(response?.data !== null ? 'Post saved successfully' : 'Post removed from saved items');
+      message.success(response?.data !== null ? 'Post saved successfully' : 'Post removed from saved items');
     } catch (error) {
       console.error('Save/Unsave error:', error);
       message.error('Failed to update saved status');
@@ -135,7 +163,7 @@ const PostDetailsPage = () => {
     const url = `${window.location.origin}/posts/${postId}`;
     navigator.clipboard.writeText(url)
       .then(() => toast.success("URL copied to clipboard"))
-      .catch(() => message.error("Failed to copy URL"));
+      .catch(() => toast.success("Failed to copy URL"));
   };
 
   const handleCommentButtonClick = () => {
@@ -152,16 +180,32 @@ const PostDetailsPage = () => {
       }
       return;
     }
-    
+
     try {
-      await createComment({
+      const tempComment = {
+        _id: `temp-${Date.now()}`,
+        postId,
+        author: {
+          _id: login_user_id,
+          userName: profile?.data?.userName || "You",
+          profile: profile?.data?.profile
+        },
+        content: commentText,
+        status: "active",
+        likes: [],
+        replies: [],
+        createdAt: "Just now",
+        updatedAt: "Just now"
+      };
+
+      const response = await createComment({
         postId,
         content: commentText
       }).unwrap();
-      
+
+      await refetch();
       setCommentText('');
-      toast.success("Comment added successfully");
-      refetch();
+      toast.success("Comment posted successfully");
     } catch (error) {
       console.error("Error creating comment:", error);
       message.error("Failed to add comment");
@@ -172,11 +216,11 @@ const PostDetailsPage = () => {
     if (!login_user_id) {
       return message.warning("Please login to like this comment");
     }
-    
+
     try {
       const result = await likeComment(commentId).unwrap();
-      toast.success(result.message || "Comment like status updated");
       refetch();
+      toast.success(result.message || "Comment like status updated");
     } catch (error) {
       console.error("Error liking comment:", error);
       message.error(error.data?.message || "Failed to like comment");
@@ -197,11 +241,11 @@ const PostDetailsPage = () => {
           content: replyText
         }
       }).unwrap();
-      
+
       setReplyText('');
       setReplyingTo(null);
-      toast.success("Reply added successfully");
       refetch();
+      message.success("Reply added successfully");
     } catch (error) {
       console.error("Error replying to comment:", error);
       message.error(error.data?.message || "Failed to add reply");
@@ -215,7 +259,7 @@ const PostDetailsPage = () => {
 
   const handleUpdateComment = async (commentId) => {
     if (!editCommentText.trim()) return;
-    
+
     try {
       await editComment({
         id: commentId,
@@ -223,11 +267,11 @@ const PostDetailsPage = () => {
           content: editCommentText
         }
       }).unwrap();
-      
+
       setEditingCommentId(null);
       setEditCommentText('');
-      toast.success("Comment updated successfully");
       refetch();
+      message.success("Comment updated successfully");
     } catch (error) {
       console.error("Error updating comment:", error);
       message.error("Failed to update comment");
@@ -238,39 +282,47 @@ const PostDetailsPage = () => {
     if (!login_user_id) {
       return message.warning("Please login to delete this comment");
     }
-    
+
     try {
-      Modal.confirm({
-        title: 'Confirm Delete',
-        content: 'Are you sure you want to delete this comment?',
-        okText: 'Delete',
-        okType: 'danger',
-        cancelText: 'Cancel',
-        onOk: async () => {
-          await deleteComment(commentId).unwrap();
-          toast.success("Comment deleted successfully");
-          refetch();
-        }
-      });
+      await deleteComment(commentId).unwrap();
+      toast.success("Comment deleted successfully");
+      refetch();
     } catch (error) {
       console.error("Delete comment error:", error);
-      message.error(error.data?.message || "Failed to delete comment");
+      toast.error(error.data?.message || "Failed to delete comment");
     }
+
+    // try {
+    //   Modal.confirm({
+    //     title: 'Confirm Delete',
+    //     content: 'Are you sure you want to delete this comment?',
+    //     okText: 'Delete',
+    //     okType: 'danger',
+    //     cancelText: 'Cancel',
+    //     onOk: async () => {
+    //       await deleteComment(commentId).unwrap();
+    //       toast.success("Comment deleted successfully");
+    //       refetch();
+    //     }
+    //   });
+    // } catch (error) {
+    //   console.error("Delete comment error:", error);
+    //   message.error(error.data?.message || "Failed to delete comment");
+    // }
   };
 
-  // Render functions
   const postMenuItems = [
     {
       key: 'save',
       label: (
         <div className="flex items-center gap-2 py-1">
-          <Image 
-            src={isSaved ? "/icons/bookmark-filled.png" : "/icons/bookmark.png"} 
-            height={16} 
-            width={16} 
-            alt="save" 
+          <Image
+            src={"/icons/save_post.png"}
+            height={16}
+            width={16}
+            alt="save"
           />
-          <span>{isSaved ? "Remove from saved" : "Save post"}</span>
+          <span>{isSaved ? "Unsave post" : "Save post"}</span>
         </div>
       ),
     },
@@ -292,7 +344,7 @@ const PostDetailsPage = () => {
 
   const renderCommentMenu = (comment) => {
     const isCurrentUserComment = comment.author?._id === login_user_id;
-    
+
     return (
       <Menu>
         {isCurrentUserComment && (
@@ -313,22 +365,23 @@ const PostDetailsPage = () => {
   };
 
   const renderComment = (comment, depth = 0) => {
+
     if (!comment) return null;
-    
+
     const isEditing = editingCommentId === comment._id;
     const isCommentLiked = comment.likes?.includes(login_user_id);
     const commentAuthor = comment.author || { userName: "Unknown" };
+
     const authorImage = commentAuthor.profile || commentAuthor.avatar;
-    
     return (
-      <div 
-        key={comment._id} 
+      <div
+        key={comment._id}
         className={`mb-4 ${depth > 0 ? 'ml-8 border-l-2 border-gray-200 pl-4' : ''}`}
       >
         <Card className="rounded-2xl">
-          <div className="flex items-center justify-start mb-3">
+          <div className="flex items-center justify-start mb-3 ">
             {authorImage ? (
-              <Avatar src={authorImage} size={32} />
+              <Avatar src={`${baseURL}${authorImage}`} size={32} />
             ) : (
               <Avatar size={32}>{commentAuthor.userName?.charAt(0).toUpperCase() || 'U'}</Avatar>
             )}
@@ -337,8 +390,8 @@ const PostDetailsPage = () => {
               <div className="text-xs text-gray-500">{formatDate(comment.createdAt)}</div>
             </div>
             <div className="ml-auto">
-              <Dropdown 
-                overlay={renderCommentMenu(comment)} 
+              <Dropdown
+                overlay={renderCommentMenu(comment)}
                 trigger={['click']}
                 placement="bottomRight"
               >
@@ -349,7 +402,7 @@ const PostDetailsPage = () => {
 
           {isEditing ? (
             <div className="mb-3">
-              <Input.TextArea 
+              <Input.TextArea
                 value={editCommentText}
                 onChange={(e) => setEditCommentText(e.target.value)}
                 autoSize={{ minRows: 2, maxRows: 6 }}
@@ -358,8 +411,8 @@ const PostDetailsPage = () => {
                 <Button onClick={() => setEditingCommentId(null)} className="mr-2">
                   Cancel
                 </Button>
-                <Button 
-                  type="primary" 
+                <Button
+                  type="primary"
                   onClick={() => handleUpdateComment(comment._id)}
                   disabled={!editCommentText.trim() || editCommentLoading}
                   loading={editCommentLoading && editingCommentId === comment._id}
@@ -375,8 +428,8 @@ const PostDetailsPage = () => {
           )}
 
           <div className="flex items-center text-gray-600">
-            <button 
-              className="flex items-center mr-4 hover:text-blue-500"
+            <button
+              className="flex items-center mr-4 hover:text-blue-500 cursor-pointer"
               onClick={() => handleCommentLike(comment._id)}
               disabled={likeCommentLoading}
             >
@@ -388,8 +441,8 @@ const PostDetailsPage = () => {
               <span>{comment.likes?.length || 0}</span>
             </button>
 
-            <button 
-              className="flex items-center hover:text-blue-500"
+            <button
+              className="flex items-center hover:text-blue-500 cursor-pointer"
               onClick={() => setReplyingTo(replyingTo === comment._id ? null : comment._id)}
             >
               <MessageOutlined className="mr-1" />
@@ -409,8 +462,8 @@ const PostDetailsPage = () => {
                 <Button onClick={() => setReplyingTo(null)}>
                   Cancel
                 </Button>
-                <Button 
-                  type="primary" 
+                <Button
+                  type="primary"
                   onClick={() => handleReplySubmit(comment._id)}
                   loading={replayCommentLoading}
                 >
@@ -422,7 +475,7 @@ const PostDetailsPage = () => {
 
           {comment.replies?.length > 0 && (
             <div className="mt-3 ml-6 border-l-2 border-gray-200 pl-4">
-              {sortComments(comment.replies).map(reply => 
+              {sortComments(comment.replies).map(reply =>
                 renderComment(reply, depth + 1)
               )}
             </div>
@@ -462,21 +515,18 @@ const PostDetailsPage = () => {
   return (
     <div className="min-h-screen bg-[#F2F4F7] p-4">
       <main className="max-w-3xl mx-auto">
-        {/* Post card */}
         <div className="mb-6">
           <div className={`rounded-lg bg-white shadow ${isMobile ? 'p-3' : isTablet ? 'p-4' : 'p-5'}`}>
             <div className="flex justify-between items-center mb-3">
               <div className="flex items-center gap-2">
                 {post.author?.profile ? (
-                  <Image
-                    src={post.author.profile}
+                  <img
+                    src={`${baseURL}${post.author.profile}`}
                     alt="Author avatar"
-                    width={isMobile ? 24 : 32}
-                    height={isMobile ? 24 : 32}
-                    className="rounded-full cursor-pointer"
+                    className={`${isMobile ? 'w-6 h-6' : 'w-8 h-8'} rounded-full cursor-pointer`}
                   />
                 ) : (
-                  <div className={`${isMobile ? 'w-6 h-6' : 'w-8 h-8'} rounded-full bg-gray-300 flex items-center justify-center text-xs`}>
+                  <div className={`${isMobile ? 'w-6 h-6' : 'w-8 h-8'} bg-gray-300 flex items-center justify-center text-xs`}>
                     {post.author?.userName?.charAt(0).toUpperCase() || 'A'}
                   </div>
                 )}
@@ -507,9 +557,9 @@ const PostDetailsPage = () => {
               </h2>
             )}
 
-            <div 
+            <div
               className={`mb-3 text-gray-700 ${isMobile ? 'text-sm' : 'text-base'}`}
-              dangerouslySetInnerHTML={{ __html: post.content }} 
+              dangerouslySetInnerHTML={{ __html: post.content }}
             />
 
             {post?.image && (
@@ -534,7 +584,7 @@ const PostDetailsPage = () => {
                   <span className={`ml-1 ${isMobile ? 'text-xs' : 'text-sm'} text-gray-700`}>{post.likes?.length || 0}</span>
                 </button>
 
-                <button 
+                <button
                   onClick={() => {
                     handleCommentButtonClick();
                     if (login_user_id) {
@@ -568,12 +618,11 @@ const PostDetailsPage = () => {
           </div>
         </div>
 
-        {/* Comment form */}
         <form onSubmit={handleCommentSubmit} className="mb-4">
           <div className="flex gap-3 items-center">
             {login_user_id ? (
               currentUser.avatar ? (
-                <Avatar src={currentUser.avatar} size={32} />
+                <Avatar src={`${baseURL}${profile?.data?.profile}`} size={32} />
               ) : (
                 <Avatar size={32}>{currentUser.name?.charAt(0).toUpperCase() || 'U'}</Avatar>
               )
@@ -589,9 +638,9 @@ const PostDetailsPage = () => {
               disabled={!login_user_id}
             />
           </div>
-          <Button 
-            type="primary" 
-            htmlType="submit" 
+          <Button
+            type="primary"
+            htmlType="submit"
             className="mt-2 ml-12"
             disabled={!commentText.trim() || !login_user_id || createCommentLoading}
             loading={createCommentLoading}
@@ -605,7 +654,6 @@ const PostDetailsPage = () => {
           )}
         </form>
 
-        {/* Comments section */}
         <div id="comments" className='flex flex-col gap-3'>
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-lg font-medium text-gray-800">Comments ({comments.length})</h3>

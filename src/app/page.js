@@ -11,7 +11,6 @@ import moment from 'moment';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { Pagination, Button, Card, Empty, Spin } from 'antd';
 import { LeftOutlined, RightOutlined } from '@ant-design/icons';
-import ThemeToggle from '@/components/ThemeToggle';
 import { ThemeContext } from './layout';
 
 const HomePage = () => {
@@ -35,19 +34,21 @@ const HomePage = () => {
   const pageParam = searchParams.get("page");
   const categoryParam = searchParams.get("category");
   const subcategoryParam = searchParams.get("subcategory");
+  const sortParam = searchParams.get("sort");
 
   // Initialize state from URL params and user
   useEffect(() => {
     if (pageParam) setCurrentPage(parseInt(pageParam));
     if (categoryParam) setSelectedCategory(categoryParam);
     if (subcategoryParam) setSelectedSubCategory(subcategoryParam);
-    
+    if (sortParam) setSortOrder(sortParam);
+
     if (typeof window !== 'undefined') {
       setCurrentUser({
         id: localStorage.getItem("login_user_id")
       });
     }
-  }, [pageParam, categoryParam, subcategoryParam]);
+  }, [pageParam, categoryParam, subcategoryParam, sortParam]);
 
   // API query params
   const queryParams = {
@@ -83,10 +84,10 @@ const HomePage = () => {
     setSelectedCategory(categoryId);
     setSelectedSubCategory(subCategoryId);
     setCurrentPage(1);
-    updateUrlParams({ 
+    updateUrlParams({
       category: categoryId || undefined,
       subcategory: subCategoryId || undefined,
-      page: 1 
+      page: 1
     });
   };
 
@@ -104,7 +105,7 @@ const HomePage = () => {
 
   const updateUrlParams = (params) => {
     const newParams = new URLSearchParams(searchParams.toString());
-    
+
     Object.entries(params).forEach(([key, value]) => {
       if (value) {
         newParams.set(key, value);
@@ -112,7 +113,7 @@ const HomePage = () => {
         newParams.delete(key);
       }
     });
-    
+
     router.push(`${pathname}?${newParams.toString()}`);
   };
 
@@ -120,6 +121,7 @@ const HomePage = () => {
     setSelectedCategory(null);
     setSelectedSubCategory(null);
     setCurrentPage(1);
+    setSortOrder("newest");
     router.push(pathname);
   };
 
@@ -136,6 +138,7 @@ const HomePage = () => {
   const formatPostData = (post) => ({
     id: post._id,
     author: {
+      id: post.author._id,
       username: post?.author?.userName || "Anonymous",
       avatar: post?.author?.profile,
       name: post?.author?.name || "User"
@@ -155,7 +158,40 @@ const HomePage = () => {
   });
 
   // Data processing
-  const posts = data?.data?.data || [];
+  let posts = data?.data?.data || [];
+
+  // Sort posts based on the selected sort order if client-side sorting is needed
+  // Note: This should ideally be handled by the backend API, but we can also sort on the client side
+  if (posts.length > 0) {
+    switch (sortOrder) {
+      case "newest":
+        // Sort by creation date, newest first
+        posts = [...posts].sort((a, b) =>
+          new Date(b.createdAt) - new Date(a.createdAt)
+        );
+        break;
+      case "oldest":
+        // Sort by creation date, oldest first
+        posts = [...posts].sort((a, b) =>
+          new Date(a.createdAt) - new Date(b.createdAt)
+        );
+        break;
+      case "popular":
+        // Sort by likes count and views, most popular first
+        posts = [...posts].sort((a, b) => {
+          const aPopularity = (a.likes?.length || 0) + (a.views || 0);
+          const bPopularity = (b.likes?.length || 0) + (b.views || 0);
+          return bPopularity - aPopularity;
+        });
+        break;
+      default:
+        // Default to newest
+        posts = [...posts].sort((a, b) =>
+          new Date(b.createdAt) - new Date(a.createdAt)
+        );
+    }
+  }
+
   const totalPosts = data?.data?.meta?.total || 0;
   const totalPages = Math.ceil(totalPosts / postsPerPage);
 
@@ -201,14 +237,13 @@ const HomePage = () => {
   return (
     <div className={`${isDarkMode ? 'dark-mode' : 'light-mode'}`}>
       <Banner />
-      <ThemeToggle />
       <main className="container mx-auto px-4 py-6">
         <LayoutGroup>
           {isDesktop ? (
             <motion.div layout className="flex gap-5">
               {/* Sidebar */}
               <motion.div layout className={`${isGrid2 ? 'w-3/12' : 'w-3/12 pr-6 sticky top-20 self-start'}`}>
-                <CategoriesSidebar 
+                <CategoriesSidebar
                   onSelectCategory={handleCategorySelect}
                   selectedCategory={selectedCategory}
                   selectedSubCategory={selectedSubCategory}
@@ -217,12 +252,12 @@ const HomePage = () => {
 
               {/* Main content */}
               <motion.section layout className={`${isGrid2 ? 'w-9/12' : 'w-6/12'}`}>
-                <FeedNavigation 
-                  handlefeedGrid={setGridNumber} 
+                <FeedNavigation
+                  handlefeedGrid={setGridNumber}
                   onSortChange={handleSortChange}
                   currentSort={sortOrder}
                 />
-                
+
                 {/* Filters indicator */}
                 {(selectedCategory || selectedSubCategory || searchValue) && (
                   <Card className="mb-4">
@@ -232,6 +267,11 @@ const HomePage = () => {
                         <span className="font-medium text-blue-600">
                           {searchValue ? `Search results for "${searchValue}"` : getCategoryName()}
                         </span>
+                        {sortOrder !== "newest" && (
+                          <span className="ml-2 text-gray-500">
+                            (Sorted by: {sortOrder === "oldest" ? "Oldest first" : "Most popular"})
+                          </span>
+                        )}
                       </div>
                       <Button type="link" onClick={clearAllFilters}>
                         Clear All Filters
@@ -239,7 +279,7 @@ const HomePage = () => {
                     </div>
                   </Card>
                 )}
-                
+
                 {/* Posts list */}
                 {posts.length === 0 ? (
                   <Card className="text-center">
@@ -248,8 +288,8 @@ const HomePage = () => {
                         <>
                           <h3 className="text-lg font-medium text-gray-700">No posts found</h3>
                           <p className="text-gray-500 mt-2">
-                            {searchValue 
-                              ? "Try a different search term" 
+                            {searchValue
+                              ? "Try a different search term"
                               : "Try selecting a different category or subcategory"}
                           </p>
                         </>
@@ -272,7 +312,7 @@ const HomePage = () => {
                         </div>
                       ))}
                     </motion.div>
-                    
+
                     {/* Pagination */}
                     {totalPages > 1 && (
                       <div className="flex justify-center mt-6">
@@ -301,17 +341,17 @@ const HomePage = () => {
           ) : (
             /* Mobile layout */
             <div className="flex flex-col">
-              <CategoriesSidebar 
+              <CategoriesSidebar
                 onSelectCategory={handleCategorySelect}
                 selectedCategory={selectedCategory}
                 selectedSubCategory={selectedSubCategory}
               />
-              <FeedNavigation 
-                handlefeedGrid={setGridNumber} 
+              <FeedNavigation
+                handlefeedGrid={setGridNumber}
                 onSortChange={handleSortChange}
                 currentSort={sortOrder}
               />
-              
+
               {(selectedCategory || selectedSubCategory || searchValue) && (
                 <Card className="mb-4">
                   <div className="flex items-center justify-between">
@@ -320,6 +360,11 @@ const HomePage = () => {
                       <span className="font-medium text-blue-600">
                         {searchValue ? `Search results for "${searchValue}"` : getCategoryName()}
                       </span>
+                      {sortOrder !== "newest" && (
+                        <span className="ml-2 text-gray-500">
+                          (Sorted by: {sortOrder === "oldest" ? "Oldest first" : "Most popular"})
+                        </span>
+                      )}
                     </div>
                     <Button type="link" onClick={clearAllFilters}>
                       Clear All Filters
@@ -327,7 +372,7 @@ const HomePage = () => {
                   </div>
                 </Card>
               )}
-              
+
               {posts.length === 0 ? (
                 <Card className="text-center">
                   <Empty
@@ -335,8 +380,8 @@ const HomePage = () => {
                       <>
                         <h3 className="text-lg font-medium text-gray-700">No posts found</h3>
                         <p className="text-gray-500 mt-2">
-                          {searchValue 
-                            ? "Try a different search term" 
+                          {searchValue
+                            ? "Try a different search term"
                             : "Try selecting a different category or subcategory"}
                         </p>
                       </>
@@ -356,7 +401,7 @@ const HomePage = () => {
                       </div>
                     ))}
                   </div>
-                  
+
                   {totalPages > 1 && (
                     <div className="flex justify-center mt-6">
                       <Pagination

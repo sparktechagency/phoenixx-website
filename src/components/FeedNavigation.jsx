@@ -11,17 +11,17 @@ const FeedNavigation = ({ handlefeedGrid, onSortChange, currentSort }) => {
   const [isMobile, setIsMobile] = useState(false);
 
   const { isDarkMode } = useContext(ThemeContext);
-  
+
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth < 768);
     };
-    
+
     handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
-  
+
   const handleFeedsClick = () => {
     setClickCount((prevCount) => (prevCount % 2) + 1);
   };
@@ -31,27 +31,27 @@ const FeedNavigation = ({ handlefeedGrid, onSortChange, currentSort }) => {
   }, [clickCount, handlefeedGrid]);
 
   const items = [
-    { 
-      key: 'newest', 
+    {
+      key: 'newest',
       label: 'Newest',
-      className: currentSort === 'newest' ? 'bg-gray-100' : '' 
+      className: currentSort === 'newest' ? 'bg-gray-100' : ''
     },
-    { 
-      key: 'oldest', 
+    {
+      key: 'oldest',
       label: 'Oldest',
-      className: currentSort === 'oldest' ? 'bg-gray-100' : '' 
+      className: currentSort === 'oldest' ? 'bg-gray-100' : ''
     },
-    { 
-      key: 'popular', 
+    {
+      key: 'popular',
       label: 'Popular',
-      className: currentSort === 'popular' ? 'bg-gray-100' : '' 
+      className: currentSort === 'popular' ? 'bg-gray-100' : ''
     },
   ];
-  
+
   const handleMenuClick = (e) => {
     onSortChange(e.key);
   };
-  
+
   const menuProps = {
     items,
     onClick: handleMenuClick,
@@ -62,11 +62,11 @@ const FeedNavigation = ({ handlefeedGrid, onSortChange, currentSort }) => {
     selectable: true,
     selectedKeys: [currentSort],
   };
-  
+
   return (
     <div className={`flex ${isDarkMode ? 'dark-mode' : 'light-mode'} justify-between items-center py-4 w-full select-none`}>
-      <div 
-        onClick={handleFeedsClick} 
+      <div
+        onClick={handleFeedsClick}
         onMouseEnter={() => !isMobile && setIsHovered(true)}
         onMouseLeave={() => !isMobile && setIsHovered(false)}
         className={`cursor-pointer flex items-center gap-1 p-1 md:p-1.5 rounded-lg transition-all duration-200
@@ -77,23 +77,22 @@ const FeedNavigation = ({ handlefeedGrid, onSortChange, currentSort }) => {
           Your Feeds
         </span>
       </div>
-      
+
       <Dropdown
         menu={menuProps}
         trigger={['click']}
         dropdownRender={(menu) => (
-          <div className="rounded-lg overflow-hidden">
+          <div className="rounded-lg overflow-hidden" style={{ boxShadow:"0 4px 12px rgba(0, 0, 0, 0.1)"}}>
             {React.cloneElement(menu, {
               style: { boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)' },
             })}
           </div>
         )}
       >
-        <Button 
+        <Button
           type="default"
-          className={`border border-gray-300 rounded-lg flex items-center ${
-            isMobile ? 'px-2 h-8 text-sm' : 'px-4 h-10 text-base'
-          } hover:border-blue-400 hover:text-blue-500 transition-colors duration-200`}
+          className={`border border-gray-300 rounded-lg flex items-center ${isMobile ? 'px-2 h-8 text-sm' : 'px-4 h-10 text-base'
+            } hover:border-blue-400 hover:text-blue-500 transition-colors duration-200`}
         >
           <RiArrowUpDownLine className={`${isMobile ? 'text-xs' : 'text-lg'} text-gray-500 mr-1`} />
           <span className="font-medium mx-1">

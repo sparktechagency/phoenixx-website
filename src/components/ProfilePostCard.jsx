@@ -2,39 +2,20 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { AiOutlineEllipsis } from 'react-icons/ai';
-import { FaHeart, FaRegHeart } from "react-icons/fa";
+import { FaHeart, FaRegHeart, FaBookmark, FaRegBookmark } from "react-icons/fa";
 import Image from 'next/image';
 import { Dropdown, message } from 'antd';
 import { baseURL } from '../../utils/BaseURL';
 import { PostSEE } from '../../utils/svgImage';
 import EditPostModal from './EditPostModal';
 import { useMyPostQuery } from '@/features/post/postApi';
-import { toast } from 'react-toastify';
+import toast from 'react-hot-toast';
 
-const defaultPost = {
-  author: {
-    name: "Anonymous",
-    avatar: "",
-    username: "anonymous"
-  },
-  timePosted: "Just now",
-  title: "",
-  content: "",
-  image: "",
-  tags: [],
-  stats: {
-    likes: 0,
-    comments: [],
-    reads: 0
-  },
-  isLiked: false,
-  category: "general"
-};
-
-const ProfilePostCard = ({ 
-  postData = defaultPost ,
+const ProfilePostCard = ({
+  postData,
   onLike,
   onOptionSelect,
+  onUnsave,
   currentUser = { name: "User", avatar: "" }
 }) => {
   const router = useRouter();
@@ -46,11 +27,10 @@ const ProfilePostCard = ({
   const dropdownRef = useRef(null);
   const login_user_id = typeof window !== 'undefined' ? localStorage.getItem("login_user_id") : null;
 
-  const {data , isLoading} = useMyPostQuery();
+  const { data } = useMyPostQuery();
 
-  const likePost = data?.data.some(post => post?.likes?.some(react => react === login_user_id));
-
-  
+  // Check if the current user has liked this post
+  const isLikedByUser = postData?.likes?.some(userId => userId === login_user_id);
 
   useEffect(() => {
     const handleResize = () => {
@@ -66,86 +46,109 @@ const ProfilePostCard = ({
 
   const isMobile = windowSize.width < 640;
   const isTablet = windowSize.width >= 640 && windowSize.width < 1024;
-  const post = { ...defaultPost, ...postData };
 
-
-  const getPostNameSlug = (title) => (
-    title ? title.toLowerCase().replace(/[^\w\s]/gi, '').replace(/\s+/g, '-') : 'post'
-  );
+  // Check if we have all the necessary data
+  if (!postData) {
+    return null;
+  }
 
   const handlePostDetails = () => {
-    const postId = post.id || post._id || 'placeholder-id';
+    const postId = postData._id;
     router.push(`/posts/${postId}`);
   };
 
   const handleCommentClick = () => {
-    const postId = post.id || post._id || 'placeholder-id';
+    const postId = postData._id;
     router.push(`/posts/${postId}#comments`);
   };
 
-  const handleLike = () => onLike?.(post.id || post._id);
+  const handleLike = () => onLike?.(postData._id);
 
   const handleShare = () => {
-    navigator.clipboard.writeText(`${baseURL}/posts/${post.id || post._id}`).then(() => {
+    navigator.clipboard.writeText(`${baseURL}/posts/${postId}`).then(() => {
       toast.success("Link copied successfully");
     }).catch(() => {
-      message.error("Failed to copy link");
+      toast.error("Failed to copy link");
     });
   };
 
   const handleOptionSelect = ({ key }) => {
     if (key === 'edit') {
       setEditModalVisible(true);
+    } else if (key === 'unsave') {
+      onUnsave?.(postData._id);
     } else {
-      onOptionSelect?.(post.id || post._id, key);
+      onOptionSelect?.(postData._id, key);
     }
   };
 
-  const renderAuthorAvatar = () => (
-    post.author.avatar ? (
-      <img
-        src={`${baseURL}${post.author.avatar}`}
-        alt="Author avatar"
-        className={`${isMobile ? 'w-6 h-6' : 'w-8 h-8'} rounded-full cursor-pointer`}
-      />
-    ) : (
-      <div className={`${isMobile ? 'w-6 h-6' : 'w-8 h-8'} rounded-full bg-gray-300 flex items-center justify-center text-xs`}>
-        {post.author.username?.charAt(0).toUpperCase() || 'A'}
-      </div>
-    )
-  );
-
-  const renderContent = () => (
-    <div className={`mb-3 text-gray-700 ${isMobile ? 'text-sm' : 'text-base'}`}>
-      {post.content.replace(/<[^>]+>/g, '').split(' ').length > 20 ? (
-        <>
-          {post.content?.replace(/<[^>]+>/g, '')?.split(' ')?.slice(0, 20)?.join(' ')}...
-          <button
-            className="text-blue-600 hover:text-blue-800 cursor-pointer font-medium ml-1"
-            onClick={handleCommentClick}
-          >
-            See more
-          </button>
-        </>
+  const renderAuthorAvatar = () => {
+    const author = postData?.author || {};
+    return (
+      author.profile ? (
+        <img
+          src={`${baseURL}${author.profile}`}
+          alt="Author avatar"
+          className={`${isMobile ? 'w-6 h-6' : 'w-8 h-8'} rounded-full cursor-pointer`}
+        />
       ) : (
-        post.content.replace(/<[^>]+>/g, '')
-      )}
-    </div>
-  );
+        <div className={`${isMobile ? 'w-6 h-6' : 'w-8 h-8'} rounded-full bg-gray-300 flex items-center justify-center text-xs`}>
+          {author.userName?.charAt(0).toUpperCase() || author.name?.charAt(0).toUpperCase() || 'A'}
+        </div>
+      )
+    );
+  };
 
-  const renderTags = () => (
-    post.tags.length > 0 && (
-      <div className="flex flex-wrap items-center gap-2">
-        {post.tags.map((tag, index) => (
-          <span key={index} className="bg-[#E6E6FF] text-xs py-1 px-2 rounded">
-            {tag}
-          </span>
-        ))}
+  const renderContent = () => {
+    const content = postData.content || '';
+    const plainContent = content.replace(/<[^>]+>/g, '');
+
+    return (
+      <div className={`mb-3 text-gray-700 ${isMobile ? 'text-sm' : 'text-base'}`}>
+        {plainContent.split(' ').length > 20 ? (
+          <>
+            {plainContent.split(' ').slice(0, 20).join(' ')}...
+            <button
+              className="text-blue-600 hover:text-blue-800 cursor-pointer font-medium ml-1"
+              onClick={handleCommentClick}
+            >
+              See more
+            </button>
+          </>
+        ) : (
+          plainContent
+        )}
       </div>
-    )
-  );
+    );
+  };
 
-  const menuItems = [
+  const renderTags = () => {
+    const tags = postData.tags || [];
+    return (
+      tags.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          {tags.map((tag, index) => (
+            <span key={index} className="bg-[#E6E6FF] text-xs py-1 px-2 rounded">
+              {tag}
+            </span>
+          ))}
+        </div>
+      )
+    );
+  };
+
+  // Determine whether to show owner options or saved post options
+  const menuItems = postData.isSavedPost ? [
+    {
+      key: 'unsave',
+      label: (
+        <div className="flex items-center gap-2 py-1">
+          <FaRegBookmark className="text-gray-600" />
+          <span>Unsave Post</span>
+        </div>
+      ),
+    }
+  ] : [
     {
       key: 'delete',
       label: (
@@ -171,24 +174,28 @@ const ProfilePostCard = ({
     }
   ];
 
-  console.log(post)
+  const author = postData.author || {};
+  const commentsCount = postData.comments?.length || 0;
+  const likesCount = postData.likes?.length || 0;
+  const readsCount = postData.reads || 0;
 
   return (
     <>
       <div className={`rounded-lg bg-white shadow mb-4 ${isMobile ? 'p-3' : isTablet ? 'p-4' : 'p-5'}`}>
-      <div className="flex justify-between items-center mb-3">
-  <div className="flex items-center gap-2">
-    {renderAuthorAvatar()}
-    <div className="flex flex-col items-start"> {/* Removed justify-start as it's default */}
-      <span className={`font-medium cursor-pointer ${isMobile ? 'text-xs' : 'text-base'} text-gray-900`}>
-        {post.author.userName || post.author.name}
-      </span>
-      <span className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-500`}> {/* Removed pl-2 */}
-        {post.timePosted}
-      </span>
-    </div>
-  </div>
-
+        <div className="flex justify-between items-center mb-3">
+          <div className="flex items-center gap-2">
+            {renderAuthorAvatar()}
+            <div className="flex flex-col items-start">
+              <span className={`font-medium ${isMobile ? 'text-xs' : 'text-base'} text-gray-900`}>
+                {author.userName || author.name || "User"}
+              </span>
+              <span className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-500`}>
+                {postData.isSavedPost
+                  ? `Saved ${postData.savedAt}`
+                  : (postData.createdAt || postData.timePosted || "Just now")}
+              </span>
+            </div>
+          </div>
 
           <Dropdown
             menu={{ items: menuItems, onClick: handleOptionSelect }}
@@ -201,18 +208,18 @@ const ProfilePostCard = ({
           </Dropdown>
         </div>
 
-        {post.title && (
+        {postData.title && (
           <h2 onClick={handlePostDetails} className={`${isMobile ? 'text-lg' : isTablet ? 'text-xl' : 'text-2xl'} cursor-pointer hover:text-blue-700 font-bold mb-3`}>
-            {post.title}
+            {postData.title}
           </h2>
         )}
 
         {renderContent()}
 
-        {post.image && (
+        {postData.image && (
           <div className="mb-4">
             <img
-              src={`${baseURL}${post.image}`}
+              src={`${baseURL}${postData.image}`}
               alt="Post content"
               className="w-full h-[350px] rounded-lg object-cover"
             />
@@ -222,25 +229,25 @@ const ProfilePostCard = ({
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-4 sm:gap-6">
             <button onClick={handleLike} className="flex items-center cursor-pointer hover:bg-gray-100 p-1 rounded">
-               {likePost ?
-                              <FaHeart className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} text-red-500`} /> :
-                              <FaRegHeart className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} text-gray-500`} />
-                }
-              <span className={`ml-1 ${isMobile ? 'text-xs' : 'text-sm'} text-gray-700`}>{post?.likes?.length || 0}</span>
+              {isLikedByUser ?
+                <FaHeart className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} text-red-500`} /> :
+                <FaRegHeart className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} text-gray-500`} />
+              }
+              <span className={`ml-1 ${isMobile ? 'text-xs' : 'text-sm'} text-gray-700`}>{likesCount}</span>
             </button>
 
             <button onClick={handleCommentClick} className="flex items-center cursor-pointer hover:bg-gray-100 p-1 rounded">
               <Image src="/icons/message.png" width={20} height={20} alt="message icons" />
-              <span className={`ml-1 -mt-[1px] ${isMobile ? 'text-xs' : 'text-sm'} text-gray-700`}>{post.stats.comments?.length || 0}</span>
+              <span className={`ml-1 -mt-[1px] ${isMobile ? 'text-xs' : 'text-sm'} text-gray-700`}>{commentsCount}</span>
             </button>
 
             {renderTags()}
           </div>
 
           <div className="flex items-center gap-3">
-            <div className={`flex items-center gap-1.5 ${isMobile ? 'text-xs' : 'text-sm'} text-gray-500`}>
+            <div className={`flex items-center gap-1 ${isMobile ? 'text-xs' : 'text-sm'} text-gray-500`}>
               <PostSEE />
-              <span className="">{post.stats.reads}</span>
+              <span className="">{postData?.views}</span>
             </div>
 
             <button onClick={handleShare} className="text-gray-500 px-2 py-1.5 cursor-pointer hover:bg-gray-100 rounded-sm">
@@ -253,7 +260,7 @@ const ProfilePostCard = ({
       <EditPostModal
         visible={editModalVisible}
         onClose={() => setEditModalVisible(false)}
-        postData={post}
+        postData={postData}
       />
     </>
   );
