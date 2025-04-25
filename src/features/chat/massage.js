@@ -25,22 +25,28 @@ export const commentApi = baseApi.injectEndpoints({
         url: `/chats?searchTerm=${value}`,
         method: "GET",
       }),
-      providesTags: ["comment"],
+      providesTags: ["chat","profile"],
+      transformResponse: (res) => {
+        return res.data
+      }
     }),
 
     getAllMassage: builder.query({
-        query: (value) => ({
-          url: `/messages/${value}`,
-          method: "GET",
-        }),
-        providesTags: ["comment"],
+      query: (value) => ({
+        url: `/messages/${value}`,
+        method: "GET",
       }),
+      providesTags: ["chat"],
+      transformResponse: (res) => {
+        return res.data
+      }
+    }),
   }),
 });
 
 export const {
- useCreateChatMutation,
- useMessageSendMutation,
- useGetAllChatQuery,
- useGetAllMassageQuery
+  useCreateChatMutation,
+  useMessageSendMutation,
+  useGetAllChatQuery,
+  useGetAllMassageQuery
 } = commentApi;

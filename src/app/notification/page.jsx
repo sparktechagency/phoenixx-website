@@ -1,76 +1,110 @@
 "use client";
 
-import { useState } from 'react';
-import { Layout, List, Badge, Tabs, Button, Avatar, Dropdown, Menu } from 'antd';
+import { useState, useEffect } from 'react';
+import { Layout, List, Badge, Tabs, Button, Avatar, Dropdown, Menu, Spin, Pagination } from 'antd';
 import {
   BellOutlined,
   MessageOutlined,
   CheckOutlined,
   DeleteOutlined,
   MoreOutlined,
+  InfoCircleOutlined,
+  LoadingOutlined,
 } from '@ant-design/icons';
+import { useDeleteAllMutation, useDeleteSingleMutation, useGetAllNotificationQuery, useMarkAllAsReadMutation, useMarkSingleReadMutation } from '@/features/notification/noticationApi';
+import toast from 'react-hot-toast';
+import { useSelector } from 'react-redux';
+
 
 const { Content } = Layout;
-const { TabPane } = Tabs;
+
+// Custom loading icon
+const antIcon = <LoadingOutlined style={{ fontSize: 24 }} spin />;
 
 export default function NotificationPage() {
-  const [notifications, setNotifications] = useState([
-    {
-      id: '1',
-      title: 'New message from John',
-      description: 'Hey, can we schedule a meeting for tomorrow?',
-      time: '10 min ago',
-      read: false,
-      type: 'message',
-      avatar: 'https://randomuser.me/api/portraits/men/1.jpg',
-    },
-    {
-      id: '2',
-      title: 'System update',
-      description: 'A new version of the app is available',
-      time: '2 hours ago',
-      read: false,
-      type: 'system',
-    },
-    {
-      id: '3',
-      title: 'Payment received',
-      description: 'Your invoice #12345 has been paid',
-      time: '1 day ago',
-      read: true,
-      type: 'alert',
-    },
-    {
-      id: '4',
-      title: 'New follower',
-      description: 'Sarah started following you',
-      time: '2 days ago',
-      read: true,
-      type: 'message',
-      avatar: 'https://randomuser.me/api/portraits/women/2.jpg',
-    },
-  ]);
+  const [activeTab, setActiveTab] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
 
-  const markAsRead = (id) => {
-    setNotifications(
-      notifications.map((item) =>
-        item.id === id ? { ...item, read: true } : item
-      )
-    );
+  // Fetch notifications data with pagination
+  const { data, isLoading: allNotificationLoading, refetch } = useGetAllNotificationQuery({
+    page: currentPage
+  });
+
+  const { notifications } = useSelector((state) => state);
+
+  // Total pages from meta data
+  const total = notifications?.notification?.meta?.total || 1;
+  const limit = notifications?.notification?.meta?.limit || 1
+
+  // Reset to page 1 when changing tabs
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTab]);
+
+  // Handle page change
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    refetch();
   };
 
-  const deleteNotification = (id) => {
-    setNotifications(notifications.filter((item) => item.id !== id));
+  // API mutations
+  const [markSingleAsRead, { isLoading: markReadLoading }] = useMarkSingleReadMutation();
+  const [markAllAsRead, { isLoading: allmarkLoading }] = useMarkAllAsReadMutation();
+  const [deleteSingle, { isLoading: singleDeleteLoading }] = useDeleteSingleMutation();
+  const [deleteAll, { isLoading: deleteAllLoading }] = useDeleteAllMutation();
+
+  // Track which notification is being processed
+  const [processingNotificationId, setProcessingNotificationId] = useState(null);
+
+  const handleMarkAsRead = async (id) => {
+    try {
+      setProcessingNotificationId(id);
+      await markSingleAsRead(id).unwrap();
+      toast.success("Marked notification as read");
+      refetch();
+    } catch (error) {
+      console.error('Failed to mark as read:', error);
+      toast.error("Failed to mark notification as read");
+    } finally {
+      setProcessingNotificationId(null);
+    }
   };
 
-  const markAllAsRead = () => {
-    setNotifications(
-      notifications.map((item) => ({ ...item, read: true }))
-    );
+  const handleDeleteNotification = async (id) => {
+    try {
+      setProcessingNotificationId(id);
+      await deleteSingle(id).unwrap();
+      toast.success("Deleted notification");
+      refetch();
+    } catch (error) {
+      console.error('Failed to delete notification:', error);
+      toast.error("Failed to delete notification");
+    } finally {
+      setProcessingNotificationId(null);
+    }
   };
 
-  const clearAll = () => {
-    setNotifications([]);
+  const handleMarkAllAsRead = async () => {
+    try {
+      await markAllAsRead().unwrap();
+      toast.success("Marked all notifications as read");
+      refetch();
+    } catch (error) {
+      console.error('Failed to mark all as read:', error);
+      toast.error("Failed to mark all notifications as read");
+    }
+  };
+
+  const handleClearAll = async () => {
+    try {
+      await deleteAll().unwrap();
+      toast.success("Deleted all notifications");
+      refetch();
+    } catch (error) {
+      console.error('Failed to clear all notifications:', error);
+      toast.error("Failed to clear all notifications");
+    }
   };
 
   const getNotificationIcon = (type) => {
@@ -81,212 +115,284 @@ export default function NotificationPage() {
         return <BellOutlined className="text-green-500" />;
       case 'alert':
         return <BellOutlined className="text-red-500" />;
+      case 'info':
+        return <InfoCircleOutlined className="text-blue-500" />;
       default:
         return <BellOutlined />;
     }
   };
 
-  const menu = (id) => (
+  const formatNotificationTime = (dateString) => {
+    const date = new Date(dateString);
+    const now = new Date();
+
+    const diffInSeconds = Math.floor((now - date) / 1000);
+
+    if (diffInSeconds < 60) {
+      return 'Just now';
+    } else if (diffInSeconds < 3600) {
+      const minutes = Math.floor(diffInSeconds / 60);
+      return `${minutes} minute${minutes === 1 ? '' : 's'} ago`;
+    } else if (diffInSeconds < 86400) {
+      const hours = Math.floor(diffInSeconds / 3600);
+      return `${hours} hour${hours === 1 ? '' : 's'} ago`;
+    } else if (diffInSeconds < 604800) {
+      const days = Math.floor(diffInSeconds / 86400);
+      return `${days} day${days === 1 ? '' : 's'} ago`;
+    } else {
+      return date.toLocaleDateString();
+    }
+  };
+
+  const menu = (id, read) => (
     <Menu>
+      {!read && (
+        <Menu.Item
+          key="mark-read"
+          icon={<CheckOutlined />}
+          onClick={() => handleMarkAsRead(id)}
+          disabled={processingNotificationId === id}
+        >
+          Mark as read
+        </Menu.Item>
+      )}
       <Menu.Item
-        icon={<CheckOutlined />}
-        onClick={() => markAsRead(id)}
-      >
-        Mark as read
-      </Menu.Item>
-      <Menu.Item
+        key="delete"
         icon={<DeleteOutlined />}
-        onClick={() => deleteNotification(id)}
+        onClick={() => handleDeleteNotification(id)}
         danger
+        disabled={processingNotificationId === id}
       >
         Delete
       </Menu.Item>
     </Menu>
   );
 
-  return (
-    <Layout className="min-h-screen bg-gray-50  md:p-6 p-0">
-      <Content className="p-2 md:p-2 lg:w-8/12 w-full mx-auto">
-        <div className="bg-white p-2 md:p-2 rounded-lg shadow-sm overflow-hidden">
-          {/* Header with actions */}
-          <div className="p-4 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <h1 className="text-lg sm:text-xl font-semibold">Notifications</h1>
-            <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-              <Button
-                icon={<CheckOutlined />}
-                onClick={markAllAsRead}
-                className="text-gray-600 flex-1 sm:flex-none"
-                size="small"
-              >
-                <span className="hidden sm:inline">Mark all as read</span>
-                <span className="sm:hidden">Mark all</span>
-              </Button>
-              <Button
-                icon={<DeleteOutlined />}
-                onClick={clearAll}
-                danger
-                size="small"
-                className="flex-1 sm:flex-none"
-              >
-                <span className="hidden sm:inline">Clear all</span>
-                <span className="sm:hidden">Clear</span>
-              </Button>
-            </div>
-          </div>
+  // Transform the notification data to match the expected format
+  const transformedNotifications = notifications?.notification?.data?.map(notification => ({
+    id: notification._id,
+    title: notification.type.charAt(0).toUpperCase() + notification.type.slice(1),
+    description: notification.message,
+    read: notification.read,
+    type: notification.type,
+    time: formatNotificationTime(notification.createdAt)
+  })) || [];
 
-          {/* Tabs */}
-          <Tabs 
-            defaultActiveKey="all"
-            className="px-4"
-            tabBarStyle={{ marginBottom: 0 }}
+  const filteredNotifications = activeTab === 'unread'
+    ? transformedNotifications.filter(item => !item.read)
+    : transformedNotifications;
+
+  const unreadCount = transformedNotifications.filter(item => !item.read).length;
+
+  // Define tab items using the new API
+  const tabItems = [
+    {
+      key: 'all',
+      label: (
+        <span className="flex items-center">
+          All
+          <Badge
+            count={unreadCount}
+            className="ml-1"
             size="small"
-          >
-            <TabPane
-              tab={
-                <span className="flex items-center">
-                  All
-                  <Badge
-                    count={notifications.filter((n) => !n.read).length}
-                    className="ml-1"
-                    size="small"
-                  />
-                </span>
-              }
-              key="all"
-            >
-              <List
-                itemLayout="horizontal"
-                dataSource={notifications}
-                renderItem={(item) => (
-                  <List.Item
-                    className={`px-4  py-3 hover:bg-gray-50 transition-colors ${
-                      !item.read ? 'bg-blue-50' : ''
-                    }`}
-                    actions={[
-                      <Dropdown
-                        overlay={menu(item.id)}
-                        trigger={['click']}
-                        placement="bottomRight"
-                        key="actions"
-                      >
-                        <Button
-                          type="text"
-                          icon={<MoreOutlined />}
-                          size="small"
-                          className="opacity-70 hover:opacity-100"
-                        />
-                      </Dropdown>
-                    ]}
+          />
+        </span>
+      ),
+      children: (
+        <>
+          <List
+            itemLayout="horizontal"
+            dataSource={filteredNotifications}
+            renderItem={(item) => (
+              <List.Item
+                className={`px-4 py-3 hover:bg-gray-50 transition-colors ${!item.read ? 'bg-blue-50' : ''}`}
+                actions={[
+                  <Dropdown
+                    key="dropdown"
+                    overlay={menu(item.id, item.read)}
+                    trigger={['click']}
+                    placement="bottomRight"
                   >
-                    <List.Item.Meta
-                      avatar={
-                        item.avatar ? (
-                          <Avatar src={item.avatar} size="default" />
-                        ) : (
-                          <Avatar 
-                            icon={getNotificationIcon(item.type)} 
-                            size="default"
-                            className="flex items-center justify-center"
-                          />
-                        )
-                      }
-                      title={
-                        <div className="flex flex-col sm:flex-row sm:justify-between">
-                          <span className={!item.read ? 'font-semibold' : ''}>
-                            {item.title}
-                          </span>
-                          <span className="text-gray-500 text-xs sm:text-sm mt-1 sm:mt-0">
-                            {item.time}
-                          </span>
-                        </div>
-                      }
-                      description={
-                        <span className="text-gray-600 text-sm">
-                          {item.description}
-                        </span>
-                      }
+                    <Button
+                      type="text"
+                      icon={processingNotificationId === item.id ? <LoadingOutlined /> : <MoreOutlined />}
+                      size="small"
+                      className="opacity-70 hover:opacity-100"
+                      disabled={processingNotificationId === item.id}
                     />
-                  </List.Item>
-                )}
-              />
-            </TabPane>
-            <TabPane
-              tab={
-                <span className="flex items-center">
-                  Unread
-                  <Badge
-                    count={notifications.filter((n) => !n.read).length}
-                    className="ml-1"
-                    size="small"
-                  />
-                </span>
-              }
-              key="unread"
-            >
-              <List
-                itemLayout="horizontal"
-                dataSource={notifications.filter((item) => !item.read)}
-                renderItem={(item) => (
-                  <List.Item
-                    className="px-4 py-3 hover:bg-gray-50 transition-colors bg-blue-50"
-                    actions={[
-                      <Dropdown
-                        overlay={menu(item.id)}
-                        trigger={['click']}
-                        placement="bottomRight"
-                        key="actions"
-                      >
-                        <Button
-                          type="text"
-                          icon={<MoreOutlined />}
-                          size="small"
-                          className="opacity-70 hover:opacity-100"
-                        />
-                      </Dropdown>
-                    ]}
-                  >
-                    <List.Item.Meta
-                      avatar={
-                        item.avatar ? (
-                          <Avatar src={item.avatar} size="default" />
-                        ) : (
-                          <Avatar 
-                            icon={getNotificationIcon(item.type)} 
-                            size="default"
-                            className="flex items-center justify-center"
-                          />
-                        )
-                      }
-                      title={
-                        <div className="flex flex-col sm:flex-row sm:justify-between">
-                          <span className="font-semibold">{item.title}</span>
-                          <span className="text-gray-500 text-xs sm:text-sm mt-1 sm:mt-0">
-                            {item.time}
-                          </span>
-                        </div>
-                      }
-                      description={
-                        <span className="text-gray-600 text-sm">
-                          {item.description}
-                        </span>
-                      }
+                  </Dropdown>
+                ]}
+              >
+                <List.Item.Meta
+                  avatar={
+                    <Avatar
+                      icon={getNotificationIcon(item.type)}
+                      size="default"
+                      className="flex items-center justify-center"
                     />
-                  </List.Item>
-                )}
-              />
-            </TabPane>
-          </Tabs>
+                  }
+                  title={
+                    <div className="flex flex-col sm:flex-row sm:justify-between">
+                      <span className={!item.read ? 'font-semibold' : ''}>
+                        {item.title}
+                      </span>
+                      <span className="text-gray-500 text-xs sm:text-sm mt-1 sm:mt-0">
+                        {item.time}
+                      </span>
+                    </div>
+                  }
+                  description={
+                    <span className="text-gray-600 text-sm">
+                      {item.description}
+                    </span>
+                  }
+                />
+              </List.Item>
+            )}
+          />
 
-          {/* Empty state */}
-          {notifications.length === 0 && (
-            <div className="p-8 text-center text-gray-500">
-              <BellOutlined className="text-3xl mb-2" />
-              <p className="text-lg">No notifications</p>
-              <p className="text-sm">You're all caught up!</p>
+        </>
+      )
+    },
+    {
+      key: 'unread',
+      label: (
+        <span className="flex items-center">
+          Unread
+          <Badge
+            count={unreadCount}
+            className="ml-1"
+            size="small"
+          />
+        </span>
+      ),
+      children: (
+        <>
+          <List
+            itemLayout="horizontal"
+            dataSource={filteredNotifications}
+            renderItem={(item) => (
+              <List.Item
+                className="px-4 py-3 hover:bg-gray-50 transition-colors bg-blue-50"
+                actions={[
+                  <Dropdown
+                    key="dropdown"
+                    overlay={menu(item.id, item.read)}
+                    trigger={['click']}
+                    placement="bottomRight"
+                  >
+                    <Button
+                      type="text"
+                      icon={processingNotificationId === item.id ? <LoadingOutlined /> : <MoreOutlined />}
+                      size="small"
+                      className="opacity-70 hover:opacity-100"
+                      disabled={processingNotificationId === item.id}
+                    />
+                  </Dropdown>
+                ]}
+              >
+                <List.Item.Meta
+                  avatar={
+                    <Avatar
+                      icon={getNotificationIcon(item.type)}
+                      size="default"
+                      className="flex items-center justify-center"
+                    />
+                  }
+                  title={
+                    <div className="flex flex-col sm:flex-row sm:justify-between">
+                      <span className="font-semibold">{item.title}</span>
+                      <span className="text-gray-500 text-xs sm:text-sm mt-1 sm:mt-0">
+                        {item.time}
+                      </span>
+                    </div>
+                  }
+                  description={
+                    <span className="text-gray-600 text-sm">
+                      {item.description}
+                    </span>
+                  }
+                />
+              </List.Item>
+            )}
+          />
+        </>
+      )
+    }
+  ];
+
+  return (
+    <>
+      <Layout className="min-h-screen bg-gray-50 md:p-6 p-0">
+        <Content className="p-2 md:p-2 lg:w-8/12 w-full mx-auto">
+          <div className="bg-white p-2 md:p-2 rounded-lg shadow-sm overflow-hidden">
+            {/* Header with actions */}
+            <div className="p-4 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <h1 className="text-lg sm:text-xl font-semibold">Notifications</h1>
+              <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+                <Button
+                  icon={allmarkLoading ? <LoadingOutlined /> : <CheckOutlined />}
+                  onClick={handleMarkAllAsRead}
+                  className="text-gray-600 flex-1 sm:flex-none"
+                  size="small"
+                  disabled={unreadCount === 0 || allmarkLoading}
+                  loading={allmarkLoading}
+                >
+                  <span className="hidden sm:inline">Mark all as read</span>
+                  <span className="sm:hidden">Mark all</span>
+                </Button>
+                <Button
+                  icon={deleteAllLoading ? <LoadingOutlined /> : <DeleteOutlined />}
+                  onClick={handleClearAll}
+                  danger
+                  size="small"
+                  className="flex-1 sm:flex-none"
+                  disabled={transformedNotifications.length === 0 || deleteAllLoading}
+                  loading={deleteAllLoading}
+                >
+                  <span className="hidden sm:inline">Clear all</span>
+                  <span className="sm:hidden">Clear</span>
+                </Button>
+              </div>
             </div>
-          )}
-        </div>
-      </Content>
-    </Layout>
+
+            {/* Tabs using the items prop instead of TabPane children */}
+            <Tabs
+              defaultActiveKey="all"
+              className="px-4"
+              tabBarStyle={{ marginBottom: 0 }}
+              size="small"
+              onChange={(key) => setActiveTab(key)}
+              items={tabItems}
+            />
+
+            {/* Loading state */}
+            {allNotificationLoading && (
+              <div className="p-8 text-center">
+                <Spin indicator={antIcon} />
+                <p className="mt-2 text-gray-500">Loading notifications...</p>
+              </div>
+            )}
+
+            {/* Empty state */}
+            {!allNotificationLoading && filteredNotifications.length === 0 && (
+              <div className="p-8 text-center text-gray-500">
+                <p className="text-lg pl-2">No notifications</p>
+              </div>
+            )}
+          </div>
+        </Content>
+      </Layout>
+
+      <div className='flex justify-center pb-10'>
+        <Pagination
+          current={currentPage}
+          pageSize={limit}
+          total={total}
+          onChange={handlePageChange}
+          className="mb-4"
+        />
+      </div>
+    </>
   );
 }

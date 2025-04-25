@@ -1,10 +1,10 @@
 "use client";
-import { 
-  Layout, 
-  Input, 
-  Button, 
-  Dropdown, 
-  Avatar, 
+import {
+  Layout,
+  Input,
+  Button,
+  Dropdown,
+  Avatar,
   Badge,
   Flex,
   Space,
@@ -13,9 +13,9 @@ import {
   Drawer,
   Menu
 } from 'antd';
-import { 
-  PlusOutlined, 
-  BellOutlined, 
+import {
+  PlusOutlined,
+  BellOutlined,
   MessageOutlined,
   SearchOutlined,
   UserOutlined,
@@ -34,6 +34,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Message, Notification } from '../../utils/svgImage';
 import { useGetProfileQuery } from '@/features/profile/profileApi';
 import { baseURL } from '../../utils/BaseURL';
+import SocketComponent from './SocketCompo';
 
 const { Header } = Layout;
 const { Text } = Typography;
@@ -48,7 +49,7 @@ export default function Navbar() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const {data, isLoading} = useGetProfileQuery();
+  const { data, isLoading } = useGetProfileQuery();
 
   // Initialize search query from URL
   useEffect(() => {
@@ -56,7 +57,7 @@ export default function Navbar() {
     if (query) {
       // Remove quotes if they exist in the query
       const cleanQuery = query.replace(/^"|"$/g, '');
-     
+
       setSearchQuery(cleanQuery);
     } else {
       setSearchQuery('');
@@ -73,9 +74,9 @@ export default function Navbar() {
       key: 'profile-header',
       label: (
         <Flex gap="small" align="center" className="p-2 cursor-pointer hover:bg-gray-50">
-          <Avatar 
-            src={data?.data?.profile ? `${baseURL}${data?.data?.profile}` : "/icons/user.png"} 
-            size={44} 
+          <Avatar
+            src={data?.data?.profile ? `${baseURL}${data?.data?.profile}` : "/icons/user.png"}
+            size={44}
           />
           <Space direction="vertical" size={0}>
             <Text strong>{data?.data?.name || ""}</Text>
@@ -157,7 +158,7 @@ export default function Navbar() {
     const value = e.target.value;
     // Update the search query state
     setSearchQuery(value);
-    
+
     // When input is cleared, remove the search parameter
     if (!value) {
       router.push('/');
@@ -223,14 +224,14 @@ export default function Navbar() {
 
   // Desktop search component
   const renderDesktopSearch = () => (
-    <div style={{ 
-      width: '35%', 
+    <div style={{
+      width: '35%',
       paddingLeft: "100px",
       minWidth: '200px',
     }}>
-      <Flex 
-        align="center" 
-        style={{ 
+      <Flex
+        align="center"
+        style={{
           width: '100%',
           height: '40px',
           backgroundColor: '#f3f2fa',
@@ -249,15 +250,15 @@ export default function Navbar() {
           }}
           onChange={handleInputChange}
           onPressEnter={handleKeyDown}
-          allowClear={{ 
-            clearIcon: <CloseOutlined onClick={handleClear} /> 
+          allowClear={{
+            clearIcon: <CloseOutlined onClick={handleClear} />
           }}
         />
-        <Button 
-          type="primary" 
-          icon={<SearchOutlined />} 
+        <Button
+          type="primary"
+          icon={<SearchOutlined />}
           onClick={() => handleSearch(searchQuery)}
-          style={{ 
+          style={{
             height: '100%',
             width: '50px',
             borderRadius: '0 10px 10px 0',
@@ -273,7 +274,7 @@ export default function Navbar() {
 
   // Mobile search component
   const renderMobileSearch = () => (
-    <div style={{ 
+    <div style={{
       flex: 1,
       display: 'flex',
       alignItems: 'center',
@@ -285,24 +286,24 @@ export default function Navbar() {
         placeholder="Search topics"
         prefix={<SearchOutlined style={searchFieldStyles.searchIcon} />}
         style={{
-          ...searchFieldStyles.input, 
-          width: '100%', 
-          background: '#f3f2fa', 
+          ...searchFieldStyles.input,
+          width: '100%',
+          background: '#f3f2fa',
           borderRadius: '10px'
         }}
         autoFocus
         onChange={handleInputChange}
         onPressEnter={handleKeyDown}
-        allowClear={{ 
-          clearIcon: <CloseOutlined onClick={handleClear} /> 
+        allowClear={{
+          clearIcon: <CloseOutlined onClick={handleClear} />
         }}
         suffix={
-          <Button 
+          <Button
             type="text"
             icon={<CloseOutlined />}
             onClick={toggleMobileSearch}
-            style={{ 
-              border: 'none', 
+            style={{
+              border: 'none',
               background: 'transparent',
               display: 'flex',
               alignItems: 'center',
@@ -316,6 +317,8 @@ export default function Navbar() {
 
   return (
     <>
+
+      <SocketComponent />
       <Header style={{
         background: '#fff',
         display: 'flex',
@@ -332,13 +335,13 @@ export default function Navbar() {
         {!showMobileSearch && (
           <Flex align="center" style={{ height: '100%' }}>
             {!screens.md && (
-              <Button 
-                type="text" 
-                icon={<MenuOutlined />} 
+              <Button
+                type="text"
+                icon={<MenuOutlined />}
                 onClick={showDrawer}
-                style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
                   justifyContent: 'center',
                   height: '100%',
                   padding: '0 12px'
@@ -346,31 +349,31 @@ export default function Navbar() {
               />
             )}
             <Link href="/" style={{ display: 'flex', alignItems: 'center', height: '100%' }}>
-              <Image 
-                src={'/images/logo.png'} 
-                width={!screens.md ? 70 : 178} 
-                height={10} 
+              <Image
+                src={'/images/logo.png'}
+                width={!screens.md ? 70 : 178}
+                height={10}
                 alt='logo'
                 style={{ objectFit: 'contain', height: 'auto' }}
               />
             </Link>
           </Flex>
         )}
-        
+
         {/* Middle - Search Bar */}
         {screens.md ? renderDesktopSearch() : (showMobileSearch && renderMobileSearch())}
-        
+
         {/* Right Side Actions */}
         {!showMobileSearch && (
           <Flex align="center" gap="middle" style={{ height: '100%' }}>
             {screens.md ? (
               <>
-                <Button 
+                <Button
                   onClick={() => handleNavigation('/new')}
-                  type="primary" 
-                  icon={<PlusOutlined />} 
-                  style={{ 
-                    display: 'flex', 
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  style={{
+                    display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     height: '40px'
@@ -378,40 +381,40 @@ export default function Navbar() {
                 >
                   {screens.lg ? 'New Post' : ''}
                 </Button>
-                
-                <Badge style={{ backgroundColor: "#2930FF", marginTop:"5px", marginRight:"5px" }} count={5}>
-                  <Button 
+
+                <Badge style={{ backgroundColor: "#2930FF", marginTop: "5px", marginRight: "5px" }} count={5}>
+                  <Button
                     onClick={() => handleNavigation("/chat")}
-                    type="text" 
-                    icon={<Message />} 
+                    type="text"
+                    icon={<Message />}
                     style={iconButtonStyles}
                   />
                 </Badge>
-                
-                <Badge style={{ backgroundColor: "#2930FF", marginTop:"5px", marginRight:"5px"}} count={3}>
-                  <Button 
+
+                <Badge style={{ backgroundColor: "#2930FF", marginTop: "5px", marginRight: "5px" }} count={3}>
+                  <Button
                     onClick={() => handleNavigation("/notification")}
-                    type="text" 
-                    icon={<Notification />} 
+                    type="text"
+                    icon={<Notification />}
                     style={iconButtonStyles}
                   />
                 </Badge>
               </>
             ) : (
-              <Button 
-                type="text" 
-                icon={<SearchOutlined />} 
+              <Button
+                type="text"
+                icon={<SearchOutlined />}
                 onClick={toggleMobileSearch}
-                style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
                   justifyContent: 'center',
                   height: '100%',
                   padding: '0 12px'
                 }}
               />
             )}
-            
+
             <Dropdown
               menu={{ items }}
               trigger={['click']}
@@ -419,12 +422,12 @@ export default function Navbar() {
               arrow={{ pointAtCenter: true }}
             >
               <div style={{ display: 'flex', alignItems: 'center', height: '100%', padding: '0 8px' }}>
-                <Avatar 
-                  src={data?.data?.profile ? `${baseURL}${data?.data?.profile}` : "/icons/user.png"} 
-                  size={44} 
-                  style={{ 
+                <Avatar
+                  src={data?.data?.profile ? `${baseURL}${data?.data?.profile}` : "/icons/user.png"}
+                  size={44}
+                  style={{
                     cursor: 'pointer',
-                  }} 
+                  }}
                 />
               </div>
             </Dropdown>
@@ -469,7 +472,7 @@ export default function Navbar() {
               .filter(item => item.key !== 'profile-header')
               .map(item => ({
                 ...item,
-                onClick: item.onClick || (() => {})
+                onClick: item.onClick || (() => { })
               }))
           ]}
         />

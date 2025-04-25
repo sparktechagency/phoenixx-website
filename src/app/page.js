@@ -12,6 +12,7 @@ import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { Pagination, Button, Card, Empty, Spin } from 'antd';
 import { LeftOutlined, RightOutlined } from '@ant-design/icons';
 import { ThemeContext } from './layout';
+import ThemeToggle from '@/components/ThemeToggle';
 
 const HomePage = () => {
   // State management
@@ -238,6 +239,7 @@ const HomePage = () => {
     <div className={`${isDarkMode ? 'dark-mode' : 'light-mode'}`}>
       <Banner />
       <main className="container mx-auto px-4 py-6">
+        <ThemeToggle />
         <LayoutGroup>
           {isDesktop ? (
             <motion.div layout className="flex gap-5">

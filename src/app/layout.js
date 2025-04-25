@@ -42,11 +42,6 @@ export default function RootLayout({ children }) {
     document.documentElement.classList.toggle('dark', newTheme);
   };
 
-  // Prevent rendering with wrong theme
-  if (!mounted) {
-    return null;
-  }
-
   // Light theme tokens
   const lightThemeTokens = {
     colorPrimary: '#0001FB',
@@ -110,6 +105,7 @@ export default function RootLayout({ children }) {
     },
   };
 
+  // Always return HTML structure, even when not mounted
   return (
     <html lang="en" className={isDarkMode ? 'dark' : ''}>
       <body
@@ -126,12 +122,17 @@ export default function RootLayout({ children }) {
               }}
             >
               <Provider store={store}>
-                {!isAuthPage && <Navbar />}
-                {children}
-                <Toaster
-                  position="top-center"
-                  reverseOrder={false}
-                />
+
+                {mounted && (
+                  <>
+                    {!isAuthPage && <Navbar />}
+                    {children}
+                    <Toaster
+                      position="top-center"
+                      reverseOrder={false}
+                    />
+                  </>
+                )}
               </Provider>
             </ConfigProvider>
           </ThemeContext.Provider>

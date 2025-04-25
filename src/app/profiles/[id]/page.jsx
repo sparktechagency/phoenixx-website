@@ -20,7 +20,8 @@ const ProfileBanner = () => {
 
   const handleLike = async (postId) => {
     try {
-      await likePost(postId).unwrap();
+      const response = await likePost(postId).unwrap();
+      console.log(response)
       refetch()
     } catch (error) {
       message.error('Failed to like post');
@@ -35,7 +36,7 @@ const ProfileBanner = () => {
       const response = await createChat({ participant: id }).unwrap();
       console.log(response)
       if (response.success) {
-        router.push(`/chat/${id}`)
+        router.push(`/chat/${response?.data?._id}`)
       }
     } catch (error) {
       console.log(error)
