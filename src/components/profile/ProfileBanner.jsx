@@ -1,8 +1,8 @@
 "use client";
-import React, { useState, useEffect } from 'react';
-import { Modal, Input, Form, Button, Grid, Upload, Row, Col, message } from 'antd';
-import { PlusOutlined } from '@ant-design/icons';
 import { useGetProfileQuery, useUpdateProfileMutation } from '@/features/profile/profileApi';
+import { PlusOutlined } from '@ant-design/icons';
+import { Button, Col, Form, Grid, Input, message, Modal, Row, Upload } from 'antd';
+import { useEffect, useState } from 'react';
 import { baseURL } from '../../../utils/BaseURL';
 
 const ProfileBanner = () => {

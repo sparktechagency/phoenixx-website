@@ -1,20 +1,20 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import { Layout, List, Badge, Tabs, Button, Avatar, Dropdown, Menu, Spin, Pagination } from 'antd';
+import { useDeleteAllMutation, useDeleteSingleMutation, useGetAllNotificationQuery, useMarkAllAsReadMutation, useMarkSingleReadMutation } from '@/features/notification/noticationApi';
 import {
   BellOutlined,
-  MessageOutlined,
   CheckOutlined,
   DeleteOutlined,
-  MoreOutlined,
   InfoCircleOutlined,
   LoadingOutlined,
+  MessageOutlined,
+  MoreOutlined,
 } from '@ant-design/icons';
-import { useDeleteAllMutation, useDeleteSingleMutation, useGetAllNotificationQuery, useMarkAllAsReadMutation, useMarkSingleReadMutation } from '@/features/notification/noticationApi';
+import { Avatar, Badge, Button, Dropdown, Layout, List, Menu, Pagination, Spin, Tabs } from 'antd';
+import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
-import { useSelector } from 'react-redux';
-
+import { useDispatch, useSelector } from 'react-redux';
+import { useAuth } from '../../hooks/useAuth';
 
 const { Content } = Layout;
 
@@ -22,19 +22,32 @@ const { Content } = Layout;
 const antIcon = <LoadingOutlined style={{ fontSize: 24 }} spin />;
 
 export default function NotificationPage() {
+  useAuth()
+  const dispatch = useDispatch();
   const [activeTab, setActiveTab] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
 
   // Fetch notifications data with pagination
-  const { data, isLoading: allNotificationLoading, refetch } = useGetAllNotificationQuery({
+  const { isLoading: allNotificationLoading, refetch } = useGetAllNotificationQuery({
     page: currentPage
+  }, {
+    refetchOnMountOrArgChange: true
   });
 
   const { notifications } = useSelector((state) => state);
 
+
+
+
+
+
+
   // Total pages from meta data
-  const total = notifications?.notification?.meta?.total || 1;
-  const limit = notifications?.notification?.meta?.limit || 1
+  const total = notifications?.meta?.total || 0;
+  const limit = notifications?.meta?.limit || 10;
+
+
+  // console.log(notifications?.notification?.data?.meta)
 
   // Reset to page 1 when changing tabs
   useEffect(() => {
@@ -45,7 +58,6 @@ export default function NotificationPage() {
   const handlePageChange = (page) => {
     setCurrentPage(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    refetch();
   };
 
   // API mutations
@@ -62,7 +74,6 @@ export default function NotificationPage() {
       setProcessingNotificationId(id);
       await markSingleAsRead(id).unwrap();
       toast.success("Marked notification as read");
-      refetch();
     } catch (error) {
       console.error('Failed to mark as read:', error);
       toast.error("Failed to mark notification as read");
@@ -76,7 +87,6 @@ export default function NotificationPage() {
       setProcessingNotificationId(id);
       await deleteSingle(id).unwrap();
       toast.success("Deleted notification");
-      refetch();
     } catch (error) {
       console.error('Failed to delete notification:', error);
       toast.error("Failed to delete notification");
@@ -89,7 +99,6 @@ export default function NotificationPage() {
     try {
       await markAllAsRead().unwrap();
       toast.success("Marked all notifications as read");
-      refetch();
     } catch (error) {
       console.error('Failed to mark all as read:', error);
       toast.error("Failed to mark all notifications as read");
@@ -100,7 +109,6 @@ export default function NotificationPage() {
     try {
       await deleteAll().unwrap();
       toast.success("Deleted all notifications");
-      refetch();
     } catch (error) {
       console.error('Failed to clear all notifications:', error);
       toast.error("Failed to clear all notifications");
@@ -168,8 +176,12 @@ export default function NotificationPage() {
     </Menu>
   );
 
+  // Get API notifications
+  const apiNotifications = notifications?.notification || [];
+  // console.log(apiNotifications)
+
   // Transform the notification data to match the expected format
-  const transformedNotifications = notifications?.notification?.data?.map(notification => ({
+  const transformedNotifications = apiNotifications?.map(notification => ({
     id: notification._id,
     title: notification.type.charAt(0).toUpperCase() + notification.type.slice(1),
     description: notification.message,
@@ -183,8 +195,6 @@ export default function NotificationPage() {
     : transformedNotifications;
 
   const unreadCount = transformedNotifications.filter(item => !item.read).length;
-
-  // Define tab items using the new API
   const tabItems = [
     {
       key: 'all',
@@ -250,7 +260,6 @@ export default function NotificationPage() {
               </List.Item>
             )}
           />
-
         </>
       )
     },
@@ -385,13 +394,15 @@ export default function NotificationPage() {
       </Layout>
 
       <div className='flex justify-center pb-10'>
-        <Pagination
-          current={currentPage}
-          pageSize={limit}
-          total={total}
-          onChange={handlePageChange}
-          className="mb-4"
-        />
+        {total > limit && (
+          <Pagination
+            current={currentPage}
+            pageSize={limit}
+            total={total}
+            onChange={handlePageChange}
+            className="mb-4"
+          />
+        )}
       </div>
     </>
   );

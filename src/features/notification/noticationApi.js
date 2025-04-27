@@ -2,20 +2,20 @@ import { baseApi } from "../../../utils/apiBaseQuery";
 
 export const commentApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
-
-
     getAllNotification: builder.query({
-      query: ({ limit = 10, page = 1 }) => ({
-        url: `/notifications?limit=${limit}&page=${page}`, // Added pagination params
+      query: ({page = 1}) => ({
+        url: `/notifications?page=${page}`,
         method: "GET",
       }),
-      providesTags: ["notification"],
+      providesTags: (result, error, arg) => [
+        { type: "notification", id: `PAGE_${arg.page}` },
+        { type: "notification", id: "LIST" }
+      ],
       transformResponse: (res) => {
-        return { meta: res.meta, data: res.data }; // Transform response if necessary
+
+        return res.data;
       },
     }),
-
-
 
     markSingleRead: builder.mutation({
       query: (id) => {
@@ -24,9 +24,10 @@ export const commentApi = baseApi.injectEndpoints({
           method: "PATCH",
         };
       },
-      invalidatesTags: ['notification'],
+      invalidatesTags: (result, error, id) => [
+        { type: 'notification', id: "LIST" }
+      ],
     }),
-
 
     markAllAsRead: builder.mutation({
       query: () => {
@@ -35,32 +36,24 @@ export const commentApi = baseApi.injectEndpoints({
           method: "PATCH",
         };
       },
-      invalidatesTags: ['notification'],
+      invalidatesTags: [{ type: 'notification', id: "LIST" }],
     }),
-
 
     deleteSingle: builder.mutation({
       query: (id) => ({
-        url: `/notifications//${id}`,
+        url: `/notifications/${id}`,
         method: "DELETE",
       }),
-      invalidatesTags: ["notification"],
+      invalidatesTags: [{ type: 'notification', id: "LIST" }],
     }),
-
 
     deleteAll: builder.mutation({
       query: () => ({
         url: `/notifications/all-notifications/delete`,
         method: "DELETE",
       }),
-      invalidatesTags: ["notification"],
+      invalidatesTags: [{ type: 'notification', id: "LIST" }],
     }),
-
-
-
-
-
-
   }),
 });
 

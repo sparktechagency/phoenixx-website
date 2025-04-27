@@ -1,11 +1,11 @@
 "use client";
 import { useLoginMutation } from '@/features/auth/authApi';
 import { decodedUser, saveToken } from '@/features/auth/authService';
-import { message } from 'antd';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import React, { useState } from 'react';
+import { useState } from 'react';
+import toast from 'react-hot-toast';
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
 
 const LoginPage = () => {
@@ -87,7 +87,7 @@ const LoginPage = () => {
         });
       } catch (error) {
         console.error('Login error:', error);
-        message.error(error?.data?.message);
+        toast.error(error?.data?.message);
       } finally {
         setIsSubmitting(false);
       }

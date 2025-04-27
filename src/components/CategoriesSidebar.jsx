@@ -14,6 +14,9 @@ import { Manufacturing, Marketing, Selling, SvgImage } from '../../utils/svgImag
 import { useCategoriesQuery, useSubCategoryQuery } from '@/features/Category/CategoriesApi';
 import { Spin } from 'antd';
 import { ThemeContext } from '@/app/layout';
+import Image from 'next/image';
+import { baseURL } from '../../utils/BaseURL';
+import LoadingUi from './LoadingUi';
 
 const CategoriesSidebar = ({ onSelectCategory, selectedCategory, selectedSubCategory }) => {
   const [expandedKeys, setExpandedKeys] = useState([]);
@@ -26,6 +29,7 @@ const CategoriesSidebar = ({ onSelectCategory, selectedCategory, selectedSubCate
   const categories = categoryData?.data?.result || [];
 
   const { isDarkMode } = useContext(ThemeContext);
+
 
   useEffect(() => {
     const handleResize = () => {
@@ -112,11 +116,11 @@ const CategoriesSidebar = ({ onSelectCategory, selectedCategory, selectedSubCate
   };
 
   return (
-    <div className={`w-full ${isDarkMode ? 'dark-mode' : 'light-mode'} shadow rounded-xl ${getPadding()} sm:sticky sm:top-20`}>
+    <div className={`w-full shadow rounded-xl ${getPadding()} sm:sticky sm:top-20`}>
       <h5 className={`${getTitleSize()} font-semibold px-2 mb-4`}>Categories</h5>
 
       {categoryLoading ? (
-        <div className='flex justify-center'><Spin size='small' /></div>
+        <div className='flex justify-center'><LoadingUi /></div>
       ) : (
         <>
           <div
@@ -128,9 +132,14 @@ const CategoriesSidebar = ({ onSelectCategory, selectedCategory, selectedSubCate
               <span className="text-gray-600 text-lg border-[1px] rounded shadow-md border-gray-300 px-1.5">
                 <UnorderedListOutlined />
               </span>
-              <span className={`text-gray-800 font-medium ${getItemTextSize()}`}>
-                All Posts
-              </span>
+              <div className='flex flex-col gap-1'>
+                <span className={`${isDarkMode ? "text-gray-300" : "text-gray-800"} font-medium ${getItemTextSize()}`}>
+                  All Posts
+                </span>
+                <span className="text-xs text-gray-500">
+                  {categories?.length || 0} Posts
+                </span>
+              </div>
             </div>
           </div>
 
@@ -152,11 +161,11 @@ const CategoriesSidebar = ({ onSelectCategory, selectedCategory, selectedSubCate
                   >
                     <div className="flex justify-between items-center w-full">
                       <div className="flex items-center gap-3">
-                        <span className="text-gray-600 text-lg border-[1px] rounded shadow-md border-gray-300 px-1.5">
-                          {getCategoryIcon(category.name)}
+                        <span className="text-gray-600 text-lg border-[1px] rounded shadow-md border-gray-300 p-[1px]">
+                          <Image src={`${baseURL}${category?.image}`} height={40} width={35} alt={category?.name} />
                         </span>
                         <div className='flex flex-col gap-1'>
-                          <span className={`text-gray-800 font-medium ${getItemTextSize()}`}>
+                          <span className={`text-gray-800  font-medium ${getItemTextSize()}`}>
                             {category.name}
                           </span>
                           <span className="text-xs text-gray-500">

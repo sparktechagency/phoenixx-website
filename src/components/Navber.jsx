@@ -1,39 +1,44 @@
 "use client";
+import { useGetProfileQuery } from '@/features/profile/profileApi';
+import { useTheme } from '@/hooks/useTheme';
 import {
-  Layout,
-  Input,
-  Button,
-  Dropdown,
-  Avatar,
-  Badge,
-  Flex,
-  Space,
-  Typography,
-  Grid,
-  Drawer,
-  Menu
-} from 'antd';
-import {
-  PlusOutlined,
   BellOutlined,
-  MessageOutlined,
-  SearchOutlined,
-  UserOutlined,
-  QuestionCircleOutlined,
+  CloseOutlined,
   CommentOutlined,
-  SettingOutlined,
-  MoonOutlined,
   LogoutOutlined,
   MenuOutlined,
-  CloseOutlined
+  MessageOutlined,
+  MoonOutlined,
+  PlusOutlined,
+  QuestionCircleOutlined,
+  SearchOutlined,
+  SettingOutlined,
+  SunOutlined,
+  UserOutlined
 } from '@ant-design/icons';
-import Link from 'next/link';
-import { useState, useEffect, useRef } from 'react';
+import {
+  Avatar,
+  Badge,
+  Button,
+  Drawer,
+  Dropdown,
+  Flex,
+  Grid,
+  Input,
+  Layout,
+  Menu,
+  Space,
+  Typography
+} from 'antd';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Message, Notification } from '../../utils/svgImage';
-import { useGetProfileQuery } from '@/features/profile/profileApi';
+import { useEffect, useRef, useState } from 'react';
+import { useSelector } from 'react-redux';
 import { baseURL } from '../../utils/BaseURL';
+import { Message, Notification } from '../../utils/svgImage';
+import { useGetAllNotificationQuery } from '../features/notification/noticationApi';
+import { useLogoQuery } from '../features/report/reportApi';
 import SocketComponent from './SocketCompo';
 
 const { Header } = Layout;
@@ -44,12 +49,16 @@ export default function Navbar() {
   const screens = useBreakpoint();
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [showMobileSearch, setShowMobileSearch] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('')
+  const [searchQuery, setSearchQuery] = useState('');
   const searchRef = useRef(null);
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { isDarkMode, toggleTheme } = useTheme();
+  const { isLoading: allNotificationLoading, refetch } = useGetAllNotificationQuery({});
+  const { notifications } = useSelector((state) => state);
 
   const { data, isLoading } = useGetProfileQuery();
+  const { data: logo } = useLogoQuery();
 
   // Initialize search query from URL
   useEffect(() => {
@@ -57,7 +66,6 @@ export default function Navbar() {
     if (query) {
       // Remove quotes if they exist in the query
       const cleanQuery = query.replace(/^"|"$/g, '');
-
       setSearchQuery(cleanQuery);
     } else {
       setSearchQuery('');
@@ -73,7 +81,7 @@ export default function Navbar() {
     {
       key: 'profile-header',
       label: (
-        <Flex gap="small" align="center" className="p-2 cursor-pointer hover:bg-gray-50">
+        <Flex gap="small" align="center" className={`p-2 cursor-pointer ${isDarkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-50'}`}>
           <Avatar
             src={data?.data?.profile ? `${baseURL}${data?.data?.profile}` : "/icons/user.png"}
             size={44}
@@ -96,34 +104,35 @@ export default function Navbar() {
       icon: <UserOutlined />,
       label: 'About us',
       onClick: () => handleNavigation('/about'),
-      className: 'hover:bg-gray-50'
+      className: isDarkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-50'
     },
     {
       key: 'help',
       icon: <QuestionCircleOutlined />,
       label: 'Help & Support',
       onClick: () => handleNavigation('/help&support'),
-      className: 'hover:bg-gray-50'
+      className: isDarkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-50'
     },
     {
       key: 'feedback',
       icon: <CommentOutlined />,
       label: 'Feedback',
       onClick: () => handleNavigation('/feedback'),
-      className: 'hover:bg-gray-50'
+      className: isDarkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-50'
     },
     {
       key: 'settings',
       icon: <SettingOutlined />,
       label: 'Settings',
       onClick: () => handleNavigation('/settings'),
-      className: 'hover:bg-gray-50'
+      className: isDarkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-50'
     },
     {
       key: 'darkmode',
-      icon: <MoonOutlined />,
-      label: 'Switch to Dark Mode',
-      className: 'hover:bg-gray-50'
+      icon: isDarkMode ? <SunOutlined /> : <MoonOutlined />,
+      label: `${isDarkMode ? "Switch to light mode" : "Switch to dark mode"}`,
+      className: isDarkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-50',
+      onClick: toggleTheme,
     },
     {
       type: 'divider',
@@ -137,7 +146,7 @@ export default function Navbar() {
         handleNavigation('/auth/login');
         localStorage.clear();
       },
-      className: 'hover:bg-gray-50'
+      className: isDarkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-50'
     },
   ];
 
@@ -145,10 +154,8 @@ export default function Navbar() {
   const handleSearch = (value) => {
     const trimmedValue = value?.trim();
     if (trimmedValue) {
-      // Update URL with search parameter
       router.push(`/?search=${encodeURIComponent(trimmedValue)}`);
     } else {
-      // If search is empty, remove the search parameter
       router.push('/');
     }
   };
@@ -156,10 +163,8 @@ export default function Navbar() {
   // Function to handle input change
   const handleInputChange = (e) => {
     const value = e.target.value;
-    // Update the search query state
     setSearchQuery(value);
 
-    // When input is cleared, remove the search parameter
     if (!value) {
       router.push('/');
     }
@@ -175,7 +180,6 @@ export default function Navbar() {
   // Function to clear the search input
   const handleClear = () => {
     setSearchQuery('');
-    // Remove search parameter from URL
     router.push('/');
   };
 
@@ -195,6 +199,7 @@ export default function Navbar() {
     }
   };
 
+  // Apply theme to search fields
   const searchFieldStyles = {
     input: {
       backgroundColor: 'transparent',
@@ -204,25 +209,26 @@ export default function Navbar() {
       height: '100%',
     },
     searchIcon: {
-      color: '#6b7280',
+      color: isDarkMode ? 'rgba(255, 255, 255, 0.65)' : '#6b7280',
       fontSize: '16px',
       marginRight: '8px',
     }
   };
 
+  // Apply theme to icon buttons
   const iconButtonStyles = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    border: '1px solid #e5e7eb',
+    border: `1px solid ${isDarkMode ? '#424242' : '#e5e7eb'}`,
     padding: '8px',
     width: '40px',
     height: '40px',
     borderRadius: '50%',
-    backgroundColor: '#f9fafb'
+    backgroundColor: isDarkMode ? '#1f1f1f' : '#f9fafb'
   };
 
-  // Desktop search component
+  // Desktop search component with theme styling
   const renderDesktopSearch = () => (
     <div style={{
       width: '35%',
@@ -234,9 +240,9 @@ export default function Navbar() {
         style={{
           width: '100%',
           height: '40px',
-          backgroundColor: '#f3f2fa',
+          backgroundColor: isDarkMode ? '#1f1f1f' : '#f3f2fa',
           borderRadius: '10px',
-          border: '1px solid #D8D8D8',
+          border: `1px solid ${isDarkMode ? '#424242' : '#D8D8D8'}`,
           overflow: 'hidden'
         }}
       >
@@ -247,6 +253,7 @@ export default function Navbar() {
           style={{
             ...searchFieldStyles.input,
             width: '100%',
+            color: isDarkMode ? 'rgba(255, 255, 255, 0.85)' : 'inherit',
           }}
           onChange={handleInputChange}
           onPressEnter={handleKeyDown}
@@ -272,7 +279,7 @@ export default function Navbar() {
     </div>
   );
 
-  // Mobile search component
+  // Mobile search component with theme styling
   const renderMobileSearch = () => (
     <div style={{
       flex: 1,
@@ -288,8 +295,9 @@ export default function Navbar() {
         style={{
           ...searchFieldStyles.input,
           width: '100%',
-          background: '#f3f2fa',
-          borderRadius: '10px'
+          background: isDarkMode ? '#1f1f1f' : '#f3f2fa',
+          borderRadius: '10px',
+          color: isDarkMode ? 'rgba(255, 255, 255, 0.85)' : 'inherit',
         }}
         autoFocus
         onChange={handleInputChange}
@@ -317,20 +325,24 @@ export default function Navbar() {
 
   return (
     <>
-
       <SocketComponent />
-      <Header style={{
-        background: '#fff',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: screens.xs ? '0 12px' : '0 24px',
-        height: '75px',
-        boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)',
-        position: 'sticky',
-        top: 0,
-        zIndex: 100
-      }}>
+      <Header 
+        className="theme-transition"
+        style={{
+          background: isDarkMode ? 'var(--secondary-bg)' : '#fff',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: screens.xs ? '0 12px' : '0 24px',
+          height: '75px',
+          boxShadow: isDarkMode ? '0 1px 2px 0 rgba(0, 0, 0, 0.15)' : '0 1px 2px 0 rgba(0, 0, 0, 0.03)',
+          position: 'sticky',
+          top: 0,
+          zIndex: 100,
+          color: isDarkMode ? 'var(--text-color)' : 'inherit',
+          borderBottom: `1px solid ${isDarkMode ? '#333' : 'transparent'}`
+        }}
+      >
         {/* Left Side - Logo and Menu Button */}
         {!showMobileSearch && (
           <Flex align="center" style={{ height: '100%' }}>
@@ -344,18 +356,23 @@ export default function Navbar() {
                   alignItems: 'center',
                   justifyContent: 'center',
                   height: '100%',
-                  padding: '0 12px'
+                  padding: '0 12px',
+                  color: isDarkMode ? 'var(--text-color)' : 'inherit'
                 }}
               />
             )}
             <Link href="/" style={{ display: 'flex', alignItems: 'center', height: '100%' }}>
-              <Image
-                src={'/images/logo.png'}
-                width={!screens.md ? 70 : 178}
+              {logo?.data?.logo && <Image
+                src={`${baseURL}${logo?.data?.logo}`}
+                width={!screens.md ? 70 : 120}
                 height={10}
                 alt='logo'
-                style={{ objectFit: 'contain', height: 'auto' }}
-              />
+                style={{ 
+                  objectFit: 'contain', 
+                  height: 'auto',
+                  filter: isDarkMode ? 'brightness(0.9) contrast(1.1)' : 'none'
+                }}
+              />}
             </Link>
           </Flex>
         )}
@@ -386,16 +403,16 @@ export default function Navbar() {
                   <Button
                     onClick={() => handleNavigation("/chat")}
                     type="text"
-                    icon={<Message />}
+                    icon={<Message isDarkMode={isDarkMode} />}
                     style={iconButtonStyles}
                   />
                 </Badge>
 
-                <Badge style={{ backgroundColor: "#2930FF", marginTop: "5px", marginRight: "5px" }} count={3}>
+                <Badge style={{ backgroundColor: "#2930FF", marginTop: "5px", marginRight: "5px" }} count={notifications?.unreadCount}>
                   <Button
                     onClick={() => handleNavigation("/notification")}
                     type="text"
-                    icon={<Notification />}
+                    icon={<Notification isDarkMode={isDarkMode} />}
                     style={iconButtonStyles}
                   />
                 </Badge>
@@ -410,7 +427,8 @@ export default function Navbar() {
                   alignItems: 'center',
                   justifyContent: 'center',
                   height: '100%',
-                  padding: '0 12px'
+                  padding: '0 12px',
+                  color: isDarkMode ? 'var(--text-color)' : 'inherit'
                 }}
               />
             )}
@@ -427,6 +445,7 @@ export default function Navbar() {
                   size={44}
                   style={{
                     cursor: 'pointer',
+                    border: isDarkMode ? '1px solid #333' : 'none'
                   }}
                 />
               </div>
@@ -443,9 +462,11 @@ export default function Navbar() {
         onClose={onClose}
         open={drawerVisible}
         width={250}
+        className="theme-transition"
       >
         <Menu
           mode="inline"
+          theme={isDarkMode ? "dark" : "light"}
           items={[
             {
               key: 'new-post',
@@ -472,7 +493,7 @@ export default function Navbar() {
               .filter(item => item.key !== 'profile-header')
               .map(item => ({
                 ...item,
-                onClick: item.onClick || (() => { })
+                onClick: item.onClick || (() => {})
               }))
           ]}
         />

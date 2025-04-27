@@ -1,62 +1,73 @@
 @import "tailwindcss";
 
-/* globals.css */
+/* Add these to your globals.css file */
+
 :root {
-  --background: #ffffff;
-  --foreground: #f5f5f5;
-  --text: rgba(0, 0, 0, 0.88);
-  --text-secondary: rgba(0, 0, 0, 0.65);
-  --border: #E5E4E2;
+  --background-color: #ffffff;
+  --text-color: rgba(0, 0, 0, 0.88);
+  --border-color: #E5E4E2;
   --card-bg: #ffffff;
-  --input-bg: #ffffff;
+  --hover-bg: #f5f5f5;
+  --secondary-bg: #f9fafb;
 }
 
 .dark {
-  --background: #121212;
-  --foreground: #1a1a1a;
-  --text: rgba(255, 255, 255, 0.85);
-  --text-secondary: rgba(255, 255, 255, 0.65);
-  --border: #424242;
+  --background-color: #1a1a1a;
+  --text-color: rgba(255, 255, 255, 0.85);
+  --border-color: #424242;
   --card-bg: #1f1f1f;
-  --input-bg: #1f1f1f;
+  --hover-bg: #2a2a2a;
+  --secondary-bg: #141414;
 }
 
-body {
-  background-color: var(--background);
-  color: var(--text);
-  transition: background-color 0.3s ease, color 0.3s ease;
+/* Theme transition */
+.theme-transition,
+.theme-transition *,
+.theme-transition *:before,
+.theme-transition *:after {
+  transition: background-color 0.3s ease, 
+              color 0.3s ease, 
+              border-color 0.3s ease, 
+              box-shadow 0.3s ease;
 }
 
-/* Ant Design component overrides for better dark mode */
-.ant-layout {
-  background: var(--background) !important;
+/* Custom component theme classes */
+.custom-card {
+  background-color: var(--card-bg);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 16px;
 }
 
-.ant-layout-header {
-  background: var(--foreground) !important;
+.custom-card:hover {
+  background-color: var(--hover-bg);
 }
 
-.ant-card {
-  background: var(--card-bg) !important;
+/* Make form elements properly themed */
+.dark input,
+.dark select,
+.dark textarea {
+  background-color: #1f1f1f !important;
+  color: rgba(255, 255, 255, 0.85) !important;
+  border-color: #424242 !important;
 }
 
-.ant-input,
-.ant-select-selector,
-.ant-input-affix-wrapper {
-  background-color: var(--input-bg) !important;
+.dark input:focus,
+.dark select:focus,
+.dark textarea:focus {
+  border-color: #4E4EFB !important;
+  box-shadow: 0 0 0 2px rgba(78, 78, 251, 0.2) !important;
 }
 
-.ant-table {
-  background: var(--background) !important;
+/* For custom elements that need theming */
+.themed-element {
+  background-color: var(--background-color);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
 }
 
-.ant-table-thead>tr>th {
-  background: var(--foreground) !important;
-}
 
-/* .ant-menu {
-  background: var(--background) !important;
-} */
 
 @theme {
   --color-primary: #0001FB;

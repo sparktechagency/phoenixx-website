@@ -1,16 +1,14 @@
 "use client";
-import React, { useState, useEffect, useRef } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { Avatar, Card, Button, Input, Select, Dropdown, Menu, Empty, message, Modal } from 'antd';
-import { MessageOutlined, EllipsisOutlined } from '@ant-design/icons';
-import { FaHeart, FaRegHeart, FaEye } from "react-icons/fa";
-import Image from 'next/image';
+import { EllipsisOutlined, MessageOutlined } from '@ant-design/icons';
+import { Avatar, Button, Card, Dropdown, Empty, Input, Menu, message, Select } from 'antd';
 import moment from 'moment';
+import Image from 'next/image';
+import { useParams, useRouter } from 'next/navigation';
+import { useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
+import { FaEye, FaHeart, FaRegHeart } from "react-icons/fa";
 
 // API hooks
-import { usePostDetailsQuery, useLikePostMutation } from '@/features/post/postApi';
-import { useGetSaveAllPostQuery, useSavepostMutation } from '@/features/SavePost/savepostApi';
 import {
   useCreateCommentMutation,
   useDeleteCommentMutation,
@@ -18,13 +16,15 @@ import {
   useReplayCommentMutation,
   useUpdateCommentMutation
 } from '@/features/comments/commentApi';
+import { useLikePostMutation, usePostDetailsQuery } from '@/features/post/postApi';
+import { useGetSaveAllPostQuery, useSavepostMutation } from '@/features/SavePost/savepostApi';
 
 // Components
 import ReportPostModal from '@/components/ReportPostModal';
 
 // Utils
-import { baseURL } from '../../../../utils/BaseURL';
 import { useGetProfileQuery } from '@/features/profile/profileApi';
+import { baseURL } from '../../../../utils/BaseURL';
 
 const PostDetailsPage = () => {
   const params = useParams();

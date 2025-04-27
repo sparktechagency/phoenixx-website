@@ -11,17 +11,26 @@ export const postApi = baseApi.injectEndpoints({
       invalidatesTags: ["report"],
     }),
     silder: builder.query({
-      query: () => ({
-          url: `/announcement-slider`,
-          method: "GET",
+      query: (status = 'active') => ({
+        url: `/announcement-slider?status=${status}`,
+        method: "GET",
       }),
-      providesTags: ["faq"],
-  })
+      providesTags: ["Slider"], // Changed from "faq" to more appropriate "Slider"
+    }),
+
+     logo: builder.query({
+      query: () => ({
+        url: `/website-logo`,
+        method: "GET",
+      }),
+      providesTags: [], // Changed from "faq" to more appropriate "Slider"
+    })
   }),
 });
 
 // Export hooks
 export const {
   useReportMutation,
-  useSilderQuery
+  useSilderQuery,
+  useLogoQuery
 } = postApi;

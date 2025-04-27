@@ -11,11 +11,30 @@ export const authApi = baseApi.injectEndpoints({
                 method: "GET",
             }),
             providesTags: ["about"],
+        }),
+      
+      termsAndCondition: builder.query({
+            query: () => ({
+                url: `/terms-and-conditions`,
+                method: "GET",
+            }),
+            providesTags: ["about"],
+      }),
+      
+      
+      privacyPolicy : builder.query({
+            query: () => ({
+                url: `/terms-and-conditions`,
+                method: "GET",
+            }),
+            providesTags: ["about"],
         })
     }),
 });
 
 // Export hooks
 export const {
-    useAboutQuery
+  useAboutQuery,
+  usePrivacyPolicyQuery,
+  useTermsAndConditionQuery
 } = authApi;

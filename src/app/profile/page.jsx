@@ -1,20 +1,25 @@
 "use client"
-import React, { useState, useEffect } from 'react';
-import { Card, Space, Grid, Modal, Form, Input, Button, message } from 'antd';
-import { FiFile, FiBookmark, FiMessageSquare } from 'react-icons/fi';
 import ProfilePostCard from '@/components/ProfilePostCard';
 import ProfileBanner from '@/components/profile/ProfileBanner';
-import { useDeletePostMutation, useLikePostMutation, useMyPostQuery } from '@/features/post/postApi';
-import { formatDistanceToNow } from 'date-fns';
 import { useGetSaveAllPostQuery, useSavepostMutation } from '@/features/SavePost/savepostApi';
-import toast from 'react-hot-toast';
 import { useMyCommentPostQuery } from '@/features/comments/commentApi';
+import { useDeletePostMutation, useLikePostMutation, useMyPostQuery } from '@/features/post/postApi';
+import { useTheme } from '@/hooks/useTheme';
+import { Button, Card, Form, Grid, Input, message, Modal, Space } from 'antd';
+import { formatDistanceToNow } from 'date-fns';
+import React, { useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
+import { FiBookmark, FiFile, FiMessageSquare } from 'react-icons/fi';
+import { useAuth } from '../../hooks/useAuth';
 
 const { useBreakpoint } = Grid;
 const { TextArea } = Input;
 
+
 const ProfilePage = () => {
+    useAuth();
     const screens = useBreakpoint();
+    const { isDarkMode } = useTheme();
     const { data: postsData, isLoading: isPostsLoading, isError: isPostsError, refetch: refetchPosts } = useMyPostQuery();
     const {
         data: savePostData,
@@ -170,8 +175,6 @@ const ProfilePage = () => {
             item.postId && item.postId._id === postId
         );
 
-        // console.log(savedPostRecord?.postId?._id)
-
         if (!savedPostRecord) {
             message.error('Could not find saved post record');
             return;
@@ -217,8 +220,26 @@ const ProfilePage = () => {
         { key: 'comments', icon: <FiMessageSquare />, label: 'Comments' }
     ];
 
+    // Dark mode styles
+    const themeStyles = {
+        backgroundColor: isDarkMode ? 'var(--secondary-bg)' : '#E5E7EB',
+        cardBackground: isDarkMode ? 'var(--card-bg)' : '#ffffff',
+        textColor: isDarkMode ? 'var(--text-color)' : 'inherit',
+        borderColor: isDarkMode ? 'var(--border-color)' : '#e5e7eb',
+        hoverBg: isDarkMode ? 'var(--hover-bg)' : '#f9fafb',
+        activeTabBg: isDarkMode ? 'var(--active-tab-bg)' : '#e0e7ff',
+        activeTabText: isDarkMode ? 'var(--active-tab-text)' : '#4338ca',
+        iconColor: isDarkMode ? 'var(--icon-color)' : '#6b7280'
+    };
+
     return (
-        <div className="bg-[#E5E7EB] min-h-screen">
+        <div
+            className="min-h-screen theme-transition"
+            style={{
+                backgroundColor: themeStyles.backgroundColor,
+                color: themeStyles.textColor
+            }}
+        >
             <ProfileBanner />
 
             <main className="py-4 sm:py-6 lg:py-8 container mx-auto px-2 sm:px-4 lg:px-32">
@@ -227,26 +248,51 @@ const ProfilePage = () => {
                     <aside className={`${screens.md ? screens.lg ? 'w-1/4' : 'w-1/3' : 'w-full'}`}>
                         <Card
                             title="Your Activity"
-                            className="shadow-sm hover:shadow transition-shadow"
-                            bodyStyle={{ padding: screens.md ? '16px' : '12px' }}
+                            className="shadow-sm hover:shadow transition-shadow theme-transition"
+                            bodyStyle={{
+                                padding: screens.md ? '16px' : '12px',
+                                backgroundColor: themeStyles.cardBackground
+                            }}
+                            headStyle={{
+                                backgroundColor: themeStyles.cardBackground,
+                                borderBottomColor: themeStyles.borderColor,
+                                color: themeStyles.textColor
+                            }}
+                            style={{
+                                backgroundColor: themeStyles.cardBackground,
+                                borderColor: themeStyles.borderColor
+                            }}
                         >
                             <Space direction="vertical" size="middle" className="w-full">
                                 {tabs.map(({ key, icon, label }) => (
                                     <button
                                         key={key}
                                         onClick={() => setActiveTab(key)}
-                                        className={`flex items-center justify-between w-full p-3 rounded-md transition-all ${activeTab === key
-                                            ? 'bg-indigo-50 text-indigo-700'
-                                            : 'hover:bg-gray-100 text-gray-700'
+                                        className={`flex items-center justify-between w-full p-3 rounded-md transition-all theme-transition ${activeTab === key
+                                            ? `bg-[${themeStyles.activeTabBg}] text-[${themeStyles.activeTabText}]`
+                                            : `hover:bg-[${themeStyles.hoverBg}] text-[${themeStyles.textColor}]`
                                             }`}
+                                        style={{
+                                            backgroundColor: activeTab === key ? themeStyles.activeTabBg : 'transparent',
+                                            color: activeTab === key ? themeStyles.activeTabText : themeStyles.textColor
+                                        }}
                                     >
                                         <span className="flex items-center">
                                             {React.cloneElement(icon, {
-                                                className: `mr-3 ${activeTab === key ? 'text-indigo-600' : 'text-gray-500'}`
+                                                className: `mr-3`,
+                                                style: {
+                                                    color: activeTab === key
+                                                        ? themeStyles.activeTabText
+                                                        : themeStyles.iconColor
+                                                }
                                             })}
                                             <span>{label}</span>
                                         </span>
-                                        <span className={`font-bold ${activeTab === key ? 'text-indigo-600' : 'text-gray-500'}`}>
+                                        <span className="font-bold" style={{
+                                            color: activeTab === key
+                                                ? themeStyles.activeTabText
+                                                : themeStyles.textColor
+                                        }}>
                                             {stats[key]}
                                         </span>
                                     </button>
@@ -258,7 +304,7 @@ const ProfilePage = () => {
                     {/* Posts Feed */}
                     <section className={`${screens.md ? screens.lg ? 'w-3/4' : 'w-2/3' : 'w-full'}`}>
                         <div className="mb-6">
-                            <h2 className="text-xl font-semibold">
+                            <h2 className="text-xl font-semibold" style={{ color: themeStyles.textColor }}>
                                 {activeTab === 'totalPosts' && 'Your Posts'}
                                 {activeTab === 'savedPosts' && 'Saved Posts'}
                                 {activeTab === 'comments' && 'Your Comments'}
@@ -266,8 +312,14 @@ const ProfilePage = () => {
                         </div>
 
                         {isLoading ? (
-                            <div className="text-center p-8 bg-white rounded-lg shadow-sm">
-                                <p className="text-gray-500">Loading...</p>
+                            <div
+                                className="text-center p-8 rounded-lg shadow-sm theme-transition"
+                                style={{
+                                    backgroundColor: themeStyles.cardBackground,
+                                    borderColor: themeStyles.borderColor
+                                }}
+                            >
+                                <p style={{ color: themeStyles.textColor }}>Loading...</p>
                             </div>
                         ) : postsToDisplay.length > 0 ? (
                             <div className="flex flex-col gap-4">
@@ -278,12 +330,20 @@ const ProfilePage = () => {
                                         onLike={handleLike}
                                         onOptionSelect={handleOptionSelect}
                                         onUnsave={handleUnsave}
+                                        isDarkMode={isDarkMode}
                                     />
+                                    // Make sure ProfilePostCard also supports dark mode
                                 ))}
                             </div>
                         ) : (
-                            <div className="text-center p-8 bg-white rounded-lg shadow-sm">
-                                <p className="text-gray-500">
+                            <div
+                                className="text-center p-8 rounded-lg shadow-sm theme-transition"
+                                style={{
+                                    backgroundColor: themeStyles.cardBackground,
+                                    borderColor: themeStyles.borderColor
+                                }}
+                            >
+                                <p style={{ color: themeStyles.textColor }}>
                                     {activeTab === 'totalPosts' ? 'No posts to display' :
                                         activeTab === 'savedPosts' ? 'No saved posts to display' :
                                             'No comments to display'}
@@ -305,6 +365,18 @@ const ProfilePage = () => {
                 }}
                 footer={null}
                 destroyOnClose
+                className={`theme-transition ${isDarkMode ? 'dark-modal' : ''}`}
+                styles={{
+                    header: {
+                        backgroundColor: themeStyles.cardBackground,
+                        color: themeStyles.textColor,
+                        borderBottomColor: themeStyles.borderColor
+                    },
+                    content: {
+                        backgroundColor: themeStyles.cardBackground,
+                        color: themeStyles.textColor
+                    }
+                }}
             >
                 <Form
                     form={form}
@@ -316,7 +388,15 @@ const ProfilePage = () => {
                         label="Post Title"
                         rules={[{ required: true, message: 'Please enter a title' }]}
                     >
-                        <Input placeholder="Enter post title" />
+                        <Input
+                            placeholder="Enter post title"
+                            className="theme-transition"
+                            style={{
+                                backgroundColor: themeStyles.cardBackground,
+                                color: themeStyles.textColor,
+                                borderColor: themeStyles.borderColor
+                            }}
+                        />
                     </Form.Item>
 
                     <Form.Item
@@ -328,11 +408,26 @@ const ProfilePage = () => {
                             placeholder="Enter post content"
                             rows={6}
                             autoSize={{ minRows: 6, maxRows: 12 }}
+                            className="theme-transition"
+                            style={{
+                                backgroundColor: themeStyles.cardBackground,
+                                color: themeStyles.textColor,
+                                borderColor: themeStyles.borderColor
+                            }}
                         />
                     </Form.Item>
 
                     <div className="flex justify-end gap-2 mt-4">
-                        <Button onClick={() => setIsEditModalOpen(false)}>Cancel</Button>
+                        <Button
+                            onClick={() => setIsEditModalOpen(false)}
+                            style={{
+                                backgroundColor: themeStyles.cardBackground,
+                                color: themeStyles.textColor,
+                                borderColor: themeStyles.borderColor
+                            }}
+                        >
+                            Cancel
+                        </Button>
                         <Button type="primary" htmlType="submit">Save Changes</Button>
                     </div>
                 </Form>
@@ -344,7 +439,17 @@ const ProfilePage = () => {
                 open={isDeleteModalOpen}
                 onCancel={() => setIsDeleteModalOpen(false)}
                 footer={[
-                    <Button key="cancel" onClick={() => setIsDeleteModalOpen(false)}>Cancel</Button>,
+                    <Button
+                        key="cancel"
+                        onClick={() => setIsDeleteModalOpen(false)}
+                        style={{
+                            backgroundColor: themeStyles.cardBackground,
+                            color: themeStyles.textColor,
+                            borderColor: themeStyles.borderColor
+                        }}
+                    >
+                        Cancel
+                    </Button>,
                     <Button
                         key="delete"
                         type="primary"
@@ -356,8 +461,22 @@ const ProfilePage = () => {
                     </Button>
                 ]}
                 centered
+                className={`theme-transition ${isDarkMode ? 'dark-modal' : ''}`}
+                styles={{
+                    header: {
+                        backgroundColor: themeStyles.cardBackground,
+                        color: themeStyles.textColor,
+                        borderBottomColor: themeStyles.borderColor
+                    },
+                    content: {
+                        backgroundColor: themeStyles.cardBackground,
+                        color: themeStyles.textColor
+                    }
+                }}
             >
-                <p>Are you sure you want to delete this post? This action cannot be undone.</p>
+                <p style={{ color: themeStyles.textColor }}>
+                    Are you sure you want to delete this post? This action cannot be undone.
+                </p>
             </Modal>
         </div>
     );
