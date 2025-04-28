@@ -36,7 +36,9 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { baseURL } from '../../utils/BaseURL';
+import { getImageUrl } from '../../utils/getImageUrl';
 import { Message, Notification } from '../../utils/svgImage';
+import { useGetAllChatQuery } from '../features/chat/massage';
 import { useGetAllNotificationQuery } from '../features/notification/noticationApi';
 import { useLogoQuery } from '../features/report/reportApi';
 import SocketComponent from './SocketCompo';
@@ -55,7 +57,10 @@ export default function Navbar() {
   const searchParams = useSearchParams();
   const { isDarkMode, toggleTheme } = useTheme();
   const { isLoading: allNotificationLoading, refetch } = useGetAllNotificationQuery({});
+  const { isLoading: allChatLoading , refetch: refetchChat } = useGetAllChatQuery("");
   const { notifications } = useSelector((state) => state);
+  const { chats } = useSelector((state) => state);
+  console.log(chats)
 
   const { data, isLoading } = useGetProfileQuery();
   const { data: logo } = useLogoQuery();
@@ -83,7 +88,7 @@ export default function Navbar() {
       label: (
         <Flex gap="small" align="center" className={`p-2 cursor-pointer ${isDarkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-50'}`}>
           <Avatar
-            src={data?.data?.profile ? `${baseURL}${data?.data?.profile}` : "/icons/user.png"}
+            src={getImageUrl(data?.data?.profile)}
             size={44}
           />
           <Space direction="vertical" size={0}>
@@ -326,7 +331,7 @@ export default function Navbar() {
   return (
     <>
       <SocketComponent />
-      <Header 
+      <Header
         className="theme-transition"
         style={{
           background: isDarkMode ? 'var(--secondary-bg)' : '#fff',
@@ -362,17 +367,17 @@ export default function Navbar() {
               />
             )}
             <Link href="/" style={{ display: 'flex', alignItems: 'center', height: '100%' }}>
-              {logo?.data?.logo && <Image
-                src={`${baseURL}${logo?.data?.logo}`}
+              <Image
+                src={logo?.data?.logo ? `${baseURL}${logo?.data?.logo}` : "/images/logo.png"}
                 width={!screens.md ? 70 : 120}
                 height={10}
                 alt='logo'
-                style={{ 
-                  objectFit: 'contain', 
+                style={{
+                  objectFit: 'contain',
                   height: 'auto',
                   filter: isDarkMode ? 'brightness(0.9) contrast(1.1)' : 'none'
                 }}
-              />}
+              />
             </Link>
           </Flex>
         )}
@@ -399,7 +404,7 @@ export default function Navbar() {
                   {screens.lg ? 'New Post' : ''}
                 </Button>
 
-                <Badge style={{ backgroundColor: "#2930FF", marginTop: "5px", marginRight: "5px" }} count={5}>
+                <Badge style={{ backgroundColor: "#2930FF", marginTop: "5px", marginRight: "5px" }} count={chats?.unreadCount === 0 ? 0 : chats?.unreadCount}>
                   <Button
                     onClick={() => handleNavigation("/chat")}
                     type="text"
@@ -408,7 +413,7 @@ export default function Navbar() {
                   />
                 </Badge>
 
-                <Badge style={{ backgroundColor: "#2930FF", marginTop: "5px", marginRight: "5px" }} count={notifications?.unreadCount}>
+                <Badge style={{ backgroundColor: "#2930FF", marginTop: "5px", marginRight: "5px" }} count={notifications?.unreadCount || 0}>
                   <Button
                     onClick={() => handleNavigation("/notification")}
                     type="text"
@@ -441,7 +446,7 @@ export default function Navbar() {
             >
               <div style={{ display: 'flex', alignItems: 'center', height: '100%', padding: '0 8px' }}>
                 <Avatar
-                  src={data?.data?.profile ? `${baseURL}${data?.data?.profile}` : "/icons/user.png"}
+                  src={getImageUrl(data?.data?.profile)}
                   size={44}
                   style={{
                     cursor: 'pointer',
@@ -493,7 +498,7 @@ export default function Navbar() {
               .filter(item => item.key !== 'profile-header')
               .map(item => ({
                 ...item,
-                onClick: item.onClick || (() => {})
+                onClick: item.onClick || (() => { })
               }))
           ]}
         />

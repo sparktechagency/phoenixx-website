@@ -3,30 +3,52 @@
 import CustomBanner from '@/components/CustomBanner';
 import { useAboutQuery } from '@/features/About/AboutApi';
 import { Spin } from 'antd';
-import { useRouter } from 'next/navigation';
-import React from 'react';
+import Link from 'next/link';
+import { useContext } from 'react';
+import { ThemeContext } from '../layout';
+
 
 const About = () => {
-  const router = useRouter();
-  const {data , isLoading} = useAboutQuery();
-    return (
-        <div>
-            <CustomBanner routeName={"About us"} />
+  const { data, isLoading, isError } = useAboutQuery();
+  const { isDarkMode } = useContext(ThemeContext);
 
-            <div className="bg-gray-50 min-h-screen">
-      <div className="max-w-5xl mx-auto py-8 px-6">
-           {isLoading ? <Spin /> :  data?.data?.content?.replace(/<[^>]*>/g, '')}
-      </div>
+  const renderContent = () => {
+    if (isLoading) {
+      return <div className='flex justify-center'><Spin /></div>;
+    }
 
-      <div className='flex justify-center gap-5'>
-          <h3 onClick={()=> router.push("terms-conditions")} className='font-medium text-base cursor-pointer'>Terms and Conditions</h3>
+    if (isError) {
+      return <div className='flex justify-center'>Failed to load content</div>;
+    }
+
+    if (!data?.data?.content) {
+      return <span className='flex justify-center'>No Available Content</span>;
+    }
+
+    return <div>{data.data.content.replace(/<[^>]*>/g, '')}</div>;
+  };
+
+  return (
+    <div className={`${isDarkMode ? 'dark' : ''}`}>
+      <CustomBanner routeName="About us" />
+
+      <div className={`min-h-screen ${isDarkMode ? 'bg-gray-900 text-gray-100' : 'bg-gray-50 text-gray-900'}`}>
+        <div className="max-w-5xl mx-auto py-8 px-6">
+          {renderContent()}
+        </div>
+
+        <div className='flex justify-center gap-5 pb-8'>
+          <Link href="/terms-conditions" className={`font-medium text-base cursor-pointer ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>
+            Terms and Conditions
+          </Link>
           |
-          <h3 onClick={()=> router.push("privacy-policy")} className='font-medium text-base cursor-pointer'>Privacy Policy</h3>
+          <Link href="/privacy-policy" className={`font-medium text-base cursor-pointer ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>
+            Privacy Policy
+          </Link>
         </div>
-
+      </div>
     </div>
-        </div>
-    );
+  );
 };
 
 export default About;

@@ -16,7 +16,7 @@ const SignUp = () => {
     password: '',
     rememberMe: false
   });
-  
+
   const [errors, setErrors] = useState({
     username: '',
     email: '',
@@ -25,7 +25,7 @@ const SignUp = () => {
   });
 
   const [showPassword, setShowPassword] = useState(false); // State for password visibility
-  
+
   const [signUp, { isLoading }] = useSignupMutation();
 
   const handleChange = (e) => {
@@ -34,13 +34,40 @@ const SignUp = () => {
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
-    
+
     if (errors[name]) {
       setErrors(prev => ({
         ...prev,
         [name]: ''
       }));
     }
+  };
+
+  // Password validation function
+  const validatePassword = (password) => {
+    const errors = [];
+
+    if (password.length < 8) {
+      errors.push('Password must be at least 8 characters');
+    }
+
+    if (!/[A-Z]/.test(password)) {
+      errors.push('Include at least one uppercase letter');
+    }
+
+    if (!/[a-z]/.test(password)) {
+      errors.push('Include at least one lowercase letter');
+    }
+
+    if (!/[0-9]/.test(password)) {
+      errors.push('Include at least one number');
+    }
+
+    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+      errors.push('Include at least one special character');
+    }
+
+    return errors;
   };
 
   const validateForm = () => {
@@ -66,9 +93,12 @@ const SignUp = () => {
     if (!formData.password) {
       newErrors.password = 'Password is required';
       isValid = false;
-    } else if (formData.password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
-      isValid = false;
+    } else {
+      const passwordErrors = validatePassword(formData.password);
+      if (passwordErrors.length > 0) {
+        newErrors.password = passwordErrors.join(', ');
+        isValid = false;
+      }
     }
 
     setErrors(newErrors);
@@ -77,7 +107,7 @@ const SignUp = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (validateForm()) {
       try {
         const response = await signUp({
@@ -86,7 +116,7 @@ const SignUp = () => {
           password: formData.password
         }).unwrap();
 
-        if(response.success){
+        if (response.success) {
           router.push(`/auth/verify-otp?email=${formData.email}`)
         }
         setFormData({
@@ -98,7 +128,7 @@ const SignUp = () => {
 
       } catch (error) {
         console.error('Sign up error:', error);
-        
+
         if (error.data) {
           if (error.data.message.includes('email')) {
             setErrors(prev => ({ ...prev, email: error.data.message }));
@@ -123,10 +153,10 @@ const SignUp = () => {
       <div className="flex h-screen justify-center">
         {/* Left Section with Background Image and Overlay */}
         <div className="hidden md:flex md:w-1/2 justify-center relative">
-          <Image 
-            src="/images/signup.png" 
-            alt="People smiling" 
-            layout="fill" 
+          <Image
+            src="/images/signup.png"
+            alt="People smiling"
+            layout="fill"
             objectFit="cover"
             priority
           />
@@ -209,6 +239,10 @@ const SignUp = () => {
                   </button>
                 </div>
                 {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password}</p>}
+                <p className="mt-2 text-xs text-gray-500">
+                  Password must be at least 8 characters and include uppercase, lowercase,
+                  number, and special character.
+                </p>
               </div>
 
               <div className="mb-4 flex items-center">

@@ -1,22 +1,19 @@
 "use client";
-import React, { useState, useEffect, useContext } from 'react';
+
+import { useCategoriesQuery } from '@/features/Category/CategoriesApi';
 import {
   AppstoreOutlined,
-  ToolOutlined,
-  SkinOutlined,
-  ShopOutlined,
-  TeamOutlined,
-  RightOutlined,
   DownOutlined,
+  RightOutlined,
+  ToolOutlined,
   UnorderedListOutlined
 } from '@ant-design/icons';
-import { Manufacturing, Marketing, Selling, SvgImage } from '../../utils/svgImage';
-import { useCategoriesQuery, useSubCategoryQuery } from '@/features/Category/CategoriesApi';
 import { Spin } from 'antd';
-import { ThemeContext } from '@/app/layout';
 import Image from 'next/image';
+import React, { useContext, useEffect, useState } from 'react';
 import { baseURL } from '../../utils/BaseURL';
-import LoadingUi from './LoadingUi';
+import { Manufacturing, Marketing, Selling } from '../../utils/svgImage';
+import { ThemeContext } from '../app/layout';
 
 const CategoriesSidebar = ({ onSelectCategory, selectedCategory, selectedSubCategory }) => {
   const [expandedKeys, setExpandedKeys] = useState([]);
@@ -27,9 +24,7 @@ const CategoriesSidebar = ({ onSelectCategory, selectedCategory, selectedSubCate
 
   const { data: categoryData, isLoading: categoryLoading } = useCategoriesQuery();
   const categories = categoryData?.data?.result || [];
-
   const { isDarkMode } = useContext(ThemeContext);
-
 
   useEffect(() => {
     const handleResize = () => {
@@ -116,27 +111,40 @@ const CategoriesSidebar = ({ onSelectCategory, selectedCategory, selectedSubCate
   };
 
   return (
-    <div className={`w-full shadow rounded-xl ${getPadding()} sm:sticky sm:top-20`}>
-      <h5 className={`${getTitleSize()} font-semibold px-2 mb-4`}>Categories</h5>
+    <div className={`w-full shadow rounded-xl ${getPadding()} sm:sticky sm:top-20 ${isDarkMode ? 'bg-gray-800' : 'bg-white'
+      }`}>
+      <h5 className={`${getTitleSize()} font-semibold px-2 mb-4 ${isDarkMode ? 'text-gray-200' : 'text-gray-800'
+        }`}>Categories</h5>
 
       {categoryLoading ? (
-        <div className='flex justify-center'><LoadingUi /></div>
+        <div className='flex justify-center'>
+          <Spin className={isDarkMode ? 'text-white' : ''} />
+        </div>
       ) : (
         <>
           <div
-            className={`${isMobile ? 'py-2' : 'py-3'} px-2 cursor-pointer hover:bg-gray-50 rounded-md mb-3 ${!selectedCategory && !selectedSubCategory ? 'bg-blue-50 border-l-4 border-blue-500' : ''
+            className={`${isMobile ? 'py-2' : 'py-3'} px-2 cursor-pointer rounded-md mb-3 ${!selectedCategory && !selectedSubCategory
+                ? isDarkMode
+                  ? 'bg-gray-700 border-l-4 border-blue-400'
+                  : 'bg-blue-50 border-l-4 border-blue-500'
+                : isDarkMode
+                  ? 'hover:bg-gray-700'
+                  : 'hover:bg-gray-50'
               }`}
             onClick={handleShowAllPosts}
           >
             <div className="flex items-center gap-3">
-              <span className="text-gray-600 text-lg border-[1px] rounded shadow-md border-gray-300 px-1.5">
+              <span className={`text-lg border-[1px] rounded shadow-md px-2 py-[2px] ${isDarkMode ? 'border-gray-600 text-gray-300' : 'border-gray-300 text-gray-600'
+                }`}>
                 <UnorderedListOutlined />
               </span>
               <div className='flex flex-col gap-1'>
-                <span className={`${isDarkMode ? "text-gray-300" : "text-gray-800"} font-medium ${getItemTextSize()}`}>
+                <span className={`font-medium ${getItemTextSize()} ${isDarkMode ? "text-gray-300" : "text-gray-800"
+                  }`}>
                   All Posts
                 </span>
-                <span className="text-xs text-gray-500">
+                <span className={`text-xs ${isDarkMode ? "text-gray-400" : "text-gray-500"
+                  }`}>
                   {categories?.length || 0} Posts
                 </span>
               </div>
@@ -155,20 +163,34 @@ const CategoriesSidebar = ({ onSelectCategory, selectedCategory, selectedSubCate
               return (
                 <React.Fragment key={key}>
                   <li
-                    className={`${isMobile ? 'py-2' : 'py-3'} px-2 cursor-pointer hover:bg-gray-50 rounded-md ${isSelected ? 'bg-blue-50 border-l-4 border-blue-500' : ''
+                    className={`${isMobile ? 'py-2' : 'py-3'} px-2 cursor-pointer rounded-md ${isSelected
+                        ? isDarkMode
+                          ? 'bg-gray-700 border-l-4 border-blue-400'
+                          : 'bg-blue-50 border-l-4 border-blue-500'
+                        : isDarkMode
+                          ? 'hover:bg-gray-700'
+                          : 'hover:bg-gray-50'
                       }`}
                     onClick={() => handleCategoryClick(category._id)}
                   >
                     <div className="flex justify-between items-center w-full">
                       <div className="flex items-center gap-3">
-                        <span className="text-gray-600 text-lg border-[1px] rounded shadow-md border-gray-300 p-[1px]">
-                          <Image src={`${baseURL}${category?.image}`} height={40} width={35} alt={category?.name} />
+                        <span className={`text-lg border-[1px] rounded shadow-md p-[3px] ${isDarkMode ? 'border-gray-600' : 'border-gray-300'
+                          }`}>
+                          <Image
+                            src={`${baseURL}${category?.image}`}
+                            height={40}
+                            width={35}
+                            alt={category?.name}
+                          />
                         </span>
                         <div className='flex flex-col gap-1'>
-                          <span className={`text-gray-800  font-medium ${getItemTextSize()}`}>
+                          <span className={`font-medium ${getItemTextSize()} ${isDarkMode ? "text-gray-300" : "text-gray-800"
+                            }`}>
                             {category.name}
                           </span>
-                          <span className="text-xs text-gray-500">
+                          <span className={`text-xs ${isDarkMode ? "text-gray-400" : "text-gray-500"
+                            }`}>
                             {category.postCount || 0} Posts
                           </span>
                         </div>
@@ -177,8 +199,10 @@ const CategoriesSidebar = ({ onSelectCategory, selectedCategory, selectedSubCate
                         {hasSubcategories && (
                           <span>
                             {isExpanded
-                              ? <DownOutlined className="text-xs text-gray-400" />
-                              : <RightOutlined className="text-xs text-gray-400" />
+                              ? <DownOutlined className={`text-xs ${isDarkMode ? "text-gray-400" : "text-gray-400"
+                                }`} />
+                              : <RightOutlined className={`text-xs ${isDarkMode ? "text-gray-400" : "text-gray-400"
+                                }`} />
                             }
                           </span>
                         )}
@@ -193,20 +217,29 @@ const CategoriesSidebar = ({ onSelectCategory, selectedCategory, selectedSubCate
                         return (
                           <li
                             key={subcategory._id}
-                            className={`py-1.5 px-2 text-sm hover:bg-gray-50 rounded-md ${isSubSelected ? 'bg-blue-50 border-l-4 border-blue-500' : ''
+                            className={`py-1.5 px-2 text-sm rounded-md ${isSubSelected
+                                ? isDarkMode
+                                  ? 'bg-gray-700 border-l-4 border-blue-400'
+                                  : 'bg-blue-50 border-l-4 border-blue-500'
+                                : isDarkMode
+                                  ? 'hover:bg-gray-700'
+                                  : 'hover:bg-gray-50'
                               }`}
                             onClick={() => handleSubcategoryClick(category._id, subcategory._id)}
                           >
                             <div className="flex justify-between">
                               <div className="flex items-center gap-3 cursor-pointer">
-                                <span className="text-gray-600 text-lg border-[1px] rounded shadow-md border-gray-300 p-1.5">
+                                <span className={`text-lg border-[1px] rounded shadow-md p-1.5 ${isDarkMode ? 'border-gray-600' : 'border-gray-300'
+                                  }`}>
                                   {getSubcategoryIcon(subcategory.name)}
                                 </span>
                                 <div className='flex flex-col gap-1'>
-                                  <span className={`text-gray-800 font-medium ${getItemTextSize()}`}>
+                                  <span className={`font-medium ${getItemTextSize()} ${isDarkMode ? "text-gray-300" : "text-gray-800"
+                                    }`}>
                                     {subcategory.name}
                                   </span>
-                                  <span className="text-xs text-gray-500">
+                                  <span className={`text-xs ${isDarkMode ? "text-gray-400" : "text-gray-500"
+                                    }`}>
                                     {subcategory.postCount || 0} Posts
                                   </span>
                                 </div>

@@ -218,9 +218,8 @@ const PostDetailsPage = () => {
     }
 
     try {
-      const result = await likeComment(commentId).unwrap();
+      await likeComment(commentId).unwrap();
       refetch();
-      toast.success(result.message || "Comment like status updated");
     } catch (error) {
       console.error("Error liking comment:", error);
       message.error(error.data?.message || "Failed to like comment");
@@ -245,7 +244,6 @@ const PostDetailsPage = () => {
       setReplyText('');
       setReplyingTo(null);
       refetch();
-      message.success("Reply added successfully");
     } catch (error) {
       console.error("Error replying to comment:", error);
       message.error(error.data?.message || "Failed to add reply");
@@ -271,10 +269,9 @@ const PostDetailsPage = () => {
       setEditingCommentId(null);
       setEditCommentText('');
       refetch();
-      message.success("Comment updated successfully");
     } catch (error) {
       console.error("Error updating comment:", error);
-      message.error("Failed to update comment");
+      toast.error("Failed to update comment");
     }
   };
 
@@ -285,30 +282,12 @@ const PostDetailsPage = () => {
 
     try {
       await deleteComment(commentId).unwrap();
-      toast.success("Comment deleted successfully");
+      toast.success("Comment deleted");
       refetch();
     } catch (error) {
       console.error("Delete comment error:", error);
       toast.error(error.data?.message || "Failed to delete comment");
     }
-
-    // try {
-    //   Modal.confirm({
-    //     title: 'Confirm Delete',
-    //     content: 'Are you sure you want to delete this comment?',
-    //     okText: 'Delete',
-    //     okType: 'danger',
-    //     cancelText: 'Cancel',
-    //     onOk: async () => {
-    //       await deleteComment(commentId).unwrap();
-    //       toast.success("Comment deleted successfully");
-    //       refetch();
-    //     }
-    //   });
-    // } catch (error) {
-    //   console.error("Delete comment error:", error);
-    //   message.error(error.data?.message || "Failed to delete comment");
-    // }
   };
 
   const postMenuItems = [
@@ -517,7 +496,7 @@ const PostDetailsPage = () => {
       <main className="max-w-3xl mx-auto">
         <div className="mb-6">
           <div className={`rounded-lg bg-white shadow ${isMobile ? 'p-3' : isTablet ? 'p-4' : 'p-5'}`}>
-            <div className="flex justify-between items-center mb-3">
+            <div onClick={() => router.push(`/profiles/${post?.author?._id}`)} className="flex justify-between items-center mb-3">
               <div className="flex items-center gap-2">
                 {post.author?.profile ? (
                   <img

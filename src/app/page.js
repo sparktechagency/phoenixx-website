@@ -16,6 +16,12 @@ import { ThemeContext } from './layout';
 
 const HomePage = () => {
   useAuth();
+
+  // Force rerender when navigating back to this page
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const routeKey = pathname + searchParams.toString();
+
   // State management
   const [gridNumber, setGridNumber] = useState(1);
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1024);
@@ -30,8 +36,6 @@ const HomePage = () => {
 
   // Routing and params
   const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
   const searchValue = searchParams.get("search");
   const pageParam = searchParams.get("page");
   const categoryParam = searchParams.get("category");
@@ -213,18 +217,18 @@ const HomePage = () => {
     return (
       <div className={`${isDarkMode ? 'dark-mode' : 'light-mode'}`}>
         {/* Banner Skeleton */}
-        <div className="h-64 bg-gray-200 dark:bg-gray-400 animate-pulse"></div>
+        <div className="h-64 bg-gray-200 dark:bg-gray-700 animate-pulse"></div>
 
         <main className="container mx-auto px-4 py-6">
           <div className="flex gap-5">
             {/* Sidebar Skeleton - Desktop */}
             <div className="hidden lg:block w-3/12 pr-6 sticky top-20 self-start">
-              <div className="bg-gray-100 dark:bg-gray-400 rounded-lg p-4 animate-pulse">
-                <div className="h-6 w-3/4 bg-gray-300 dark:bg-gray-400 rounded mb-4"></div>
+              <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-4 animate-pulse">
+                <div className="h-6 w-3/4 bg-gray-300 dark:bg-gray-600 rounded mb-4"></div>
                 {[...Array(5)].map((_, i) => (
                   <div key={i} className="mb-3">
-                    <div className="h-4 w-full bg-gray-300 dark:bg-gray-400 rounded mb-2"></div>
-                    <div className="h-4 w-5/6 bg-gray-300 dark:bg-gray-400 rounded"></div>
+                    <div className="h-4 w-full bg-gray-300 dark:bg-gray-600 rounded mb-2"></div>
+                    <div className="h-4 w-5/6 bg-gray-300 dark:bg-gray-600 rounded"></div>
                   </div>
                 ))}
               </div>
@@ -234,10 +238,10 @@ const HomePage = () => {
             <div className="w-full lg:w-6/12">
               {/* Feed Navigation Skeleton */}
               <div className="flex justify-between items-center mb-6">
-                <div className="h-8 w-24 bg-gray-200 dark:bg-gray-400 rounded animate-pulse"></div>
+                <div className="h-8 w-24 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
                 <div className="flex gap-2">
                   {[...Array(3)].map((_, i) => (
-                    <div key={i} className="h-8 w-8 bg-gray-200 dark:bg-gray-400 rounded-full animate-pulse"></div>
+                    <div key={i} className="h-8 w-8 bg-gray-200 dark:bg-gray-700 rounded-full animate-pulse"></div>
                   ))}
                 </div>
               </div>
@@ -245,25 +249,25 @@ const HomePage = () => {
               {/* Post Cards Skeleton */}
               <div className="grid grid-cols-1 gap-6">
                 {[...Array(5)].map((_, i) => (
-                  <div key={i} className="bg-white dark:bg-gray-400 rounded-lg shadow p-4 animate-pulse">
+                  <div key={i} className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 animate-pulse">
                     <div className="flex items-center mb-4">
-                      <div className="h-10 w-10 bg-gray-300 dark:bg-gray-400 rounded-full mr-3"></div>
+                      <div className="h-10 w-10 bg-gray-300 dark:bg-gray-600 rounded-full mr-3"></div>
                       <div>
-                        <div className="h-4 w-24 bg-gray-300 dark:bg-gray-400 rounded mb-2"></div>
-                        <div className="h-3 w-16 bg-gray-200 dark:bg-gray-400 rounded"></div>
+                        <div className="h-4 w-24 bg-gray-300 dark:bg-gray-600 rounded mb-2"></div>
+                        <div className="h-3 w-16 bg-gray-200 dark:bg-gray-700 rounded"></div>
                       </div>
                     </div>
                     <div className="mb-4">
-                      <div className="h-5 w-full bg-gray-300 dark:bg-gray-400 rounded mb-3"></div>
-                      <div className="h-4 w-5/6 bg-gray-300 dark:bg-gray-400 rounded mb-2"></div>
-                      <div className="h-4 w-2/3 bg-gray-300 dark:bg-gray-400 rounded"></div>
+                      <div className="h-5 w-full bg-gray-300 dark:bg-gray-600 rounded mb-3"></div>
+                      <div className="h-4 w-5/6 bg-gray-300 dark:bg-gray-600 rounded mb-2"></div>
+                      <div className="h-4 w-2/3 bg-gray-300 dark:bg-gray-600 rounded"></div>
                     </div>
                     <div className="h-48 bg-gray-200 dark:bg-gray-700 rounded-lg mb-4"></div>
                     <div className="flex justify-between">
-                      <div className="h-6 w-16 bg-gray-200 dark:bg-gray-400 rounded"></div>
+                      <div className="h-6 w-16 bg-gray-200 dark:bg-gray-700 rounded"></div>
                       <div className="flex gap-4">
                         {[...Array(3)].map((_, i) => (
-                          <div key={i} className="h-6 w-6 bg-gray-200 dark:bg-gray-400 rounded-full"></div>
+                          <div key={i} className="h-6 w-6 bg-gray-200 dark:bg-gray-700 rounded-full"></div>
                         ))}
                       </div>
                     </div>
@@ -300,7 +304,7 @@ const HomePage = () => {
 
   // Main render
   return (
-    <div className={`${isDarkMode ? 'dark-mode' : 'light-mode'}`}>
+    <div key={routeKey} className={`${isDarkMode ? 'dark-mode' : 'light-mode'}`}>
       <Banner />
       <main className="container mx-auto px-4 py-6">
         <LayoutGroup>

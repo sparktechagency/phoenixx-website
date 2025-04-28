@@ -25,7 +25,7 @@ export const commentApi = baseApi.injectEndpoints({
         url: `/chats?searchTerm=${value}`,
         method: "GET",
       }),
-      providesTags: ["chat","profile"],
+      providesTags: ["chat", "profile"],
       transformResponse: (res) => {
         return res.data
       }
@@ -41,6 +41,16 @@ export const commentApi = baseApi.injectEndpoints({
         return res.data
       }
     }),
+
+    markAsRead: builder.mutation({
+      query: (id) => ({
+        url: `/chats/mark-chat-as-read/${id}`,
+        method: "PATCH",
+      }),
+      invalidatesTags: ["chat"],
+    }),
+
+
   }),
 });
 
@@ -48,5 +58,6 @@ export const {
   useCreateChatMutation,
   useMessageSendMutation,
   useGetAllChatQuery,
-  useGetAllMassageQuery
+  useGetAllMassageQuery,
+  useMarkAsReadMutation
 } = commentApi;

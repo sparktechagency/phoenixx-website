@@ -1,22 +1,27 @@
 "use client";
-import React, { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
-import { AiOutlineEllipsis } from 'react-icons/ai';
-import { FaHeart, FaRegHeart, FaBookmark, FaRegBookmark } from "react-icons/fa";
+import { useMyPostQuery } from '@/features/post/postApi';
+import { Dropdown, Form, Input } from 'antd';
 import Image from 'next/image';
-import { Dropdown, message } from 'antd';
+import { useRouter } from 'next/navigation';
+import { useEffect, useRef, useState } from 'react';
+import toast from 'react-hot-toast';
+import { AiOutlineEllipsis } from 'react-icons/ai';
+import { FaHeart, FaRegBookmark, FaRegHeart } from "react-icons/fa";
+import { FiFlag } from "react-icons/fi";
 import { baseURL } from '../../utils/BaseURL';
 import { PostSEE } from '../../utils/svgImage';
 import EditPostModal from './EditPostModal';
-import { useMyPostQuery } from '@/features/post/postApi';
-import toast from 'react-hot-toast';
+import ReportPostModal from './ReportPostModal';
+
+const { TextArea } = Input;
 
 const ProfilePostCard = ({
   postData,
   onLike,
   onOptionSelect,
   onUnsave,
-  currentUser = { name: "User", avatar: "" }
+  currentUser = { name: "User", avatar: "" },
+  isDarkMode
 }) => {
   const router = useRouter();
   const [windowSize, setWindowSize] = useState({
@@ -24,13 +29,15 @@ const ProfilePostCard = ({
     height: typeof window !== 'undefined' ? window.innerHeight : 0
   });
   const [editModalVisible, setEditModalVisible] = useState(false);
+  const [reportModalVisible, setReportModalVisible] = useState(false);
+  const [reportForm] = Form.useForm();
   const dropdownRef = useRef(null);
   const login_user_id = typeof window !== 'undefined' ? localStorage.getItem("login_user_id") : null;
 
   const { data } = useMyPostQuery();
 
-  // Check if the current user has liked this post
   const isLikedByUser = postData?.likes?.some(userId => userId === login_user_id);
+  const isOwnPost = postData?.author?._id === login_user_id;
 
   useEffect(() => {
     const handleResize = () => {
@@ -47,7 +54,6 @@ const ProfilePostCard = ({
   const isMobile = windowSize.width < 640;
   const isTablet = windowSize.width >= 640 && windowSize.width < 1024;
 
-  // Check if we have all the necessary data
   if (!postData) {
     return null;
   }
@@ -65,6 +71,7 @@ const ProfilePostCard = ({
   const handleLike = () => onLike?.(postData._id);
 
   const handleShare = () => {
+    const postId = postData._id;
     navigator.clipboard.writeText(`${baseURL}/posts/${postId}`).then(() => {
       toast.success("Link copied successfully");
     }).catch(() => {
@@ -77,9 +84,18 @@ const ProfilePostCard = ({
       setEditModalVisible(true);
     } else if (key === 'unsave') {
       onUnsave?.(postData._id);
+    } else if (key === 'report') {
+      setReportModalVisible(true);
     } else {
       onOptionSelect?.(postData._id, key);
     }
+  };
+
+  const handleReportSubmit = (values) => {
+    console.log('Report submitted:', values);
+    toast.success('Report submitted successfully');
+    setReportModalVisible(false);
+    reportForm.resetFields();
   };
 
   const renderAuthorAvatar = () => {
@@ -92,7 +108,7 @@ const ProfilePostCard = ({
           className={`${isMobile ? 'w-6 h-6' : 'w-8 h-8'} rounded-full cursor-pointer`}
         />
       ) : (
-        <div className={`${isMobile ? 'w-6 h-6' : 'w-8 h-8'} rounded-full bg-gray-300 flex items-center justify-center text-xs`}>
+        <div className={`${isMobile ? 'w-6 h-6' : 'w-8 h-8'} rounded-full ${isDarkMode ? 'bg-gray-600' : 'bg-gray-300'} flex items-center justify-center text-xs`}>
           {author.userName?.charAt(0).toUpperCase() || author.name?.charAt(0).toUpperCase() || 'A'}
         </div>
       )
@@ -104,12 +120,12 @@ const ProfilePostCard = ({
     const plainContent = content.replace(/<[^>]+>/g, '');
 
     return (
-      <div className={`mb-3 text-gray-700 ${isMobile ? 'text-sm' : 'text-base'}`}>
+      <div className={`mb-3 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'} ${isMobile ? 'text-sm' : 'text-base'}`}>
         {plainContent.split(' ').length > 20 ? (
           <>
             {plainContent.split(' ').slice(0, 20).join(' ')}...
             <button
-              className="text-blue-600 hover:text-blue-800 cursor-pointer font-medium ml-1"
+              className={`${isDarkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-800'} cursor-pointer font-medium ml-1`}
               onClick={handleCommentClick}
             >
               See more
@@ -128,7 +144,10 @@ const ProfilePostCard = ({
       tags.length > 0 && (
         <div className="flex flex-wrap items-center gap-2">
           {tags.map((tag, index) => (
-            <span key={index} className="bg-[#E6E6FF] text-xs py-1 px-2 rounded">
+            <span
+              key={index}
+              className={`text-xs py-1 px-2 rounded ${isDarkMode ? 'bg-gray-700 text-gray-300' : 'bg-[#E6E6FF] text-gray-700'}`}
+            >
               {tag}
             </span>
           ))}
@@ -137,38 +156,56 @@ const ProfilePostCard = ({
     );
   };
 
-  // Determine whether to show owner options or saved post options
-  const menuItems = postData.isSavedPost ? [
-    {
-      key: 'unsave',
-      label: (
-        <div className="flex items-center gap-2 py-1">
-          <FaRegBookmark className="text-gray-600" />
-          <span>Unsave Post</span>
-        </div>
-      ),
-    }
-  ] : [
+  const menuItems = isOwnPost ? [
     {
       key: 'delete',
       label: (
-        <div className="flex items-center gap-2 py-1">
+        <div className={`flex items-center gap-2 py-1 ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}>
           <span>✕</span>
-          <span>Delete Post</span>
+          <span className={isDarkMode ? 'text-gray-200' : ''}>Delete Post</span>
         </div>
       ),
     },
     {
       key: 'edit',
       label: (
-        <div className="flex items-center gap-2 py-1">
+        <div className={`flex items-center gap-2 py-1 ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}>
           <Image
-            src={"/icons/save_post.png"}
+            src={isDarkMode ? "/icons/save_post_white.png" : "/icons/save_post.png"}
             width={16}
             height={16}
             alt="Edit post"
           />
-          <span className="-mt-1">Edit Post</span>
+          <span className={`-mt-1 ${isDarkMode ? 'text-gray-200' : ''}`}>Edit Post</span>
+        </div>
+      ),
+    }
+  ] : postData.isSavedPost ? [
+    {
+      key: 'unsave',
+      label: (
+        <div className={`flex items-center gap-2 py-1 ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}>
+          <FaRegBookmark className={isDarkMode ? 'text-gray-300' : 'text-gray-600'} />
+          <span className={isDarkMode ? 'text-gray-200' : ''}>Unsave Post</span>
+        </div>
+      ),
+    },
+    {
+      key: 'report',
+      label: (
+        <div className={`flex items-center gap-2 py-1 ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}>
+          <FiFlag className={isDarkMode ? 'text-gray-300' : 'text-gray-600'} />
+          <span className={isDarkMode ? 'text-gray-200' : ''}>Report Post</span>
+        </div>
+      ),
+    }
+  ] : [
+    {
+      key: 'report',
+      label: (
+        <div className={`flex items-center gap-2 py-1 ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}>
+          <FiFlag className={isDarkMode ? 'text-gray-300' : 'text-gray-600'} />
+          <span className={isDarkMode ? 'text-gray-200' : ''}>Report Post</span>
         </div>
       ),
     }
@@ -181,15 +218,15 @@ const ProfilePostCard = ({
 
   return (
     <>
-      <div className={`rounded-lg bg-white shadow mb-4 ${isMobile ? 'p-3' : isTablet ? 'p-4' : 'p-5'}`}>
+      <div className={`rounded-lg shadow mb-4 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} ${isMobile ? 'p-3' : isTablet ? 'p-4' : 'p-5'}`}>
         <div className="flex justify-between items-center mb-3">
           <div className="flex items-center gap-2">
             {renderAuthorAvatar()}
             <div className="flex flex-col items-start">
-              <span className={`font-medium ${isMobile ? 'text-xs' : 'text-base'} text-gray-900`}>
+              <span className={`font-medium ${isMobile ? 'text-xs' : 'text-base'} ${isDarkMode ? 'text-gray-200' : 'text-gray-900'}`}>
                 {author.userName || author.name || "User"}
               </span>
-              <span className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-500`}>
+              <span className={`${isMobile ? 'text-xs' : 'text-sm'} ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                 {postData.isSavedPost
                   ? `Saved ${postData.savedAt}`
                   : (postData.createdAt || postData.timePosted || "Just now")}
@@ -198,18 +235,26 @@ const ProfilePostCard = ({
           </div>
 
           <Dropdown
-            menu={{ items: menuItems, onClick: handleOptionSelect }}
+            menu={{
+              items: menuItems,
+              onClick: handleOptionSelect,
+              className: isDarkMode ? 'dark-dropdown' : ''
+            }}
             placement="bottomRight"
             trigger={['click']}
+            overlayClassName={isDarkMode ? 'dark-dropdown-overlay' : ''}
           >
-            <button className="font-bold p-1 rounded hover:bg-gray-100 cursor-pointer">
-              <AiOutlineEllipsis className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'}`} />
+            <button className={`font-bold p-1 rounded ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} cursor-pointer`}>
+              <AiOutlineEllipsis className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} ${isDarkMode ? 'text-gray-200' : 'text-gray-900'}`} />
             </button>
           </Dropdown>
         </div>
 
         {postData.title && (
-          <h2 onClick={handlePostDetails} className={`${isMobile ? 'text-lg' : isTablet ? 'text-xl' : 'text-2xl'} cursor-pointer hover:text-blue-700 font-bold mb-3`}>
+          <h2
+            onClick={handlePostDetails}
+            className={`${isMobile ? 'text-lg' : isTablet ? 'text-xl' : 'text-2xl'} cursor-pointer ${isDarkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-800'} font-bold mb-3`}
+          >
             {postData.title}
           </h2>
         )}
@@ -228,30 +273,49 @@ const ProfilePostCard = ({
 
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-4 sm:gap-6">
-            <button onClick={handleLike} className="flex items-center cursor-pointer hover:bg-gray-100 p-1 rounded">
+            <button
+              onClick={handleLike}
+              className={`flex items-center cursor-pointer ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} p-1 rounded`}
+            >
               {isLikedByUser ?
                 <FaHeart className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} text-red-500`} /> :
-                <FaRegHeart className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} text-gray-500`} />
+                <FaRegHeart className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} />
               }
-              <span className={`ml-1 ${isMobile ? 'text-xs' : 'text-sm'} text-gray-700`}>{likesCount}</span>
+              <span className={`ml-1 ${isMobile ? 'text-xs' : 'text-sm'} ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{likesCount}</span>
             </button>
 
-            <button onClick={handleCommentClick} className="flex items-center cursor-pointer hover:bg-gray-100 p-1 rounded">
-              <Image src="/icons/message.png" width={20} height={20} alt="message icons" />
-              <span className={`ml-1 -mt-[1px] ${isMobile ? 'text-xs' : 'text-sm'} text-gray-700`}>{commentsCount}</span>
+            <button
+              onClick={handleCommentClick}
+              className={`flex items-center cursor-pointer ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} p-1 rounded`}
+            >
+              <Image
+                src={isDarkMode ? "/icons/message_white.png" : "/icons/message.png"}
+                width={20}
+                height={20}
+                alt="message icons"
+              />
+              <span className={`ml-1 -mt-[1px] ${isMobile ? 'text-xs' : 'text-sm'} ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{commentsCount}</span>
             </button>
 
             {renderTags()}
           </div>
 
           <div className="flex items-center gap-3">
-            <div className={`flex items-center gap-1 ${isMobile ? 'text-xs' : 'text-sm'} text-gray-500`}>
-              <PostSEE />
-              <span className="">{postData?.views}</span>
+            <div className={`flex items-center gap-1 ${isMobile ? 'text-xs' : 'text-sm'} ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+              <PostSEE fill={isDarkMode ? '#9CA3AF' : '#6B7280'} />
+              <span>{postData?.views}</span>
             </div>
 
-            <button onClick={handleShare} className="text-gray-500 px-2 py-1.5 cursor-pointer hover:bg-gray-100 rounded-sm">
-              <Image src="/icons/share.png" width={20} height={20} alt="share button" />
+            <button
+              onClick={handleShare}
+              className={`${isDarkMode ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-500 hover:bg-gray-100'} px-2 py-1.5 cursor-pointer rounded-sm`}
+            >
+              <Image
+                src={isDarkMode ? "/icons/share_white.png" : "/icons/share.png"}
+                width={20}
+                height={20}
+                alt="share button"
+              />
             </button>
           </div>
         </div>
@@ -261,6 +325,14 @@ const ProfilePostCard = ({
         visible={editModalVisible}
         onClose={() => setEditModalVisible(false)}
         postData={postData}
+        isDarkMode={isDarkMode}
+      />
+
+      <ReportPostModal
+        isOpen={reportModalVisible}
+        onClose={() => setReportModalVisible(false)}
+        postId={postData._id}
+        isDarkMode={isDarkMode}
       />
     </>
   );

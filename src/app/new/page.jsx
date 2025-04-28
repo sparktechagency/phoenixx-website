@@ -28,7 +28,6 @@ import { baseURL } from '../../../utils/BaseURL';
 import { useAuth } from '../../hooks/useAuth';
 import { ThemeContext } from '../layout';
 
-// Lazy load JoditEditor to improve initial load performance
 const JoditEditor = dynamic(() => import('jodit-react'), {
   ssr: false,
   loading: () => <p>Loading editor...</p>
@@ -49,7 +48,7 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
   const editorRef = useRef(null);
   const router = useRouter();
   const screens = useBreakpoint();
-  const { isDarkMode, toggleTheme } = useContext(ThemeContext);
+  const { isDarkMode } = useContext(ThemeContext);
 
   // API hooks
   const [createPost, { isLoading: isCreating }] = useCreatePostMutation();
@@ -61,35 +60,6 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
   const isMobile = !screens.md;
   const isTablet = screens.md && !screens.lg;
   const isDesktop = screens.lg;
-
-  // Theme styles
-  const themeStyles = {
-    container: {
-      backgroundColor: isDarkMode ? 'var(--secondary-bg)' : '#fff',
-      color: isDarkMode ? 'var(--text-color)' : 'inherit',
-    },
-    card: {
-      backgroundColor: isDarkMode ? 'var(--card-bg)' : '#fff',
-      borderColor: isDarkMode ? '#333' : '#f0f0f0',
-    },
-    input: {
-      backgroundColor: isDarkMode ? 'var(--input-bg)' : '#fff',
-      color: isDarkMode ? 'var(--text-color)' : 'inherit',
-      borderColor: isDarkMode ? '#444' : '#d9d9d9',
-    },
-    select: {
-      backgroundColor: isDarkMode ? 'var(--input-bg)' : '#fff',
-      color: isDarkMode ? 'var(--text-color)' : 'inherit',
-      borderColor: isDarkMode ? '#444' : '#d9d9d9',
-    },
-    upload: {
-      backgroundColor: isDarkMode ? 'var(--input-bg)' : '#fafafa',
-      borderColor: isDarkMode ? '#444' : '#d9d9d9',
-    },
-    text: {
-      color: isDarkMode ? 'var(--text-color)' : 'inherit',
-    }
-  };
 
   // Memoized category options
   const categoryOptions = useMemo(() => (
@@ -107,7 +77,7 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
     }));
   }, [category, subcategoryData]);
 
-  // Jodit editor configuration with theme
+  // Enhanced Jodit editor configuration with proper dark mode support
   const joditConfig = useMemo(() => ({
     height: isMobile ? 300 : 400,
     placeholder: "Write your post description here...",
@@ -123,11 +93,107 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
       'replace', 'template', 'insertImage', 'insertTable', 'insertLink', 'insertText',
       'selectAll', 'clear', 'save', 'code'
     ],
+    // Enhanced dark mode styling
+    colors: {
+      greyscale: isDarkMode ? '#ffffff,#f5f5f5,#e8e8e8,#dddddd,#c0c0c0,#a9a9a9,#808080,#696969,#545454,#3f3f3f,#2f2f2f,#1e1e1e,#0f0f0f,#080808,#000000' : '#000000,#333333,#555555,#777777,#999999,#BBBBBB,#DDDDDD,#FFFFFF',
+    },
     style: {
-      backgroundColor: isDarkMode ? 'var(--input-bg)' : '#fff',
-      color: isDarkMode ? 'var(--text-color)' : 'inherit',
+      backgroundColor: isDarkMode ? '#1f2937' : '#fff',  // Match with bg-gray-800 from TailwindCSS
+      color: isDarkMode ? '#e5e7eb' : '#374151',  // Match with text-gray-200 from TailwindCSS
+    },
+    // Custom CSS for dark mode compatibility
+    extraCss: isDarkMode ?
+      `.jodit-container,.jodit-workplace {
+        background-color: #1f2937 !important;
+        color: #e5e7eb !important;
+        border-color: #4b5563 !important;
+      }
+      .jodit-toolbar {
+        background-color: #374151 !important;
+        border-color: #4b5563 !important;
+      }
+      .jodit-toolbar__box {
+        background-color: #374151 !important;
+        border-color: #4b5563 !important;
+      }
+      .jodit-toolbar__box a.jodit-toolbar-button {
+        color: #e5e7eb !important;
+      }
+      .jodit-toolbar__box a.jodit-toolbar-button:hover {
+        background-color: #4b5563 !important;
+        color: #ffffff !important;
+      }
+      .jodit-container.jodit-wysiwyg {
+        color: #e5e7eb !important;
+        background-color: #1f2937 !important;
+      }
+      .jodit-wysiwyg {
+        color: #e5e7eb !important;
+        background-color: #1f2937 !important;
+      }
+      .jodit-workplace {
+        background-color: #1f2937 !important;
+      }
+      .jodit-status-bar {
+        background-color: #374151 !important;
+        border-color: #4b5563 !important;
+        color: #e5e7eb !important;
+      }` : '',
+    // Event handlers for dark mode fixes
+    events: {
+      afterInit: (editor) => {
+        if (isDarkMode) {
+          if (editor && editor.workplace) {
+            editor.workplace.style.backgroundColor = '#1f2937';
+            editor.workplace.style.color = '#e5e7eb';
+
+            if (editor.editor) {
+              editor.editor.style.backgroundColor = '#1f2937';
+              editor.editor.style.color = '#e5e7eb';
+            }
+          }
+        }
+      }
     }
   }), [isMobile, isDarkMode]);
+
+  // Add CSS for dark mode to document head
+  useEffect(() => {
+    if (isDarkMode) {
+      // Create style element for Jodit dark mode
+      const style = document.createElement('style');
+      style.id = 'jodit-dark-mode-styles';
+      style.innerHTML = `
+        .jodit-container.jodit-dark-theme,
+        .jodit-container.jodit-dark-theme .jodit-workplace,
+        .jodit-container.jodit-dark-theme .jodit-wysiwyg {
+          background-color: #1f2937 !important;
+          color: #e5e7eb !important;
+        }
+        .jodit-dark-theme .jodit-toolbar__box {
+          background-color: #374151 !important;
+          border-color: #4b5563 !important;
+        }
+        .jodit-dark-theme .jodit-toolbar {
+          background-color: #374151 !important;
+          border-color: #4b5563 !important;
+        }
+        .jodit-dark-theme .jodit-wysiwyg {
+          color: #e5e7eb !important;
+        }
+        .dark-editor .jodit-container {
+          border-color: #4b5563 !important;
+        }
+      `;
+      document.head.appendChild(style);
+
+      return () => {
+        if (document.getElementById('jodit-dark-mode-styles')) {
+          document.head.removeChild(document.getElementById('jodit-dark-mode-styles'));
+        }
+      };
+    }
+  }, [isDarkMode]);
 
   // Load draft data when component mounts
   useEffect(() => {
@@ -316,14 +382,13 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
   };
 
   return (
-    <div 
-      className={`min-h-screen py-4 sm:py-8 px-2 sm:px-4 theme-transition ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}
-      style={themeStyles.container}
-    >
+    <div className={`min-h-screen py-4 sm:py-8 px-2 sm:px-4 transition-colors duration-200 ${isDarkMode ? 'bg-gray-900 text-gray-100' : 'bg-gray-50 text-gray-900'
+      }`}>
       <div className="max-w-4xl mx-auto">
         <Card
-          className={`rounded-xl shadow-lg border-0 overflow-hidden theme-transition ${isEditing ? 'border-0 shadow-none' : ''}`}
-          style={themeStyles.card}
+          className={`rounded-xl shadow-lg border-0 overflow-hidden transition-colors duration-200 ${isEditing ? 'border-0 shadow-none' : ''
+            } ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+            }`}
           bodyStyle={{ backgroundColor: 'transparent' }}
         >
           {!isEditing && (
@@ -341,16 +406,16 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
           <div className={`py-4 sm:p-6 ${isDarkMode ? 'dark-editor' : ''}`}>
             {/* Title Input */}
             <div className="mb-6 sm:mb-8">
-              <Title level={5} style={themeStyles.text} className="mb-2">Title</Title>
+              <Title level={5} className={`mb-2 ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>Title</Title>
               <Input
                 placeholder="Write your post title here..."
                 value={title}
                 onChange={handleTitleChange}
                 maxLength={300}
                 suffix={`${title.length}/300`}
-                className="py-2 sm:py-3 px-4 rounded-lg hover:border-blue-400 focus:border-blue-500 theme-transition"
+                className={`py-2 sm:py-3 px-4 rounded-lg hover:border-blue-400 focus:border-blue-500 transition-colors ${isDarkMode ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400' : 'bg-white border-gray-300'
+                  }`}
                 size={isMobile ? "middle" : "large"}
-                style={themeStyles.input}
               />
             </div>
 
@@ -358,23 +423,20 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
             <div className="mb-6 sm:mb-8">
               <Row gutter={[16, 16]}>
                 <Col xs={24} md={12}>
-                  <Title level={5} style={themeStyles.text} className="mb-2">Category</Title>
+                  <Title level={5} className={`mb-2 ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>Category</Title>
                   <Select
                     placeholder="Select a category"
                     value={category}
                     onChange={handleCategoryChange}
-                    className="w-full theme-transition"
+                    className={`w-full ${isDarkMode ? 'ant-select-dark' : ''
+                      }`}
                     size={isMobile ? "middle" : "large"}
                     options={categoryOptions}
-                    style={themeStyles.select}
-                    dropdownStyle={{
-                      backgroundColor: isDarkMode ? 'var(--card-bg)' : '#fff',
-                      color: isDarkMode ? 'var(--text-color)' : 'inherit',
-                    }}
+                    dropdownClassName={isDarkMode ? 'dark-dropdown' : ''}
                   />
                 </Col>
                 <Col xs={24} md={12}>
-                  <Title level={5} style={themeStyles.text} className="mb-2">Subcategory</Title>
+                  <Title level={5} className={`mb-2 ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>Subcategory</Title>
                   <Select
                     placeholder={
                       isSubcategoriesLoading ? "Loading..." :
@@ -384,16 +446,13 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
                     }
                     value={subcategory}
                     onChange={handleSubcategoryChange}
-                    className="w-full theme-transition"
+                    className={`w-full ${isDarkMode ? 'ant-select-dark' : ''
+                      }`}
                     size={isMobile ? "middle" : "large"}
                     options={getSubcategories}
                     disabled={!category || getSubcategories.length === 0 || isSubcategoriesLoading}
                     notFoundContent={category && "No subcategories found"}
-                    style={themeStyles.select}
-                    dropdownStyle={{
-                      backgroundColor: isDarkMode ? 'var(--card-bg)' : '#fff',
-                      color: isDarkMode ? 'var(--text-color)' : 'inherit',
-                    }}
+                    dropdownClassName={isDarkMode ? 'dark-dropdown' : ''}
                   />
                 </Col>
               </Row>
@@ -401,34 +460,35 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
 
             {/* Content Editor */}
             <div className="mb-6 sm:mb-8">
-              <Title level={5} style={themeStyles.text} className="mb-2">Description</Title>
+              <Title level={5} className={`mb-2 ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>Description</Title>
               <Card
-                className="border rounded-lg overflow-hidden hover:border-blue-300 transition-all p-0 theme-transition"
+                className={`border rounded-lg overflow-hidden hover:border-blue-300 transition-all p-0 ${isDarkMode ? 'border-gray-600' : 'border-gray-300'
+                  }`}
                 bodyStyle={{ padding: 0 }}
-                style={{ borderColor: isDarkMode ? '#444' : '#d9d9d9' }}
               >
-                <JoditEditor
-                  ref={editorRef}
-                  value={description}
-                  config={joditConfig}
-                  tabIndex={1}
-                  onBlur={handleDescriptionChange}
-                />
+                <div className={`${isDarkMode ? 'jodit-dark-theme' : ''}`}>
+                  <JoditEditor
+                    ref={editorRef}
+                    value={description}
+                    config={joditConfig}
+                    tabIndex={1}
+                    onBlur={handleDescriptionChange}
+                    className={isDarkMode ? 'jodit-dark-mode' : ''}
+                  />
+                </div>
               </Card>
-              <div className="mt-2 text-xs" style={{ color: isDarkMode ? '#aaa' : '#666' }}>
+              <div className={`mt-2 text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                }`}>
                 Tip: You can use the formatting toolbar to style your content
               </div>
             </div>
 
             {/* Image Upload */}
             <div className="mb-6 sm:mb-8">
-              <Title level={5} style={themeStyles.text} className="mb-2">Featured Images</Title>
+              <Title level={5} className={`mb-2 ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>Featured Images</Title>
               <Card
-                className="border-2 border-dashed rounded-xl hover:border-blue-400 transition-all text-center cursor-pointer theme-transition"
-                style={{
-                  ...themeStyles.upload,
-                  borderColor: isDarkMode ? '#444' : '#d9d9d9',
-                }}
+                className={`border-2 border-dashed rounded-xl hover:border-blue-400 transition-all text-center cursor-pointer ${isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-300'
+                  }`}
               >
                 <Upload
                   listType={isMobile ? "picture" : "picture-card"}
@@ -441,17 +501,18 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
                 >
                   {fileList.length === 0 && (
                     isMobile ? (
-                      <Button 
-                        icon={<UploadOutlined />} 
+                      <Button
+                        icon={<UploadOutlined />}
                         size="middle"
-                        style={themeStyles.text}
+                        className={isDarkMode ? 'text-gray-200' : 'text-gray-800'}
                       >
                         Add Photo
                       </Button>
                     ) : (
-                      <div className="flex flex-col items-center p-4" style={themeStyles.text}>
+                      <div className={`flex flex-col items-center p-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'
+                        }`}>
                         <UploadOutlined className="text-2xl mb-2" />
-                        <Text type="secondary">Click or drag files to upload</Text>
+                        <Text>Click or drag files to upload</Text>
                       </div>
                     )
                   )}
@@ -467,9 +528,9 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
                     <Button
                       icon={<SaveOutlined />}
                       size={isMobile ? "middle" : "large"}
-                      className="flex items-center theme-transition"
+                      className={`flex items-center ${isDarkMode ? 'text-gray-200 hover:text-white' : 'text-gray-800'
+                        }`}
                       onClick={handleSaveDraft}
-                      style={themeStyles.text}
                     >
                       {isMobile ? 'Save' : 'Save draft'}
                     </Button>
@@ -489,7 +550,7 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
                 <Button
                   type="primary"
                   size={isMobile ? "middle" : "large"}
-                  className="border-0 shadow-md hover:shadow-lg theme-transition"
+                  className="border-0 shadow-md hover:shadow-lg"
                   onClick={handleSubmit}
                   loading={loading}
                 >

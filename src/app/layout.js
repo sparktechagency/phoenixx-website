@@ -34,7 +34,7 @@ export default function RootLayout({ children }) {
       setIsDarkMode(prefersDark);
       document.documentElement.classList.toggle('dark', prefersDark);
     }
-    
+
     // Apply color scheme to root
     document.documentElement.style.colorScheme = isDarkMode ? 'dark' : 'light';
   }, []);
@@ -51,7 +51,7 @@ export default function RootLayout({ children }) {
   // Watch for system theme changes
   useEffect(() => {
     if (!mounted) return;
-    
+
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     const handleChange = (e) => {
       // Only apply system preference if no manual selection was made
@@ -61,7 +61,7 @@ export default function RootLayout({ children }) {
         document.documentElement.style.colorScheme = e.matches ? 'dark' : 'light';
       }
     };
-    
+
     mediaQuery.addEventListener('change', handleChange);
     return () => mediaQuery.removeEventListener('change', handleChange);
   }, [mounted]);
@@ -82,13 +82,11 @@ export default function RootLayout({ children }) {
   // Dark theme tokens
   const darkThemeTokens = {
     colorPrimary: '#4E4EFB',
-    colorBorder: '#424242',
     colorText: 'rgba(255, 255, 255, 0.85)',
     colorTextPlaceholder: '#737373',
     colorBgContainer: '#1a1a1a',
     colorBgLayout: '#000000',
     colorBgElevated: '#1f1f1f',
-    controlOutline: 'rgba(232, 80, 91, 0.1)',
     borderRadius: 6,
   };
 
@@ -115,10 +113,6 @@ export default function RootLayout({ children }) {
     Card: {
       colorBgContainer: isDarkMode ? '#1f1f1f' : '#ffffff',
       colorBorderSecondary: isDarkMode ? '#333333' : '#f0f0f0',
-    },
-    Input: {
-      colorBgContainer: isDarkMode ? '#1f1f1f' : '#ffffff',
-      hoverBorderColor: isDarkMode ? '#4E4EFB' : '#0001FB',
     },
     Select: {
       colorBgContainer: isDarkMode ? '#1f1f1f' : '#ffffff',
@@ -176,13 +170,12 @@ export default function RootLayout({ children }) {
   // Define CSS variables for custom components
   useEffect(() => {
     if (!mounted) return;
-    
+
     const root = document.documentElement;
-    
+
     if (isDarkMode) {
       root.style.setProperty('--background-color', '#1a1a1a');
       root.style.setProperty('--text-color', 'rgba(255, 255, 255, 0.85)');
-      root.style.setProperty('--border-color', '#424242');
       root.style.setProperty('--card-bg', '#1f1f1f');
       root.style.setProperty('--hover-bg', '#2a2a2a');
       root.style.setProperty('--secondary-bg', '#141414');
@@ -223,8 +216,8 @@ export default function RootLayout({ children }) {
                       position="top-center"
                       reverseOrder={false}
                       toastOptions={{
-                        className: isDarkMode 
-                          ? 'dark-toast bg-gray-800 text-white' 
+                        className: isDarkMode
+                          ? 'dark-toast bg-gray-800 text-white'
                           : 'light-toast bg-white text-gray-900',
                       }}
                     />

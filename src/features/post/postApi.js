@@ -77,6 +77,15 @@ export const postApi = baseApi.injectEndpoints({
       },
       invalidatesTags: ['post'],
     }),
+
+    getProfileById: builder.query({
+      query: (id) => ({
+        url: `/users/single-user/${id}`,
+        method: "GET",
+      }),
+      providesTags: ["post"],
+    }),
+
   }),
 });
 
@@ -88,5 +97,6 @@ export const {
   usePostDetailsQuery,
   useDeletePostMutation,
   useEditPostMutation,
-  useGetByUserIdQuery
+  useGetByUserIdQuery,
+  useGetProfileByIdQuery
 } = postApi;

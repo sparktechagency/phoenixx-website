@@ -9,8 +9,9 @@ import { baseURL } from '../../utils/BaseURL';
 import { PostSEE } from '../../utils/svgImage';
 import { useGetSaveAllPostQuery, useSavepostMutation } from '@/features/SavePost/savepostApi';
 import ReportPostModal from './ReportPostModal';
-import { ThemeContext } from '@/app/layout';
+
 import toast from 'react-hot-toast';
+import { ThemeContext } from '../app/layout';
 
 const useWindowSize = () => {
   const [windowSize, setWindowSize] = useState({
@@ -48,8 +49,8 @@ const PostCard = ({
   const [isSaving, setIsSaving] = useState(false);
   const [savepost] = useSavepostMutation();
   const { data: savedPosts } = useGetSaveAllPostQuery();
-  
-  const isSaved = useMemo(() => 
+
+  const isSaved = useMemo(() =>
     savedPosts?.data?.some(savedPost => savedPost?.postId?._id === postData?.id),
     [savedPosts, postData]
   );
@@ -94,12 +95,12 @@ const PostCard = ({
       label: (
         <div className="flex items-center gap-2 py-1">
           <Image
-            src={"/icons/save_post.png"}
+            src={isDarkMode ? "/icons/save_post_light.png" : "/icons/save_post.png"}
             width={16}
             height={16}
             alt={isSaved ? "Unsave post" : "Save post"}
           />
-          <span className="-mt-1">
+          <span className={`-mt-1 ${isDarkMode ? 'text-gray-200' : ''}`}>
             {isSaving ? 'Processing...' : isSaved ? 'Unsave Post' : 'Save Post'}
           </span>
         </div>
@@ -109,12 +110,17 @@ const PostCard = ({
       key: 'report',
       label: (
         <div className="flex items-center gap-2 py-1">
-          <Image src="/icons/report.png" height={16} width={16} alt="report" />
-          <span className="-mt-1">Report Post</span>
+          <Image
+            src={isDarkMode ? "/icons/report_light.png" : "/icons/report.png"}
+            height={16}
+            width={16}
+            alt="report"
+          />
+          <span className={`-mt-1 ${isDarkMode ? 'text-gray-200' : ''}`}>Report Post</span>
         </div>
       ),
     },
-  ], [isSaved, isSaving]);
+  ], [isSaved, isSaving, isDarkMode]);
 
   const handleMenuClick = useCallback(({ key }) => {
     if (key === 'save') {
@@ -132,19 +138,22 @@ const PostCard = ({
         className={`${isMobile ? 'w-6 h-6' : 'w-8 h-8'} rounded-full cursor-pointer`}
       />
     ) : (
-      <div className={`${isMobile ? 'w-6 h-6' : 'w-8 h-8'} rounded-full bg-gray-300 flex items-center justify-center text-xs`}>
+      <div className={`${isMobile ? 'w-6 h-6' : 'w-8 h-8'} rounded-full ${isDarkMode ? 'bg-gray-600' : 'bg-gray-300'
+        } flex items-center justify-center text-xs text-white`}>
         {postData.author.username?.charAt(0).toUpperCase() || 'A'}
       </div>
     )
-  ), [postData.author, isMobile]);
+  ), [postData.author, isMobile, isDarkMode]);
 
   const renderContent = useMemo(() => (
-    <div className={`mb-3 ${isMobile ? 'text-sm' : 'text-base'}`}>
+    <div className={`mb-3 ${isMobile ? 'text-sm' : 'text-base'} ${isDarkMode ? 'text-gray-300' : 'text-gray-800'
+      }`}>
       {postData.content?.replace(/<[^>]+>/g, '')?.split(' ')?.length > 20 ? (
         <>
           {postData.content.replace(/<[^>]+>/g, '').split(' ').slice(0, 20).join(' ')}...
           <button
-            className="text-blue-600 hover:text-blue-800 cursor-pointer font-medium ml-1"
+            className={`${isDarkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-800'
+              } cursor-pointer font-medium ml-1`}
             onClick={handleCommentClick}
           >
             See more
@@ -154,53 +163,80 @@ const PostCard = ({
         postData.content.replace(/<[^>]+>/g, '')
       )}
     </div>
-  ), [postData.content, isMobile, handleCommentClick]);
+  ), [postData.content, isMobile, handleCommentClick, isDarkMode]);
 
   const renderTags = useMemo(() => (
     postData.tags?.length > 0 && (
       <div className="flex flex-wrap items-center gap-2">
         {postData.tags.map((tag, index) => (
-          <span key={index} className="bg-[#E6E6FF] text-xs py-1 px-2 rounded">
+          <span
+            key={index}
+            className={`text-xs py-1 px-2 rounded ${isDarkMode
+                ? 'bg-gray-700 text-blue-400'
+                : 'bg-[#E6E6FF] text-gray-800'
+              }`}
+          >
             {tag}
           </span>
         ))}
       </div>
     )
-  ), [postData.tags]);
-
-  
+  ), [postData.tags, isDarkMode]);
 
   return (
     <>
-      <div className={`rounded-lg ${isDarkMode ? 'dark-mode' : 'light-mode'} shadow mb-4 ${isMobile ? 'p-3' : isTablet ? 'p-4' : 'p-5'}`}>
+      <div className={`rounded-lg shadow mb-4 ${isMobile ? 'p-3' : isTablet ? 'p-4' : 'p-5'
+        } ${isDarkMode
+          ? 'bg-gray-800 border border-gray-700'
+          : 'bg-white border border-gray-200'
+        }`}>
         <div className="flex justify-between items-center mb-3">
-          <div onClick={()=> router.push(`profiles/${postData?.author?.id}`)} className="flex items-center gap-2">
+          <div
+            onClick={() => router.push(`profiles/${postData?.author?.id}`)}
+            className="flex items-center gap-2"
+          >
             {renderAuthorAvatar}
             <div className="flex flex-col justify-start items-start">
-              <span className={`font-medium cursor-pointer ${isMobile ? 'text-xs' : 'text-base'}`}>
+              <span className={`font-medium cursor-pointer ${isMobile ? 'text-xs' : 'text-base'
+                } ${isDarkMode ? 'text-gray-200' : 'text-gray-800'
+                }`}>
                 {postData.author.username || postData.author.name}
               </span>
-              <span className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-500`}>
+              <span className={`${isMobile ? 'text-xs' : 'text-sm'
+                } ${isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                }`}>
                 {postData.timePosted}
               </span>
             </div>
           </div>
 
           <Dropdown
-            menu={{ items: menuItems, onClick: handleMenuClick }}
+            menu={{
+              items: menuItems,
+              onClick: handleMenuClick,
+              className: isDarkMode ? 'dark-dropdown' : '',
+              style: isDarkMode ? { backgroundColor: '#1F2937' } : {}
+            }}
             placement="bottomRight"
             trigger={['click']}
           >
-            <button className="font-bold p-1 rounded hover:bg-gray-100 cursor-pointer">
-              <AiOutlineEllipsis className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'}`} />
+            <button className={`font-bold p-1 rounded ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
+              } cursor-pointer`}>
+              <AiOutlineEllipsis className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'
+                } ${isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                }`} />
             </button>
           </Dropdown>
         </div>
 
         {postData.title && (
-          <h2 
-            onClick={handlePostDetails} 
-            className={`${isMobile ? 'text-lg' : isTablet ? 'text-xl' : 'text-2xl'} cursor-pointer hover:text-blue-700 font-bold mb-3`}
+          <h2
+            onClick={handlePostDetails}
+            className={`${isMobile ? 'text-lg' : isTablet ? 'text-xl' : 'text-2xl'
+              } cursor-pointer ${isDarkMode
+                ? 'text-gray-100 hover:text-blue-400'
+                : 'text-gray-800 hover:text-blue-700'
+              } font-bold mb-3`}
           >
             {postData.title}
           </h2>
@@ -221,31 +257,40 @@ const PostCard = ({
 
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-4 sm:gap-6">
-            <button 
-              onClick={handleLike} 
-              className="flex items-center cursor-pointer hover:bg-gray-100 p-1 rounded"
+            <button
+              onClick={handleLike}
+              className={`flex items-center cursor-pointer p-1 rounded ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
+                }`}
             >
               {postData.isLiked ? (
-                <FaHeart className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} text-red-500`} />
+                <FaHeart className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'
+                  } text-red-500`} />
               ) : (
-                <FaRegHeart className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} text-gray-500`} />
+                <FaRegHeart className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'
+                  } ${isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                  }`} />
               )}
-              <span className={`ml-1 ${isMobile ? 'text-xs' : 'text-sm'} text-gray-700`}>
+              <span className={`ml-1 ${isMobile ? 'text-xs' : 'text-sm'
+                } ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                }`}>
                 {postData.stats.likes || 0}
               </span>
             </button>
 
-            <button 
-              onClick={handleCommentClick} 
-              className="flex items-center cursor-pointer hover:bg-gray-100 p-1 rounded"
+            <button
+              onClick={handleCommentClick}
+              className={`flex items-center cursor-pointer p-1 rounded ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
+                }`}
             >
-              <Image 
-                src="/icons/message.png" 
-                width={20} 
-                height={20} 
-                alt="message icon" 
+              <Image
+                src={"/icons/message.png"}
+                width={20}
+                height={20}
+                alt="message icon"
               />
-              <span className={`ml-1 -mt-[1px] ${isMobile ? 'text-xs' : 'text-sm'} text-gray-700`}>
+              <span className={`ml-1 -mt-[1px] ${isMobile ? 'text-xs' : 'text-sm'
+                } ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                }`}>
                 {postData.stats.comments || 0}
               </span>
             </button>
@@ -254,16 +299,24 @@ const PostCard = ({
           </div>
 
           <div className="flex items-center gap-3">
-            <div className={`flex items-center gap-1.5 ${isMobile ? 'text-xs' : 'text-sm'} text-gray-500`}>
-              <PostSEE />
+            <div className={`flex items-center gap-1.5 ${isMobile ? 'text-xs' : 'text-sm'
+              } ${isDarkMode ? 'text-gray-400' : 'text-gray-500'
+              }`}>
+              <PostSEE fill={isDarkMode ? '#9CA3AF' : '#6B7280'} />
               <span>{postData.stats.reads}</span>
             </div>
 
-            <button 
-              onClick={handleShare} 
-              className="text-gray-500 px-2 py-1.5 cursor-pointer hover:bg-gray-100 rounded-sm"
+            <button
+              onClick={handleShare}
+              className={`px-2 py-1.5 cursor-pointer rounded-sm ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
+                }`}
             >
-              <Image src="/icons/share.png" width={20} height={20} alt="share button" />
+              <Image
+                src={"/icons/share.png"}
+                width={20}
+                height={20}
+                alt="share button"
+              />
             </button>
           </div>
         </div>
@@ -273,6 +326,7 @@ const PostCard = ({
         isOpen={showReportModal}
         onClose={() => setShowReportModal(false)}
         postId={postData.id}
+        isDarkMode={isDarkMode}
       />
     </>
   );

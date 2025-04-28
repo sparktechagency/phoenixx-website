@@ -1,11 +1,12 @@
 "use client";
-import React from 'react';
-import { Grid } from 'antd';
+import AuthorPostCard from '@/components/AuthorPostCard';
+import { useCreateChatMutation } from '@/features/chat/massage';
+import { useGetByUserIdQuery, useGetProfileByIdQuery, useLikePostMutation } from '@/features/post/postApi';
+import { Grid, Spin } from 'antd';
 import Image from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
-import { useCreateChatMutation } from '@/features/chat/massage';
-import AuthorPostCard from '@/components/AuthorPostCard';
-import { useGetByUserIdQuery, useLikePostMutation } from '@/features/post/postApi';
+import toast from 'react-hot-toast';
+import { getImageUrl } from '../../../../utils/getImageUrl';
 
 
 const ProfileBanner = () => {
@@ -13,19 +14,18 @@ const ProfileBanner = () => {
   const isMobile = !screens.md;
   const router = useRouter();
   const { id } = useParams();
-  const [createChat, { isLoading }] = useCreateChatMutation();
-  const [likePost, { isLoading: likeLoading }] = useLikePostMutation();
+  const [createChat] = useCreateChatMutation();
+  const [likePost] = useLikePostMutation();
   const { data, isLoading: getbuyUserLoading, refetch } = useGetByUserIdQuery(id);
+  const { data: profile, isLoading: profileLoading } = useGetProfileByIdQuery(id);
 
 
   const handleLike = async (postId) => {
     try {
-      const response = await likePost(postId).unwrap();
-      console.log(response)
+      await likePost(postId).unwrap();
       refetch()
     } catch (error) {
-      message.error('Failed to like post');
-      console.error('Like error:', error);
+      toast.error(error?.message || 'Failed to like post');
     }
   };
 
@@ -44,11 +44,6 @@ const ProfileBanner = () => {
   }
 
 
-
-
-
-  // Now 'data' is a JavaScript array containing objects
-
   return (
     <div className=' bg-[#F2F4F7]'>
       <div className="bg-[#EBEBFF] pt-20 flex items-center justify-center">
@@ -58,7 +53,7 @@ const ProfileBanner = () => {
               <div className="relative">
                 <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-300">
                   <img
-                    src={"/icons/user.png"}
+                    src={getImageUrl(profile?.data?.profile)}
                     alt="User"
                     className="w-full h-full object-cover"
                   />
@@ -69,7 +64,7 @@ const ProfileBanner = () => {
             <button
               onClick={() => handleChat(id)}
               className={`
-              ${isMobile ? 'px-3 py-1.5 rounded-md' : 'px-4 py-2 rounded-md'} 
+              ${isMobile ? 'px-3 py-1.5 rounded-md' : 'px-4 py-2 rounded-md'}
               bg-primary hover:bg-blue-700 transition-colors cursor-pointer
               text-white flex items-center justify-center gap-2
               shadow-sm
@@ -82,8 +77,8 @@ const ProfileBanner = () => {
           </div>
 
           <div className="text-center pb-10">
-            <h2 className="text-xl sm:text-2xl font-bold">{"Pranab kumar"}</h2>
-            <p className="text-gray-500 text-sm sm:text-base">{"@pronab12"}</p>
+            <h2 className="text-xl sm:text-2xl font-bold">{profile?.data?.name}</h2>
+            <p className="text-gray-500 text-sm sm:text-base">@{profile?.data?.userName}</p>
           </div>
         </div>
       </div>
@@ -91,9 +86,15 @@ const ProfileBanner = () => {
       <div className='max-w-4xl mx-auto py-5'>
 
         {
-          data?.data?.map(post => <AuthorPostCard postData={post} onLike={handleLike} />)
+          getbuyUserLoading ? <div className='flex justify-center py-20'><Spin /></div> :
+            [...(data?.data || [])].reverse().map((post) => (
+              <AuthorPostCard
+                key={post.id}
+                postData={post}
+                onLike={handleLike}
+              />
+            ))
         }
-
       </div>
     </div>
   );

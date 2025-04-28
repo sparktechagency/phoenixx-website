@@ -1,16 +1,17 @@
-import React, { useState } from 'react';
-import { Button, Modal, Input, message } from 'antd';
-import { ExclamationCircleOutlined } from '@ant-design/icons';
-import { useRouter } from 'next/navigation';
 import { useDeleteAccountMutation } from '@/features/profile/profileApi';
+import { Button, Input, Modal } from 'antd';
+import { useRouter } from 'next/navigation';
+import { useState, useContext } from 'react';
+import toast from 'react-hot-toast';
+import { ThemeContext } from '../app/layout';
 
 
 const CloseAccountSection = () => {
-  const { confirm } = Modal;
   const [password, setPassword] = useState('');
   const [isPasswordModalVisible, setIsPasswordModalVisible] = useState(false);
   const router = useRouter();
-  const [deleteAccount , {isLoading}] = useDeleteAccountMutation();
+  const [deleteAccount, { isLoading }] = useDeleteAccountMutation();
+  const { isDarkMode } = useContext(ThemeContext);
 
   const showConfirm = () => {
     setIsPasswordModalVisible(true); // Show the modal for entering the password
@@ -20,23 +21,24 @@ const CloseAccountSection = () => {
     setPassword(e.target.value); // Handle the password input change
   };
 
-  const handleAccountDeletion =async () => {
-   try {
-    const response = await deleteAccount({password:password}).unwrap();
-    console.log(response)
-    router.push("/auth/login")
-   } catch (error) {
-    message.error(error.data.message)
-   }
+  const handleAccountDeletion = async () => {
+    try {
+      await deleteAccount({ password: password }).unwrap();
+      toast.success("Your Account deleted successfully")
+      router.push("/auth/login")
+    } catch (error) {
+      toast.error(error.data.message)
+    }
   };
 
   return (
-    <div className="bg-white rounded-lg p-6 shadow-sm">
+    <div className={`rounded-lg p-6 shadow-sm ${isDarkMode ? 'bg-gray-800 text-gray-100' : 'bg-white text-gray-900'}`}>
       <h3 className="text-lg font-medium mb-1">Close your account</h3>
-      <p className="text-gray-600 mb-4">Once you delete your account, there's no going back. Please be certain!</p>
-      <Button 
+      <p className={`mb-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+        Once you delete your account, there's no going back. Please be certain!
+      </p>
+      <Button
         danger
-       
         onClick={showConfirm}
         className="h-12 px-6 font-medium"
       >
@@ -50,15 +52,17 @@ const CloseAccountSection = () => {
         open={isPasswordModalVisible}
         onOk={handleAccountDeletion}
         onCancel={() => setIsPasswordModalVisible(false)}
-        loading={isLoading}
+        confirmLoading={isLoading}
         okText="Delete Account"
         cancelText="Cancel"
         okButtonProps={{ danger: true }}
+        className={isDarkMode ? 'dark-modal' : ''} // Add this if you have custom dark mode modal styles
       >
-        <Input.Password 
-          placeholder="Enter your password" 
-          value={password} 
-          onChange={handlePasswordChange} 
+        <Input.Password
+          placeholder="Enter your password"
+          value={password}
+          onChange={handlePasswordChange}
+          className={isDarkMode ? 'bg-gray-700 text-white border-gray-600' : ''}
         />
       </Modal>
     </div>
