@@ -3,7 +3,8 @@ import { Button, Input, Modal } from 'antd';
 import { useRouter } from 'next/navigation';
 import { useState, useContext } from 'react';
 import toast from 'react-hot-toast';
-import { ThemeContext } from '../app/layout';
+import { ThemeContext } from '../app/ClientLayout';
+
 
 
 const CloseAccountSection = () => {

@@ -5,30 +5,31 @@ import { useGetAllChatQuery, useMarkAsReadMutation } from '@/features/chat/massa
 import { Avatar, Flex, Input } from 'antd';
 import moment from 'moment';
 import { useParams, useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useContext, useState } from 'react';
 import toast from 'react-hot-toast';
 import { BsSearch } from 'react-icons/bs';
+import { useSelector } from 'react-redux';
 import { getImageUrl } from '../../../../utils/getImageUrl';
 import { useDebounce } from '../../../hooks/useDebounce';
+import { ThemeContext } from '../../ClientLayout';
 
 
 
 const ChatList = ({ setIsChatActive, status }) => {
+  const { isDarkMode } = useContext(ThemeContext);
   const router = useRouter();
   const { id } = useParams();
   const [searchTerm, setSearchTerm] = useState('');
-  const debouncedSearchTerm = useDebounce(searchTerm, 500); // Debounce search for better performance
+  const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
-  // Use the debounced search term for API query
   const [markAsRead, { isLoading: markAsReadLoading }] = useMarkAsReadMutation()
   const { data: chatList, isLoading, isError, refetch } = useGetAllChatQuery(debouncedSearchTerm);
 
-
-  const activeChat = chatList?.data?.find((chat) => chat?._id === id);
+  const { chats } = useSelector((state) => state);
+  console.log(chats)
 
   const handleSelectChat = async (id) => {
     router.push(`/chat/${id}`);
-    // Activate chat view on mobile when a chat is selected
     if (setIsChatActive) {
       setIsChatActive(true);
     }
@@ -37,13 +38,9 @@ const ChatList = ({ setIsChatActive, status }) => {
       const response = await markAsRead(id).unwrap();
       console.log(response)
       refetch()
-
     } catch (error) {
       toast.error(error.message);
     }
-
-
-
   }
 
   const formatTime = (timestamp) => {
@@ -52,7 +49,6 @@ const ChatList = ({ setIsChatActive, status }) => {
     return bangladeshTime.fromNow();
   };
 
-  // Handle search input change
   const handleSearchChange = (e) => {
     setSearchTerm(e.target.value);
   };
@@ -62,34 +58,37 @@ const ChatList = ({ setIsChatActive, status }) => {
   }
 
   return (
-    <div className="w-full h-[80vh] shadow border border-gray-200 bg-white rounded-lg flex flex-col">
-      <div className="p-4">
+    <div className={`w-full h-[80vh]  shadow rounded-lg flex flex-col
+      ${isDarkMode ? 'dark-mode bg-gray-800 border-gray-700' : 'light-mode bg-white border-gray-200'}`}>
+
+      <div className="p-4 ">
         <Flex gap={8}>
           <Input
-            prefix={<BsSearch className="text-subtitle mx-1" size={20} />}
+            prefix={<BsSearch className={`mx-1 ${isDarkMode ? 'text-gray-300' : 'text-subtitle'}`} size={20} />}
             placeholder="Search for..."
             allowClear
             style={{ width: '100%', height: 42 }}
             value={searchTerm}
             onChange={handleSearchChange}
+            className={isDarkMode ? 'bg-gray-700 text-white' : ''}
           />
         </Flex>
       </div>
 
-      <div className="chat-list-container flex-1 overflow-y-auto"
+      <div className={`chat-list-container flex-1 overflow-y-auto px-4
+        ${isDarkMode ? 'scrollbar-dark' : 'scrollbar-light'}`}
         style={{
           scrollbarWidth: 'thin',
-          scrollbarColor: '#CBD5E0 #FFFFFF',
         }}>
         <style jsx global>{`
           .chat-list-container::-webkit-scrollbar {
             width: 6px;
           }
           .chat-list-container::-webkit-scrollbar-track {
-            background: #FFFFFF;
+            background: ${isDarkMode ? '#374151' : '#FFFFFF'};
           }
           .chat-list-container::-webkit-scrollbar-thumb {
-            background-color: #CBD5E0;
+            background-color: ${isDarkMode ? '#4B5563' : '#CBD5E0'};
           }
         `}</style>
         {chatList?.data && chatList?.data?.length > 0 ? (
@@ -98,27 +97,39 @@ const ChatList = ({ setIsChatActive, status }) => {
               key={chat?._id}
               onClick={() => handleSelectChat(chat?._id)}
               className={`flex items-center gap-4 p-4 cursor-pointer rounded-lg
-                        ${chat?._id === id ? 'bg-[#EBF4FF]' : 'hover:bg-[#EBF4FF]'}`}
+                        ${chat?._id === id
+                  ? (isDarkMode ? 'bg-gray-700' : 'bg-[#EBF4FF]')
+                  : (isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-[#EBF4FF]')}
+                        ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}
             >
               <Avatar size={50} src={getImageUrl(chat?.participants?.[0]?.profile)} />
               <div className="flex-1">
                 <h3 className="font-medium ellipsis truncate max-w-[20ch]">
                   {chat?.participants?.[0]?.userName || "User"}
                 </h3>
-                <p className="text-sm text-gray-600 truncate">
+                <p className={`text-sm truncate ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                   {chat?.lastMessage?.text}
                 </p>
               </div>
-              <div className="text-right">
-                <p className="text-sm text-gray-500">
+              <div className="text-right flex flex-col gap-2">
+                <p className={`text-sm ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
                   {formatTime(chat.createdAt)}
                 </p>
+
+                <p className={`text-sm ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+                  {chats?.unreadCount === 0 ? null : (
+                    <span className="bg-blue-500 text-white rounded-full px-2 py-1 text-xs">
+                      {chats?.unreadCount}
+                    </span>
+                  )}
+                </p>
               </div>
+
             </div>
           ))
         ) : (
           <div className="flex justify-center items-center h-32">
-            <p className="text-gray-500">No chats found</p>
+            <p className={isDarkMode ? 'text-gray-400' : 'text-gray-500'}>No chats found</p>
           </div>
         )}
       </div>

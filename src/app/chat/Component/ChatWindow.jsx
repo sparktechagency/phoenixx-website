@@ -1,11 +1,12 @@
 'use client';
 import { useGetAllChatQuery, useGetAllMassageQuery, useMessageSendMutation } from '@/features/chat/massage';
 import { Avatar, Badge, Button, Form, Input, Upload } from 'antd';
-import { useEffect, useRef, useState } from 'react';
+import { useContext, useEffect, useRef, useState } from 'react';
 import { IoIosAttach } from 'react-icons/io';
 import { useSelector } from 'react-redux';
-import { baseURL } from '../../../../utils/BaseURL';
 import { getImageUrl } from '../../../../utils/getImageUrl';
+import { ThemeContext } from '../../ClientLayout';
+
 
 const ChatWindow = ({ id }) => {
   useGetAllMassageQuery(id);
@@ -16,7 +17,7 @@ const ChatWindow = ({ id }) => {
   const messagesEndRef = useRef(null);
   const [imagePreview, setImagePreview] = useState(null);
   const { data: chatList, isLoading: chatLoading } = useGetAllChatQuery("");
-  // console.log(chatList?.data?.participants)
+  const { isDarkMode } = useContext(ThemeContext);
 
   const users = chatList?.data?.find(chat => chat?.participants?.map(item => item === id));
 
@@ -89,9 +90,10 @@ const ChatWindow = ({ id }) => {
   };
 
   return (
-    <div className="flex flex-col h-[80vh]">
+    <div className={`flex flex-col h-[80vh] ${isDarkMode ? 'bg-gray-900 text-white' : ''}`}>
       {/* Header */}
-      <div className="p-4 bg-white flex items-center gap-4 border-b border-gray-200">
+      <div className={`p-4 flex items-center gap-4 border-b ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+        }`}>
         {users?.participants?.map((participantId, index) => (
           <div key={participantId} className="relative">
             <Avatar
@@ -113,7 +115,7 @@ const ChatWindow = ({ id }) => {
           </div>
         ))}
 
-        <h3 className="font-medium">
+        <h3 className={`font-medium ${isDarkMode ? 'text-white' : ''}`}>
           {users?.participants?.length > 0
             ? users.participants.map(participantId => <h3>{participantId.userName}</h3>)
             : "Chat Participants"
@@ -122,18 +124,19 @@ const ChatWindow = ({ id }) => {
       </div>
 
       {/* Message container */}
-      <div className="flex-1 bg-[#F5F5F6] p-4 pb-0 overflow-y-auto message-container">
+      <div className={`flex-1 p-4 pb-0 overflow-y-auto message-container ${isDarkMode ? 'bg-gray-800' : 'bg-[#F5F5F6]'
+        }`}>
         <style jsx global>{`
-                    .message-container::-webkit-scrollbar {
-                        width: 6px;
-                    }
-                    .message-container::-webkit-scrollbar-track {
-                        background: #F5F5F6;
-                    }
-                    .message-container::-webkit-scrollbar-thumb {
-                        background-color: #CBD5E0;
-                    }
-                `}</style>
+          .message-container::-webkit-scrollbar {
+            width: 6px;
+          }
+          .message-container::-webkit-scrollbar-track {
+            background: ${isDarkMode ? '#2D3748' : '#F5F5F6'};
+          }
+          .message-container::-webkit-scrollbar-thumb {
+            background-color: ${isDarkMode ? '#4A5568' : '#CBD5E0'};
+          }
+        `}</style>
 
         {messages.map((message, index) => {
           const isCurrentUser = message.sender?._id === loginUserId;
@@ -142,7 +145,7 @@ const ChatWindow = ({ id }) => {
               {/* Avatar for other users (top-aligned) */}
               {!isCurrentUser && (
                 <Avatar
-                  src={`${baseURL}${message.sender?.profile}` || "/images/default-avatar.jpg"}
+                  src={getImageUrl(message.sender?.profile)}
                   size={32}
                   className="mr-2 self-start"
                   style={{ marginRight: "3px" }}
@@ -150,7 +153,12 @@ const ChatWindow = ({ id }) => {
               )}
 
               {/* Message bubble */}
-              <div className={`max-w-xs p-3 rounded-lg ${isCurrentUser ? 'bg-blue-500 text-white' : 'bg-white text-gray-800'}`}>
+              <div className={`max-w-xs p-3 rounded-lg ${isCurrentUser
+                ? 'bg-blue-500 text-white'
+                : isDarkMode
+                  ? 'bg-gray-700 text-gray-200'
+                  : 'bg-white text-gray-800'
+                }`}>
                 {!isCurrentUser && (
                   <p className="text-xs font-semibold mb-1">{message.sender?.userName}</p>
                 )}
@@ -159,18 +167,20 @@ const ChatWindow = ({ id }) => {
 
                 {message.image && (
                   <img
-                    src={`${baseURL}${message.image}`}
+                    src={getImageUrl(message.image)}
                     alt="Message attachment"
                     className="rounded w-44 my-2 h-44 object-cover"
                   />
                 )}
-                <p className="text-xs mt-1 opacity-70">{formatDate(message.createdAt)}</p>
+                <p className={`text-xs mt-1 ${isDarkMode ? 'opacity-50' : 'opacity-70'}`}>
+                  {formatDate(message.createdAt)}
+                </p>
               </div>
 
               {/* Avatar for current user (bottom-aligned) */}
               {isCurrentUser && (
                 <Avatar
-                  src={`${baseURL}${message.sender?.profile}` || "/images/default-avatar.jpg"}
+                  src={getImageUrl(message.sender?.profile)}
                   size={32}
                   className="ml-2 self-end"
                 />
@@ -182,7 +192,8 @@ const ChatWindow = ({ id }) => {
       </div>
 
       {/* Input form */}
-      <div className="bg-white p-1 border-t border-gray-200">
+      <div className={`p-1 border-t ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+        }`}>
         {/* Image preview area */}
         {imagePreview && (
           <div className="mx-4 mt-2 relative">
@@ -190,11 +201,13 @@ const ChatWindow = ({ id }) => {
               <img
                 src={imagePreview}
                 alt="Preview"
-                className="h-20 w-auto rounded object-cover border border-gray-200"
+                className={`h-20 w-auto rounded object-cover border ${isDarkMode ? 'border-gray-600' : 'border-gray-200'
+                  }`}
               />
               <Button
                 type="text"
-                className="absolute -top-2 -right-2 bg-white rounded-full p-0 flex items-center justify-center h-6 w-6 shadow-md"
+                className={`absolute -top-2 -right-2 rounded-full p-0 flex items-center justify-center h-6 w-6 shadow-md ${isDarkMode ? 'bg-gray-700' : 'bg-white'
+                  }`}
                 onClick={removeImage}
                 style={{ fontSize: '12px' }}
               >
@@ -221,7 +234,7 @@ const ChatWindow = ({ id }) => {
             >
               <Button
                 type="text"
-                icon={<IoIosAttach color="#9F9F9F" size={24} />}
+                icon={<IoIosAttach color={isDarkMode ? "#9BA3AF" : "#9F9F9F"} size={24} />}
                 className="flex items-center justify-center"
                 style={{ marginTop: imagePreview ? "0" : "25px" }}
               />
@@ -230,12 +243,14 @@ const ChatWindow = ({ id }) => {
           <Form.Item style={{ width: '100%', margin: 0 }} name="message">
             <Input.Search
               style={{
-                backgroundColor: '#F5F5F6',
+                backgroundColor: isDarkMode ? '#374151' : '#F5F5F6',
                 borderRadius: '8px',
                 width: '100%',
+                color: isDarkMode ? 'white' : 'inherit',
               }}
               placeholder="Type something ..."
               allowClear
+              className={isDarkMode ? 'dark-input' : ''}
               enterButton={
                 <Button
                   htmlType='submit'
@@ -250,6 +265,38 @@ const ChatWindow = ({ id }) => {
           </Form.Item>
         </Form>
       </div>
+
+      {/* Add dark mode styles for Ant Design components */}
+      {isDarkMode && (
+        <style jsx global>{`
+          .ant-input {
+            background-color: #374151 !important;
+            color: white !important;
+            border-color: #4B5563 !important;
+          }
+
+          .ant-input::placeholder {
+            color: #9CA3AF !important;
+          }
+
+          .ant-input-search-button {
+            background-color: #0047FF !important;
+          }
+
+          .ant-btn-text:hover {
+            background-color: rgba(255, 255, 255, 0.08) !important;
+          }
+
+          .ant-input-clear-icon {
+            color: #9CA3AF !important;
+          }
+
+          .ant-input-affix-wrapper {
+            background-color: #374151 !important;
+            border-color: #4B5563 !important;
+          }
+        `}</style>
+      )}
     </div>
   );
 };

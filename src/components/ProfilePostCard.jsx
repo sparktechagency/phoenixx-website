@@ -9,6 +9,7 @@ import { AiOutlineEllipsis } from 'react-icons/ai';
 import { FaHeart, FaRegBookmark, FaRegHeart } from "react-icons/fa";
 import { FiFlag } from "react-icons/fi";
 import { baseURL } from '../../utils/BaseURL';
+import { getImageUrl } from '../../utils/getImageUrl';
 import { PostSEE } from '../../utils/svgImage';
 import EditPostModal from './EditPostModal';
 import ReportPostModal from './ReportPostModal';
@@ -103,7 +104,7 @@ const ProfilePostCard = ({
     return (
       author.profile ? (
         <img
-          src={`${baseURL}${author.profile}`}
+          src={getImageUrl(author.profile)}
           alt="Author avatar"
           className={`${isMobile ? 'w-6 h-6' : 'w-8 h-8'} rounded-full cursor-pointer`}
         />
@@ -160,7 +161,7 @@ const ProfilePostCard = ({
     {
       key: 'delete',
       label: (
-        <div className={`flex items-center gap-2 py-1 ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}>
+        <div className={`flex items-center gap-2 py-1 ${isDarkMode ? '' : 'hover:bg-gray-100'}`}>
           <span>✕</span>
           <span className={isDarkMode ? 'text-gray-200' : ''}>Delete Post</span>
         </div>
@@ -169,9 +170,9 @@ const ProfilePostCard = ({
     {
       key: 'edit',
       label: (
-        <div className={`flex items-center gap-2 py-1 ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}>
+        <div className={`flex items-center gap-2 py-1 ${isDarkMode ? '' : 'hover:bg-gray-100'}`}>
           <Image
-            src={isDarkMode ? "/icons/save_post_white.png" : "/icons/save_post.png"}
+            src={"/icons/save_post.png"}
             width={16}
             height={16}
             alt="Edit post"

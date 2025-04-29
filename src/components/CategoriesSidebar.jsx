@@ -1,19 +1,12 @@
 "use client";
 
 import { useCategoriesQuery } from '@/features/Category/CategoriesApi';
-import {
-  AppstoreOutlined,
-  DownOutlined,
-  RightOutlined,
-  ToolOutlined,
-  UnorderedListOutlined
-} from '@ant-design/icons';
+import { DownOutlined, RightOutlined, UnorderedListOutlined } from '@ant-design/icons';
 import { Spin } from 'antd';
 import Image from 'next/image';
 import React, { useContext, useEffect, useState } from 'react';
 import { baseURL } from '../../utils/BaseURL';
-import { Manufacturing, Marketing, Selling } from '../../utils/svgImage';
-import { ThemeContext } from '../app/layout';
+import { ThemeContext } from '../app/ClientLayout';
 
 const CategoriesSidebar = ({ onSelectCategory, selectedCategory, selectedSubCategory }) => {
   const [expandedKeys, setExpandedKeys] = useState([]);
@@ -23,7 +16,10 @@ const CategoriesSidebar = ({ onSelectCategory, selectedCategory, selectedSubCate
   });
 
   const { data: categoryData, isLoading: categoryLoading } = useCategoriesQuery();
+
+  // Get categories from API response
   const categories = categoryData?.data?.result || [];
+
   const { isDarkMode } = useContext(ThemeContext);
 
   useEffect(() => {
@@ -37,6 +33,25 @@ const CategoriesSidebar = ({ onSelectCategory, selectedCategory, selectedSubCate
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  // Auto-expand the category when a subcategory is selected
+  useEffect(() => {
+    if (selectedCategory && selectedSubCategory) {
+      // Ensure the parent category is expanded when a subcategory is selected
+      if (!expandedKeys.includes(selectedCategory)) {
+        setExpandedKeys(prev => [...prev, selectedCategory]);
+      }
+    }
+  }, [selectedCategory, selectedSubCategory, expandedKeys]);
+
+  // Optional: Collapse categories when "All Posts" is selected
+  useEffect(() => {
+    if (!selectedCategory && !selectedSubCategory) {
+      // If nothing is selected (All Posts view), you might want to collapse all categories
+      // Uncomment the line below if you want this behavior
+      // setExpandedKeys([]);
+    }
+  }, [selectedCategory, selectedSubCategory]);
 
   const isMobile = windowSize.width < 640;
   const isTablet = windowSize.width >= 640 && windowSize.width < 1024;
@@ -69,52 +84,54 @@ const CategoriesSidebar = ({ onSelectCategory, selectedCategory, selectedSubCate
   };
 
   const handleCategoryClick = (categoryId) => {
-    onSelectCategory(categoryId, "");
-    toggleExpand(categoryId);
+    // The first click should only expand/collapse the category without selecting it
+    const isCurrentlySelected = selectedCategory === categoryId;
+
+    if (isCurrentlySelected) {
+      // If already selected, just toggle expansion
+      toggleExpand(categoryId);
+    } else {
+      // First click - just toggle expansion without selecting
+      toggleExpand(categoryId);
+
+      // If this category has no subcategories or is already expanded, also select it
+      const category = categories.find(item => item.category._id === categoryId);
+      const hasSubcategories = category?.subcategories?.length > 0;
+      const isExpanded = expandedKeys.includes(categoryId);
+
+      if (!hasSubcategories || isExpanded) {
+        onSelectCategory(categoryId, "");
+      }
+    }
   };
 
-  const handleSubcategoryClick = (categoryId, subcategoryId) => {
+  const handleSubcategoryClick = (categoryId, subcategoryId, event) => {
+    // Prevent the click from bubbling up to the parent category
+    event.stopPropagation();
+
+    // Select both category and subcategory
     onSelectCategory(categoryId, subcategoryId);
   };
 
   const handleShowAllPosts = () => {
-    onSelectCategory("", "");
-    setExpandedKeys([]);
+    onSelectCategory("", "");  // Clear both category and subcategory selection
+    setExpandedKeys([]);       // Collapse all categories
   };
 
-  const getCategoryIcon = (categoryName) => {
-    switch (categoryName) {
-      case 'Technology':
-        return <ToolOutlined />;
-      case 'Physics':
-        return <AppstoreOutlined />;
-      case 'JavaScript':
-        return <AppstoreOutlined />;
-      default:
-        return <AppstoreOutlined />;
-    }
-  };
-
-  const getSubcategoryIcon = (subcategoryName) => {
-    switch (subcategoryName) {
-      case 'Web Development':
-        return <Marketing />;
-      case 'Physics Motion':
-        return <Selling />;
-      case 'React.js':
-        return <Marketing />;
-      case 'Next.js':
-        return <Selling />;
-      default:
-        return <Manufacturing />;
-    }
+  // Calculate total posts in all categories
+  const getTotalPosts = () => {
+    let total = 0;
+    categories.forEach(item => {
+      total += item.category.postCount || 0;
+    });
+    return total;
   };
 
   return (
-    <div className={`w-full shadow rounded-xl ${getPadding()} sm:sticky sm:top-20 ${isDarkMode ? 'bg-gray-800' : 'bg-white'
-      }`}>
-      <h5 className={`${getTitleSize()} font-semibold px-2 mb-4 ${isDarkMode ? 'text-gray-200' : 'text-gray-800'
-        }`}>Categories</h5>
+    <div className={`w-full shadow rounded-xl ${getPadding()} sm:sticky sm:top-20 ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
+      <h5 className={`${getTitleSize()} font-semibold px-2 mb-4 ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>
+        Categories
+      </h5>
 
       {categoryLoading ? (
         <div className='flex justify-center'>
@@ -124,28 +141,25 @@ const CategoriesSidebar = ({ onSelectCategory, selectedCategory, selectedSubCate
         <>
           <div
             className={`${isMobile ? 'py-2' : 'py-3'} px-2 cursor-pointer rounded-md mb-3 ${!selectedCategory && !selectedSubCategory
-                ? isDarkMode
-                  ? 'bg-gray-700 border-l-4 border-blue-400'
-                  : 'bg-blue-50 border-l-4 border-blue-500'
-                : isDarkMode
-                  ? 'hover:bg-gray-700'
-                  : 'hover:bg-gray-50'
+              ? isDarkMode
+                ? 'bg-gray-700 border-l-4 border-blue-400'
+                : 'bg-blue-50 border-l-4 border-blue-500'
+              : isDarkMode
+                ? 'hover:bg-gray-700'
+                : 'hover:bg-gray-50'
               }`}
             onClick={handleShowAllPosts}
           >
             <div className="flex items-center gap-3">
-              <span className={`text-lg border-[1px] rounded shadow-md px-2 py-[2px] ${isDarkMode ? 'border-gray-600 text-gray-300' : 'border-gray-300 text-gray-600'
-                }`}>
-                <UnorderedListOutlined />
+              <span className={`text-lg border-[1px] rounded shadow-md px-3 py-[6px] ${isDarkMode ? 'border-gray-600 text-gray-300' : 'border-gray-300 text-gray-600'}`}>
+                <UnorderedListOutlined size={30} />
               </span>
               <div className='flex flex-col gap-1'>
-                <span className={`font-medium ${getItemTextSize()} ${isDarkMode ? "text-gray-300" : "text-gray-800"
-                  }`}>
+                <span className={`font-medium ${getItemTextSize()} ${isDarkMode ? "text-gray-300" : "text-gray-800"}`}>
                   All Posts
                 </span>
-                <span className={`text-xs ${isDarkMode ? "text-gray-400" : "text-gray-500"
-                  }`}>
-                  {categories?.length || 0} Posts
+                <span className={`text-xs ${isDarkMode ? "text-gray-400" : "text-gray-500"}`}>
+                  {getTotalPosts()} Posts
                 </span>
               </div>
             </div>
@@ -164,33 +178,36 @@ const CategoriesSidebar = ({ onSelectCategory, selectedCategory, selectedSubCate
                 <React.Fragment key={key}>
                   <li
                     className={`${isMobile ? 'py-2' : 'py-3'} px-2 cursor-pointer rounded-md ${isSelected
-                        ? isDarkMode
-                          ? 'bg-gray-700 border-l-4 border-blue-400'
-                          : 'bg-blue-50 border-l-4 border-blue-500'
-                        : isDarkMode
-                          ? 'hover:bg-gray-700'
-                          : 'hover:bg-gray-50'
+                      ? isDarkMode
+                        ? 'bg-gray-700 border-l-4 border-blue-400'
+                        : 'bg-blue-50 border-l-4 border-blue-500'
+                      : isDarkMode
+                        ? 'hover:bg-gray-700'
+                        : 'hover:bg-gray-50'
                       }`}
                     onClick={() => handleCategoryClick(category._id)}
                   >
                     <div className="flex justify-between items-center w-full">
                       <div className="flex items-center gap-3">
-                        <span className={`text-lg border-[1px] rounded shadow-md p-[3px] ${isDarkMode ? 'border-gray-600' : 'border-gray-300'
-                          }`}>
-                          <Image
-                            src={`${baseURL}${category?.image}`}
-                            height={40}
-                            width={35}
-                            alt={category?.name}
-                          />
+                        <span className={`text-lg border-[1px] rounded shadow-md p-1.5 ${isDarkMode ? 'border-gray-600' : 'border-gray-300'}`}>
+                          {category?.image ? (
+                            <Image
+                              src={`${baseURL}${category.image}`}
+                              height={40}
+                              width={35}
+                              alt={category?.name || "Category image"}
+                            />
+                          ) : (
+                            <div className="h-10 w-8 bg-gray-200 flex items-center justify-center">
+                              <UnorderedListOutlined />
+                            </div>
+                          )}
                         </span>
                         <div className='flex flex-col gap-1'>
-                          <span className={`font-medium ${getItemTextSize()} ${isDarkMode ? "text-gray-300" : "text-gray-800"
-                            }`}>
+                          <span className={`font-medium ${getItemTextSize()} ${isDarkMode ? "text-gray-300" : "text-gray-800"}`}>
                             {category.name}
                           </span>
-                          <span className={`text-xs ${isDarkMode ? "text-gray-400" : "text-gray-500"
-                            }`}>
+                          <span className={`text-xs ${isDarkMode ? "text-gray-400" : "text-gray-500"}`}>
                             {category.postCount || 0} Posts
                           </span>
                         </div>
@@ -199,10 +216,8 @@ const CategoriesSidebar = ({ onSelectCategory, selectedCategory, selectedSubCate
                         {hasSubcategories && (
                           <span>
                             {isExpanded
-                              ? <DownOutlined className={`text-xs ${isDarkMode ? "text-gray-400" : "text-gray-400"
-                                }`} />
-                              : <RightOutlined className={`text-xs ${isDarkMode ? "text-gray-400" : "text-gray-400"
-                                }`} />
+                              ? <DownOutlined className={`text-xs ${isDarkMode ? "text-gray-400" : "text-gray-400"}`} />
+                              : <RightOutlined className={`text-xs ${isDarkMode ? "text-gray-400" : "text-gray-400"}`} />
                             }
                           </span>
                         )}
@@ -218,28 +233,36 @@ const CategoriesSidebar = ({ onSelectCategory, selectedCategory, selectedSubCate
                           <li
                             key={subcategory._id}
                             className={`py-1.5 px-2 text-sm rounded-md ${isSubSelected
-                                ? isDarkMode
-                                  ? 'bg-gray-700 border-l-4 border-blue-400'
-                                  : 'bg-blue-50 border-l-4 border-blue-500'
-                                : isDarkMode
-                                  ? 'hover:bg-gray-700'
-                                  : 'hover:bg-gray-50'
+                              ? isDarkMode
+                                ? 'bg-gray-700 border-l-4 border-blue-400'
+                                : 'bg-blue-50 border-l-4 border-blue-500'
+                              : isDarkMode
+                                ? 'hover:bg-gray-700'
+                                : 'hover:bg-gray-50'
                               }`}
-                            onClick={() => handleSubcategoryClick(category._id, subcategory._id)}
+                            onClick={(e) => handleSubcategoryClick(category._id, subcategory._id, e)}
                           >
                             <div className="flex justify-between">
                               <div className="flex items-center gap-3 cursor-pointer">
-                                <span className={`text-lg border-[1px] rounded shadow-md p-1.5 ${isDarkMode ? 'border-gray-600' : 'border-gray-300'
-                                  }`}>
-                                  {getSubcategoryIcon(subcategory.name)}
+                                <span className={`text-lg border-[1px] rounded shadow-md p-1.5 ${isDarkMode ? 'border-gray-600' : 'border-gray-300'}`}>
+                                  {subcategory?.image ? (
+                                    <Image
+                                      src={`${baseURL}${subcategory.image}`}
+                                      height={28}
+                                      width={28}
+                                      alt={subcategory?.name || "Subcategory image"}
+                                    />
+                                  ) : (
+                                    <div className="h-7 w-7 bg-gray-200 flex items-center justify-center text-xs">
+                                      {subcategory.name?.charAt(0)}
+                                    </div>
+                                  )}
                                 </span>
                                 <div className='flex flex-col gap-1'>
-                                  <span className={`font-medium ${getItemTextSize()} ${isDarkMode ? "text-gray-300" : "text-gray-800"
-                                    }`}>
+                                  <span className={`font-medium ${getItemTextSize()} ${isDarkMode ? "text-gray-300" : "text-gray-800"}`}>
                                     {subcategory.name}
                                   </span>
-                                  <span className={`text-xs ${isDarkMode ? "text-gray-400" : "text-gray-500"
-                                    }`}>
+                                  <span className={`text-xs ${isDarkMode ? "text-gray-400" : "text-gray-500"}`}>
                                     {subcategory.postCount || 0} Posts
                                   </span>
                                 </div>

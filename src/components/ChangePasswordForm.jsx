@@ -2,7 +2,8 @@ import { useChangePasswordMutation } from '@/features/auth/authApi';
 import { EyeInvisibleOutlined, EyeTwoTone } from '@ant-design/icons';
 import { Button, Form, Input, message, notification } from 'antd';
 import { useContext } from 'react';
-import { ThemeContext } from '../app/layout';
+import { ThemeContext } from '../app/ClientLayout';
+
 
 const ChangePasswordForm = () => {
   const [form] = Form.useForm();

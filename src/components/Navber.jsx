@@ -1,8 +1,6 @@
 "use client";
 import { useGetProfileQuery } from '@/features/profile/profileApi';
-import { useTheme } from '@/hooks/useTheme';
 import {
-  BellOutlined,
   CloseOutlined,
   CommentOutlined,
   LogoutOutlined,
@@ -33,11 +31,14 @@ import {
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useContext, useEffect, useRef, useState } from 'react';
+import { IoNotificationsSharp } from "react-icons/io5";
 import { useSelector } from 'react-redux';
+
 import { baseURL } from '../../utils/BaseURL';
 import { getImageUrl } from '../../utils/getImageUrl';
-import { Message, Notification } from '../../utils/svgImage';
+import { Message } from '../../utils/svgImage';
+import { ThemeContext } from '../app/ClientLayout';
 import { useGetAllChatQuery } from '../features/chat/massage';
 import { useGetAllNotificationQuery } from '../features/notification/noticationApi';
 import { useLogoQuery } from '../features/report/reportApi';
@@ -55,9 +56,12 @@ export default function Navbar() {
   const searchRef = useRef(null);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { isDarkMode, toggleTheme } = useTheme();
+
+  // Using ThemeContext instead of useTheme hook
+  const { isDarkMode, toggleTheme } = useContext(ThemeContext);
+
   const { isLoading: allNotificationLoading, refetch } = useGetAllNotificationQuery({});
-  const { isLoading: allChatLoading , refetch: refetchChat } = useGetAllChatQuery("");
+  const { isLoading: allChatLoading, refetch: refetchChat } = useGetAllChatQuery("");
   const { notifications } = useSelector((state) => state);
   const { chats } = useSelector((state) => state);
   console.log(chats)
@@ -86,7 +90,7 @@ export default function Navbar() {
     {
       key: 'profile-header',
       label: (
-        <Flex gap="small" align="center" className={`p-2 cursor-pointer ${isDarkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-50'}`}>
+        <Flex gap="small" align="center" className={`p-2 cursor-pointer ${isDarkMode ? '' : 'hover:bg-gray-50'}`}>
           <Avatar
             src={getImageUrl(data?.data?.profile)}
             size={44}
@@ -332,7 +336,7 @@ export default function Navbar() {
     <>
       <SocketComponent />
       <Header
-        className="theme-transition"
+        className={`theme-transition ${isDarkMode ? 'dark-mode' : 'light-mode'}`}
         style={{
           background: isDarkMode ? 'var(--secondary-bg)' : '#fff',
           display: 'flex',
@@ -366,15 +370,25 @@ export default function Navbar() {
                 }}
               />
             )}
-            <Link href="/" style={{ display: 'flex', alignItems: 'center', height: '100%' }}>
+            <Link
+              href="/"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                height: '100%',
+                lineHeight: 0 // This prevents extra space below the image
+              }}
+            >
               <Image
                 src={logo?.data?.logo ? `${baseURL}${logo?.data?.logo}` : "/images/logo.png"}
                 width={!screens.md ? 70 : 120}
-                height={10}
+                height={!screens.md ? 30 : 50} // Set an appropriate height based on screen size
                 alt='logo'
                 style={{
                   objectFit: 'contain',
+                  width: 'auto',
                   height: 'auto',
+                  maxHeight: '100%', // Ensures it doesn't exceed container height
                   filter: isDarkMode ? 'brightness(0.9) contrast(1.1)' : 'none'
                 }}
               />
@@ -417,7 +431,7 @@ export default function Navbar() {
                   <Button
                     onClick={() => handleNavigation("/notification")}
                     type="text"
-                    icon={<Notification isDarkMode={isDarkMode} />}
+                    icon={<IoNotificationsSharp size={21} />}
                     style={iconButtonStyles}
                   />
                 </Badge>
@@ -467,7 +481,7 @@ export default function Navbar() {
         onClose={onClose}
         open={drawerVisible}
         width={250}
-        className="theme-transition"
+        className={`theme-transition ${isDarkMode ? 'dark-mode' : 'light-mode'}`}
       >
         <Menu
           mode="inline"
@@ -487,7 +501,7 @@ export default function Navbar() {
             },
             {
               key: 'notifications',
-              icon: <BellOutlined />,
+              icon: <IoNotificationsSharp />,
               label: 'Notifications',
               onClick: () => handleNavigation('/notification')
             },

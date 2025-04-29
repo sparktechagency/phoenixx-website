@@ -26,7 +26,8 @@ import { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { baseURL } from '../../../utils/BaseURL';
 import { useAuth } from '../../hooks/useAuth';
-import { ThemeContext } from '../layout';
+import { ThemeContext } from '../ClientLayout';
+
 
 const JoditEditor = dynamic(() => import('jodit-react'), {
   ssr: false,

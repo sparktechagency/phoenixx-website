@@ -1,17 +1,19 @@
 "use client";
-import React, { useState, useCallback, useMemo, useContext } from 'react';
+import { useGetSaveAllPostQuery, useSavepostMutation } from '@/features/SavePost/savepostApi';
+import { Dropdown, message } from 'antd';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import React, { useCallback, useContext, useMemo, useState } from 'react';
 import { AiOutlineEllipsis } from 'react-icons/ai';
 import { FaHeart, FaRegHeart } from "react-icons/fa";
-import Image from 'next/image';
-import { Dropdown, message } from 'antd';
 import { baseURL } from '../../utils/BaseURL';
 import { PostSEE } from '../../utils/svgImage';
-import { useGetSaveAllPostQuery, useSavepostMutation } from '@/features/SavePost/savepostApi';
 import ReportPostModal from './ReportPostModal';
 
 import toast from 'react-hot-toast';
-import { ThemeContext } from '../app/layout';
+import { getImageUrl } from '../../utils/getImageUrl';
+import { ThemeContext } from '../app/ClientLayout';
+
 
 const useWindowSize = () => {
   const [windowSize, setWindowSize] = useState({
@@ -95,7 +97,7 @@ const PostCard = ({
       label: (
         <div className="flex items-center gap-2 py-1">
           <Image
-            src={isDarkMode ? "/icons/save_post_light.png" : "/icons/save_post.png"}
+            src={"/icons/save_post.png"}
             width={16}
             height={16}
             alt={isSaved ? "Unsave post" : "Save post"}
@@ -111,7 +113,7 @@ const PostCard = ({
       label: (
         <div className="flex items-center gap-2 py-1">
           <Image
-            src={isDarkMode ? "/icons/report_light.png" : "/icons/report.png"}
+            src={"/icons/report.png"}
             height={16}
             width={16}
             alt="report"
@@ -133,7 +135,7 @@ const PostCard = ({
   const renderAuthorAvatar = useMemo(() => (
     postData.author.avatar ? (
       <img
-        src={`${baseURL}${postData.author.avatar}`}
+        src={getImageUrl(postData.author.avatar)}
         alt="Author avatar"
         className={`${isMobile ? 'w-6 h-6' : 'w-8 h-8'} rounded-full cursor-pointer`}
       />
@@ -169,19 +171,32 @@ const PostCard = ({
     postData.tags?.length > 0 && (
       <div className="flex flex-wrap items-center gap-2">
         {postData.tags.map((tag, index) => (
-          <span
-            key={index}
-            className={`text-xs py-1 px-2 rounded ${isDarkMode
+          <div className='flex items-center gap-2'>
+            <span
+              key={index}
+              className={`text-xs py-1 px-2 rounded ${isDarkMode
                 ? 'bg-gray-700 text-blue-400'
                 : 'bg-[#E6E6FF] text-gray-800'
-              }`}
-          >
-            {tag}
-          </span>
+                }`}
+            >
+              {tag.category ? tag.category : ''}
+            </span>
+
+            <span
+              key={index}
+              className={`text-xs py-1 px-2 rounded ${isDarkMode
+                ? 'bg-gray-700 text-blue-400'
+                : 'bg-[#E6E6FF] text-gray-800'
+                }`}
+            >
+              {tag.subcategory ? tag.subcategory : ''}
+            </span>
+          </div>
         ))}
       </div>
     )
   ), [postData.tags, isDarkMode]);
+
 
   return (
     <>
@@ -247,7 +262,7 @@ const PostCard = ({
         {postData.image && (
           <div className="mb-4">
             <img
-              src={`${baseURL}${postData.image}`}
+              src={getImageUrl(postData.image)}
               alt="Post content"
               className="w-full h-[350px] rounded-lg object-cover cursor-pointer"
               onClick={handlePostDetails}

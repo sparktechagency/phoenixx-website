@@ -1,6 +1,7 @@
 
 import { useContext } from 'react';
-import { ThemeContext } from '../app/layout';
+import { ThemeContext } from '../app/ClientLayout';
+
 
 const CustomBanner = ({ routeName }) => {
   const { isDarkMode } = useContext(ThemeContext);

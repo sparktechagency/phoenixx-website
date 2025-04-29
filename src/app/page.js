@@ -12,9 +12,12 @@ import moment from 'moment';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useContext, useEffect, useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
-import { ThemeContext } from './layout';
+import { ThemeContext } from './ClientLayout';
+
 
 const HomePage = () => {
+
+
   useAuth();
 
   // Force rerender when navigating back to this page
@@ -28,23 +31,21 @@ const HomePage = () => {
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [selectedSubCategory, setSelectedSubCategory] = useState(null);
   const [sortOrder, setSortOrder] = useState("newest");
-  const [currentPage, setCurrentPage] = useState(1);
   const [currentUser, setCurrentUser] = useState({ id: null });
-  const postsPerPage = 10;
 
   const { isDarkMode } = useContext(ThemeContext);
 
   // Routing and params
   const router = useRouter();
   const searchValue = searchParams.get("search");
-  const pageParam = searchParams.get("page");
+  const pageParam = searchParams.get("page") || "1";
   const categoryParam = searchParams.get("category");
   const subcategoryParam = searchParams.get("subcategory");
   const sortParam = searchParams.get("sort");
+  const limitParam = searchParams.get("limit") || "10";
 
   // Initialize state from URL params and user
   useEffect(() => {
-    if (pageParam) setCurrentPage(parseInt(pageParam));
     if (categoryParam) setSelectedCategory(categoryParam);
     if (subcategoryParam) setSelectedSubCategory(subcategoryParam);
     if (sortParam) setSortOrder(sortParam);
@@ -54,21 +55,27 @@ const HomePage = () => {
         id: localStorage.getItem("login_user_id")
       });
     }
-  }, [pageParam, categoryParam, subcategoryParam, sortParam]);
+  }, [categoryParam, subcategoryParam, sortParam]);
 
-  // API query params
+  // API query params directly from URL
   const queryParams = {
     ...(searchValue && { searchTerm: searchValue }),
-    ...(selectedCategory && { category: selectedCategory }),
-    ...(selectedSubCategory && { subCategory: selectedSubCategory }),
-    sort: sortOrder,
-    page: currentPage,
-    limit: postsPerPage
+    ...(categoryParam && { category: categoryParam }),
+    ...(subcategoryParam && { subCategory: subcategoryParam }),
+    sort: sortParam || sortOrder,
+    page: parseInt(pageParam),
+    limit: parseInt(limitParam)
   };
 
   // API calls
   const { data, isLoading, error } = useGetPostQuery(queryParams);
   const [likePost] = useLikePostMutation();
+
+  // Extract pagination metadata from API response
+  const currentPage = data?.data?.meta?.page || parseInt(pageParam);
+  const postsPerPage = data?.data?.meta?.limit || parseInt(limitParam);
+  const totalPosts = data?.data?.meta?.total || 0;
+  const totalPages = data?.data?.meta?.totalPage || Math.ceil(totalPosts / postsPerPage);
 
   // Window resize handler
   useEffect(() => {
@@ -89,7 +96,6 @@ const HomePage = () => {
   const handleCategorySelect = (categoryId, subCategoryId = null) => {
     setSelectedCategory(categoryId);
     setSelectedSubCategory(subCategoryId);
-    setCurrentPage(1);
     updateUrlParams({
       category: categoryId || undefined,
       subcategory: subCategoryId || undefined,
@@ -99,12 +105,10 @@ const HomePage = () => {
 
   const handleSortChange = (sortOption) => {
     setSortOrder(sortOption);
-    setCurrentPage(1);
     updateUrlParams({ sort: sortOption, page: 1 });
   };
 
   const handlePageChange = (page) => {
-    setCurrentPage(page);
     updateUrlParams({ page });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -126,7 +130,6 @@ const HomePage = () => {
   const clearAllFilters = () => {
     setSelectedCategory(null);
     setSelectedSubCategory(null);
-    setCurrentPage(1);
     setSortOrder("newest");
     router.push(pathname);
   };
@@ -153,7 +156,7 @@ const HomePage = () => {
     title: post.title,
     content: post.content,
     image: post.image,
-    tags: [post.category?.name || "General"],
+    tags: [{ category: post.category?.name, subcategory: post.subCategory?.name }],
     stats: {
       likes: post.likes?.length || 0,
       comments: post.comments?.length || 0,
@@ -166,40 +169,28 @@ const HomePage = () => {
   // Data processing
   let posts = data?.data?.data || [];
 
-  // Sort posts based on the selected sort order if client-side sorting is needed
-  // Note: This should ideally be handled by the backend API, but we can also sort on the client side
-  if (posts.length > 0) {
+  // Client-side sorting if needed
+  if (posts.length > 0 && !data?.data?.meta?.sorted) {
     switch (sortOrder) {
       case "newest":
-        // Sort by creation date, newest first
         posts = [...posts].sort((a, b) =>
           new Date(b.createdAt) - new Date(a.createdAt)
         );
         break;
       case "oldest":
-        // Sort by creation date, oldest first
         posts = [...posts].sort((a, b) =>
           new Date(a.createdAt) - new Date(b.createdAt)
         );
         break;
       case "popular":
-        // Sort by likes count and views, most popular first
         posts = [...posts].sort((a, b) => {
           const aPopularity = (a.likes?.length || 0) + (a.views || 0);
           const bPopularity = (b.likes?.length || 0) + (b.views || 0);
           return bPopularity - aPopularity;
         });
         break;
-      default:
-        // Default to newest
-        posts = [...posts].sort((a, b) =>
-          new Date(b.createdAt) - new Date(a.createdAt)
-        );
     }
   }
-
-  const totalPosts = data?.data?.meta?.total || 0;
-  const totalPages = Math.ceil(totalPosts / postsPerPage);
 
   const getCategoryName = () => {
     if (selectedSubCategory) {
@@ -382,7 +373,7 @@ const HomePage = () => {
                       ))}
                     </motion.div>
 
-                    {/* Pagination */}
+                    {/* Dynamic Pagination using API data */}
                     {totalPages > 1 && (
                       <div className="flex justify-center mt-6">
                         <Pagination
@@ -471,31 +462,34 @@ const HomePage = () => {
                     ))}
                   </div>
 
-                  {totalPages > 1 && (
-                    <div className="flex justify-center mt-6">
-                      <Pagination
-                        current={currentPage}
-                        total={totalPosts}
-                        pageSize={postsPerPage}
-                        onChange={handlePageChange}
-                        showSizeChanger={false}
-                        itemRender={(current, type, originalElement) => {
-                          if (type === 'prev') {
-                            return <Button icon={<LeftOutlined />} />;
-                          }
-                          if (type === 'next') {
-                            return <Button icon={<RightOutlined />} />;
-                          }
-                          return originalElement;
-                        }}
-                      />
-                    </div>
-                  )}
+                  {/* Dynamic Pagination using API data */}
+
+
+
                 </>
               )}
             </div>
           )}
         </LayoutGroup>
+
+        <div className="flex justify-center my-1">
+          <Pagination
+            current={currentPage}
+            total={totalPosts}
+            pageSize={postsPerPage}
+            onChange={handlePageChange}
+            showSizeChanger={false}
+            itemRender={(current, type, originalElement) => {
+              if (type === 'prev') {
+                return <Button icon={<LeftOutlined />} />;
+              }
+              if (type === 'next') {
+                return <Button icon={<RightOutlined />} />;
+              }
+              return originalElement;
+            }}
+          />
+        </div>
       </main>
     </div>
   );

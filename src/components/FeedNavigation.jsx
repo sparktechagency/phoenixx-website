@@ -1,9 +1,10 @@
 "use client"
-import React, { useContext, useEffect, useState } from 'react';
-import { Dropdown, Button } from 'antd';
 import { AppstoreOutlined, DownOutlined } from '@ant-design/icons';
+import { Button, Dropdown } from 'antd';
+import React, { useContext, useEffect, useState } from 'react';
 import { RiArrowUpDownLine } from "react-icons/ri";
-import { ThemeContext } from '@/app/layout';
+import { ThemeContext } from '../app/ClientLayout';
+
 
 const FeedNavigation = ({ handlefeedGrid, onSortChange, currentSort }) => {
   const [clickCount, setClickCount] = useState(1);
@@ -82,7 +83,7 @@ const FeedNavigation = ({ handlefeedGrid, onSortChange, currentSort }) => {
         menu={menuProps}
         trigger={['click']}
         dropdownRender={(menu) => (
-          <div className="rounded-lg overflow-hidden" style={{ boxShadow:"0 4px 12px rgba(0, 0, 0, 0.1)"}}>
+          <div className="rounded-lg overflow-hidden" style={{ boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)" }}>
             {React.cloneElement(menu, {
               style: { boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)' },
             })}

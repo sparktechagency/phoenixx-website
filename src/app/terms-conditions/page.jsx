@@ -4,7 +4,8 @@ import CustomBanner from '@/components/CustomBanner';
 import { Spin } from 'antd';
 import { useContext } from 'react';
 import { useTermsAndConditionQuery } from '../../features/About/AboutApi';
-import { ThemeContext } from '../layout';
+import { ThemeContext } from '../ClientLayout';
+
 
 
 const page = () => {
@@ -24,8 +25,10 @@ const page = () => {
       return <span className='flex justify-center'>No Available Content</span>;
     }
 
-    return <div className={isDarkMode ? 'text-gray-200' : 'text-gray-800'}>
-      {data.data.content.replace(/<[^>]*>/g, '')}
+    return <div className={isDarkMode ? 'text-gray-200' : 'text-gray-800'} dangerouslySetInnerHTML={{ __html: data.data.content }}>
+
+      {/* {data.data.content.replace(/<[^>]*>/g, '')} */}
+
     </div>;
   };
 

@@ -1,6 +1,7 @@
 // hooks/useTheme.js
-import { ThemeContext } from '@/app/layout';
+
 import { useContext } from 'react';
+import { ThemeContext } from '../app/ClientLayout';
 
 export function useTheme() {
 

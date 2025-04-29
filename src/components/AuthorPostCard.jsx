@@ -4,13 +4,17 @@ import { Dropdown } from 'antd';
 import { formatDistanceToNow } from 'date-fns';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useContext, useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { AiOutlineEllipsis } from 'react-icons/ai';
 import { FaHeart, FaRegBookmark, FaRegHeart } from "react-icons/fa";
 import { baseURL } from '../../utils/BaseURL';
+import { getImageUrl } from '../../utils/getImageUrl';
 import { PostSEE } from '../../utils/svgImage';
 import EditPostModal from './EditPostModal';
+import { ThemeContext } from '../app/ClientLayout';
+
+
 
 const AuthorPostCard = ({
   postData,
@@ -20,6 +24,7 @@ const AuthorPostCard = ({
   currentUser = { name: "User", avatar: "" }
 }) => {
   const router = useRouter();
+  const { isDarkMode } = useContext(ThemeContext);
   const [windowSize, setWindowSize] = useState({
     width: typeof window !== 'undefined' ? window.innerWidth : 0,
     height: typeof window !== 'undefined' ? window.innerHeight : 0
@@ -66,6 +71,7 @@ const AuthorPostCard = ({
   const handleLike = () => onLike?.(postData._id);
 
   const handleShare = () => {
+    const postId = postData?._id;
     navigator.clipboard.writeText(`${baseURL}/posts/${postId}`).then(() => {
       toast.success("Link copied successfully");
     }).catch(() => {
@@ -88,12 +94,12 @@ const AuthorPostCard = ({
     return (
       author.profile ? (
         <img
-          src={`${baseURL}${author.profile}`}
+          src={getImageUrl(author.profile)}
           alt="Author avatar"
           className={`${isMobile ? 'w-6 h-6' : 'w-8 h-8'} rounded-full cursor-pointer`}
         />
       ) : (
-        <div className={`${isMobile ? 'w-6 h-6' : 'w-8 h-8'} rounded-full bg-gray-300 flex items-center justify-center text-xs`}>
+        <div className={`${isMobile ? 'w-6 h-6' : 'w-8 h-8'} rounded-full ${isDarkMode ? 'bg-gray-700' : 'bg-gray-300'} flex items-center justify-center text-xs ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
           {author.userName?.charAt(0).toUpperCase() || author.name?.charAt(0).toUpperCase() || 'A'}
         </div>
       )
@@ -105,12 +111,12 @@ const AuthorPostCard = ({
     const plainContent = content.replace(/<[^>]+>/g, '');
 
     return (
-      <div className={`mb-3 text-gray-700 ${isMobile ? 'text-sm' : 'text-base'}`}>
+      <div className={`mb-3 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'} ${isMobile ? 'text-sm' : 'text-base'}`}>
         {plainContent.split(' ').length > 20 ? (
           <>
             {plainContent.split(' ').slice(0, 20).join(' ')}...
             <button
-              className="text-blue-600 hover:text-blue-800 cursor-pointer font-medium ml-1"
+              className={`${isDarkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-800'} cursor-pointer font-medium ml-1`}
               onClick={handleCommentClick}
             >
               See more
@@ -129,7 +135,7 @@ const AuthorPostCard = ({
       tags.length > 0 && (
         <div className="flex flex-wrap items-center gap-2">
           {tags.map((tag, index) => (
-            <span key={index} className="bg-[#E6E6FF] text-xs py-1 px-2 rounded">
+            <span key={index} className={`${isDarkMode ? 'bg-blue-900 text-blue-200' : 'bg-[#E6E6FF]'} text-xs py-1 px-2 rounded`}>
               {tag}
             </span>
           ))}
@@ -137,7 +143,6 @@ const AuthorPostCard = ({
       )
     );
   };
-
 
   const formatDate = (dateString) => {
     if (!dateString) return 'Just now';
@@ -153,8 +158,8 @@ const AuthorPostCard = ({
     {
       key: 'unsave',
       label: (
-        <div className="flex items-center gap-2 py-1">
-          <FaRegBookmark className="text-gray-600" />
+        <div className={`flex items-center gap-2 py-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-800'}`}>
+          <FaRegBookmark className={isDarkMode ? "text-gray-400" : "text-gray-600"} />
           <span>Unsave Post</span>
         </div>
       ),
@@ -163,7 +168,7 @@ const AuthorPostCard = ({
     {
       key: 'delete',
       label: (
-        <div className="flex items-center gap-2 py-1">
+        <div className={`flex items-center gap-2 py-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-800'}`}>
           <span>✕</span>
           <span>Delete Post</span>
         </div>
@@ -172,7 +177,7 @@ const AuthorPostCard = ({
     {
       key: 'edit',
       label: (
-        <div className="flex items-center gap-2 py-1">
+        <div className={`flex items-center gap-2 py-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-800'}`}>
           <Image
             src={"/icons/save_post.png"}
             width={16}
@@ -192,15 +197,15 @@ const AuthorPostCard = ({
 
   return (
     <>
-      <div className={`rounded-lg bg-white shadow mb-4 ${isMobile ? 'p-3' : isTablet ? 'p-4' : 'p-5'}`}>
+      <div className={`rounded-lg ${isDarkMode ? 'bg-gray-800 shadow-dark' : 'bg-white shadow'} mb-4 ${isMobile ? 'p-3' : isTablet ? 'p-4' : 'p-5'}`}>
         <div className="flex justify-between items-center mb-3">
           <div className="flex items-center gap-2">
             {renderAuthorAvatar()}
             <div className="flex flex-col items-start">
-              <span className={`font-medium ${isMobile ? 'text-xs' : 'text-base'} text-gray-900`}>
+              <span className={`font-medium ${isMobile ? 'text-xs' : 'text-base'} ${isDarkMode ? 'text-gray-200' : 'text-gray-900'}`}>
                 {author.userName || author.name || "User"}
               </span>
-              <span className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-500`}>
+              <span className={`${isMobile ? 'text-xs' : 'text-sm'} ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                 {postData.isSavedPost
                   ? `Saved ${postData.savedAt}`
                   : (formatDate(postData.createdAt))}
@@ -209,18 +214,22 @@ const AuthorPostCard = ({
           </div>
 
           <Dropdown
-            menu={{ items: menuItems, onClick: handleOptionSelect }}
+            menu={{
+              items: menuItems,
+              onClick: handleOptionSelect,
+              className: isDarkMode ? 'dark-dropdown' : ''
+            }}
             placement="bottomRight"
             trigger={['click']}
           >
-            <button className="font-bold p-1 rounded hover:bg-gray-100 cursor-pointer">
-              <AiOutlineEllipsis className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'}`} />
+            <button className={`font-bold p-1 rounded ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} cursor-pointer`}>
+              <AiOutlineEllipsis className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`} />
             </button>
           </Dropdown>
         </div>
 
         {postData.title && (
-          <h2 onClick={handlePostDetails} className={`${isMobile ? 'text-lg' : isTablet ? 'text-xl' : 'text-2xl'} cursor-pointer hover:text-blue-700 font-bold mb-3`}>
+          <h2 onClick={handlePostDetails} className={`${isMobile ? 'text-lg' : isTablet ? 'text-xl' : 'text-2xl'} cursor-pointer ${isDarkMode ? 'text-gray-100 hover:text-blue-300' : 'hover:text-blue-700 text-gray-900'} font-bold mb-3`}>
             {postData.title}
           </h2>
         )}
@@ -239,30 +248,30 @@ const AuthorPostCard = ({
 
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-4 sm:gap-6">
-            <button onClick={handleLike} className="flex items-center cursor-pointer hover:bg-gray-100 p-1 rounded">
+            <button onClick={handleLike} className={`flex items-center cursor-pointer ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} p-1 rounded`}>
               {isLikedByUser ?
                 <FaHeart className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} text-red-500`} /> :
-                <FaRegHeart className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} text-gray-500`} />
+                <FaRegHeart className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} />
               }
-              <span className={`ml-1 ${isMobile ? 'text-xs' : 'text-sm'} text-gray-700`}>{likesCount}</span>
+              <span className={`ml-1 ${isMobile ? 'text-xs' : 'text-sm'} ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{likesCount}</span>
             </button>
 
-            <button onClick={handleCommentClick} className="flex items-center cursor-pointer hover:bg-gray-100 p-1 rounded">
-              <Image src="/icons/message.png" width={20} height={20} alt="message icons" />
-              <span className={`ml-1 -mt-[1px] ${isMobile ? 'text-xs' : 'text-sm'} text-gray-700`}>{commentsCount}</span>
+            <button onClick={handleCommentClick} className={`flex items-center cursor-pointer ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} p-1 rounded`}>
+              <Image src={"/icons/message.png"} width={20} height={20} alt="message icons" />
+              <span className={`ml-1 -mt-[1px] ${isMobile ? 'text-xs' : 'text-sm'} ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{commentsCount}</span>
             </button>
 
             {renderTags()}
           </div>
 
           <div className="flex items-center gap-3">
-            <div className={`flex items-center gap-1 ${isMobile ? 'text-xs' : 'text-sm'} text-gray-500`}>
-              <PostSEE />
-              <span className="">{postData?.views}</span>
+            <div className={`flex items-center gap-1 ${isMobile ? 'text-xs' : 'text-sm'} ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+              <PostSEE className={isDarkMode ? "fill-gray-400" : ""} />
+              <span>{postData?.views}</span>
             </div>
 
-            <button onClick={handleShare} className="text-gray-500 px-2 py-1.5 cursor-pointer hover:bg-gray-100 rounded-sm">
-              <Image src="/icons/share.png" width={20} height={20} alt="share button" />
+            <button onClick={handleShare} className={`${isDarkMode ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-500 hover:bg-gray-100'} px-2 py-1.5 cursor-pointer rounded-sm`}>
+              <Image src={"/icons/share.png"} width={20} height={20} alt="share button" />
             </button>
           </div>
         </div>
@@ -272,6 +281,7 @@ const AuthorPostCard = ({
         visible={editModalVisible}
         onClose={() => setEditModalVisible(false)}
         postData={postData}
+        isDarkMode={isDarkMode}
       />
     </>
   );

@@ -4,7 +4,8 @@ import { PlusOutlined } from '@ant-design/icons';
 import { Button, Col, Form, Grid, Input, message, Modal, Row, Spin, Upload } from 'antd';
 import { useContext, useEffect, useState } from 'react';
 import { getImageUrl } from '../../../utils/getImageUrl';
-import { ThemeContext } from '../../app/layout';
+import { ThemeContext } from '../../app/ClientLayout';
+
 
 const ProfileBanner = () => {
   const { isDarkMode } = useContext(ThemeContext);

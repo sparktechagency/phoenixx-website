@@ -1,5 +1,4 @@
 "use client"
-import React, { useContext, useEffect, useState } from 'react';
 import ProfilePostCard from '@/components/ProfilePostCard';
 import ProfileBanner from '@/components/profile/ProfileBanner';
 import { useGetSaveAllPostQuery, useSavepostMutation } from '@/features/SavePost/savepostApi';
@@ -7,10 +6,12 @@ import { useMyCommentPostQuery } from '@/features/comments/commentApi';
 import { useDeletePostMutation, useLikePostMutation, useMyPostQuery } from '@/features/post/postApi';
 import { Button, Card, Form, Grid, Input, message, Modal, Space } from 'antd';
 import { formatDistanceToNow } from 'date-fns';
+import React, { useContext, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { FiBookmark, FiFile, FiMessageSquare } from 'react-icons/fi';
 import { useAuth } from '../../hooks/useAuth';
-import { ThemeContext } from '../layout';
+import { ThemeContext } from '../ClientLayout';
+
 
 const { useBreakpoint } = Grid;
 const { TextArea } = Input;

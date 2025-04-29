@@ -5,7 +5,7 @@ import { useAboutQuery } from '@/features/About/AboutApi';
 import { Spin } from 'antd';
 import Link from 'next/link';
 import { useContext } from 'react';
-import { ThemeContext } from '../layout';
+import { ThemeContext } from '../ClientLayout';
 
 
 const About = () => {
@@ -25,7 +25,13 @@ const About = () => {
       return <span className='flex justify-center'>No Available Content</span>;
     }
 
-    return <div>{data.data.content.replace(/<[^>]*>/g, '')}</div>;
+    // Use dangerouslySetInnerHTML to render the HTML content
+    return (
+      <div
+        className="privacy-policy-content"
+        dangerouslySetInnerHTML={{ __html: data.data.content }}
+      />
+    );
   };
 
   return (
