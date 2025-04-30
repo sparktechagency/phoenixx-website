@@ -85,7 +85,7 @@ const ChangePasswordForm = () => {
             <Button
               type="primary"
               htmlType="submit"
-              className={`w-full h-12 text-base font-medium transition-colors ${isDarkMode ? 'bg-blue-700 hover:bg-blue-800' : 'bg-blue-600 hover:bg-blue-700'
+              className={`w-full h-12 text-base font-medium transition-colors bg-primary hover:bg-blue-800
                 }`}
               loading={isLoading}
               disabled={isLoading}

@@ -172,9 +172,9 @@ const ProfilePostCard = ({
       label: (
         <div className={`flex items-center gap-2 py-1 ${isDarkMode ? '' : 'hover:bg-gray-100'}`}>
           <Image
-            src={"/icons/save_post.png"}
-            width={16}
-            height={16}
+            src={isDarkMode ? "/icons/DarkEdit.png" : "/icons/LightEdit.png"}
+            width={17}
+            height={17}
             alt="Edit post"
           />
           <span className={`-mt-1 ${isDarkMode ? 'text-gray-200' : ''}`}>Edit Post</span>
@@ -290,7 +290,8 @@ const ProfilePostCard = ({
               className={`flex items-center cursor-pointer ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} p-1 rounded`}
             >
               <Image
-                src={isDarkMode ? "/icons/message_white.png" : "/icons/message.png"}
+                // src={isDarkMode ? "/icons/message_white.png" : "/icons/message.png"}
+                src={"/icons/message.png"}
                 width={20}
                 height={20}
                 alt="message icons"
@@ -312,7 +313,8 @@ const ProfilePostCard = ({
               className={`${isDarkMode ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-500 hover:bg-gray-100'} px-2 py-1.5 cursor-pointer rounded-sm`}
             >
               <Image
-                src={isDarkMode ? "/icons/share_white.png" : "/icons/share.png"}
+                // src={isDarkMode ? "/icons/share_white.png" : "/icons/share.png"}
+                src={"/icons/share.png"}
                 width={20}
                 height={20}
                 alt="share button"

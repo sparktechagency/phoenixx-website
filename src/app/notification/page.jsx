@@ -223,7 +223,7 @@ export default function NotificationPage() {
             dataSource={filteredNotifications}
             renderItem={(item) => (
               <List.Item
-                className={`px-4 py-3 ${itemHoverBgClass} transition-colors ${!item.read ? unreadBgClass : ''}`}
+                className={`px-4  py-3 ${itemHoverBgClass} transition-colors ${!item.read ? unreadBgClass : ''}`}
                 actions={[
                   <Dropdown
                     key="dropdown"
@@ -242,6 +242,7 @@ export default function NotificationPage() {
                 ]}
               >
                 <List.Item.Meta
+                  style={{marginLeft: '10px'}}
                   avatar={
                     <Avatar
                       icon={getNotificationIcon(item.type)}
@@ -254,7 +255,7 @@ export default function NotificationPage() {
                       <span className={!item.read ? 'font-semibold' : ''}>
                         {item.title}
                       </span>
-                      <span className={`${textMutedClass} text-xs sm:text-sm mt-1 sm:mt-0`}>
+                      <span className={`${textMutedClass} text-xs sm:text-sm  sm:mt-0`}>
                         {item.time}
                       </span>
                     </div>
@@ -309,6 +310,7 @@ export default function NotificationPage() {
                 ]}
               >
                 <List.Item.Meta
+                  style={{marginLeft: '10px'}}
                   avatar={
                     <Avatar
                       icon={getNotificationIcon(item.type)}
@@ -341,7 +343,7 @@ export default function NotificationPage() {
   return (
     <>
       <Layout className={`min-h-screen ${layoutClass} md:p-6 p-0`}>
-        <Content className="p-2 md:p-2 lg:w-8/12 w-full mx-auto">
+        <Content className=" p-2 md:p-2 lg:w-8/12 w-full mx-auto">
           <div className={`${contentClass} p-2 md:p-2 rounded-lg shadow-sm overflow-hidden`}>
             {/* Header with actions */}
             <div className={`p-4 border-b ${borderClass} flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4`}>

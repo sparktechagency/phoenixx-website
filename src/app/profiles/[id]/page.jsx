@@ -64,7 +64,7 @@ const ProfileBanner = () => {
               onClick={() => handleChat(id)}
               className={`
               ${isMobile ? 'px-3 py-1.5 rounded-md' : 'px-4 py-2 rounded-md'}
-              bg-primary hover:bg-blue-700 transition-colors cursor-pointer
+              bg-primary transition-colors cursor-pointer
               text-white flex items-center justify-center gap-2
               shadow-sm
             `}

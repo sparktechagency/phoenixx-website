@@ -14,10 +14,7 @@ import { useContext, useEffect, useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { ThemeContext } from './ClientLayout';
 
-
 const HomePage = () => {
-
-
   useAuth();
 
   // Force rerender when navigating back to this page
@@ -372,28 +369,6 @@ const HomePage = () => {
                         </div>
                       ))}
                     </motion.div>
-
-                    {/* Dynamic Pagination using API data */}
-                    {totalPages > 1 && (
-                      <div className="flex justify-center mt-6">
-                        <Pagination
-                          current={currentPage}
-                          total={totalPosts}
-                          pageSize={postsPerPage}
-                          onChange={handlePageChange}
-                          showSizeChanger={false}
-                          itemRender={(current, type, originalElement) => {
-                            if (type === 'prev') {
-                              return <Button icon={<LeftOutlined />} />;
-                            }
-                            if (type === 'next') {
-                              return <Button icon={<RightOutlined />} />;
-                            }
-                            return originalElement;
-                          }}
-                        />
-                      </div>
-                    )}
                   </>
                 )}
               </motion.section>
@@ -461,35 +436,33 @@ const HomePage = () => {
                       </div>
                     ))}
                   </div>
-
-                  {/* Dynamic Pagination using API data */}
-
-
-
                 </>
               )}
             </div>
           )}
         </LayoutGroup>
 
-        <div className="flex justify-center my-1">
-          <Pagination
-            current={currentPage}
-            total={totalPosts}
-            pageSize={postsPerPage}
-            onChange={handlePageChange}
-            showSizeChanger={false}
-            itemRender={(current, type, originalElement) => {
-              if (type === 'prev') {
-                return <Button icon={<LeftOutlined />} />;
-              }
-              if (type === 'next') {
-                return <Button icon={<RightOutlined />} />;
-              }
-              return originalElement;
-            }}
-          />
-        </div>
+        {/* Single Pagination component at the bottom */}
+        {totalPages > 1 && (
+          <div className="flex justify-center my-1">
+            <Pagination
+              current={currentPage}
+              total={totalPosts}
+              pageSize={postsPerPage}
+              onChange={handlePageChange}
+              showSizeChanger={false}
+              itemRender={(current, type, originalElement) => {
+                if (type === 'prev') {
+                  return <Button icon={<LeftOutlined />} />;
+                }
+                if (type === 'next') {
+                  return <Button icon={<RightOutlined />} />;
+                }
+                return originalElement;
+              }}
+            />
+          </div>
+        )}
       </main>
     </div>
   );

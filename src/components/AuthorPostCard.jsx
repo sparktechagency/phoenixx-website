@@ -135,7 +135,7 @@ const AuthorPostCard = ({
       tags.length > 0 && (
         <div className="flex flex-wrap items-center gap-2">
           {tags.map((tag, index) => (
-            <span key={index} className={`${isDarkMode ? 'bg-blue-900 text-blue-200' : 'bg-[#E6E6FF]'} text-xs py-1 px-2 rounded`}>
+            <span key={index} className={`${isDarkMode ? 'bg-primary text-blue-200' : 'bg-[#E6E6FF]'} text-xs py-1 px-2 rounded`}>
               {tag}
             </span>
           ))}

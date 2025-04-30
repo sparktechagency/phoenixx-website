@@ -145,7 +145,7 @@ export default function FeedBack() {
                 type="primary"
                 htmlType="submit"
                 loading={isLoading}
-                className={`w-full h-10 rounded-md ${isDarkMode ? 'bg-blue-700 hover:bg-blue-800' : 'bg-blue-600 hover:bg-blue-700'}`}
+                className={`w-full h-10 rounded-md bg-primary hover:bg-primary`}
               >
                 {isLoading ? 'Submitting...' : 'Submit Your Feedback'}
               </Button>

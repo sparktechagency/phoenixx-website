@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
-import { Modal, Radio, Input, Form, Button, Alert } from 'antd';
-import { ExclamationCircleOutlined, InfoCircleOutlined } from '@ant-design/icons';
 import { useReportMutation } from '@/features/report/reportApi';
+import { ExclamationCircleOutlined, InfoCircleOutlined } from '@ant-design/icons';
+import { Alert, Button, Form, Input, Modal, Radio } from 'antd';
+import { useEffect, useState } from 'react';
 
 const { TextArea } = Input;
 
@@ -45,14 +45,14 @@ const ReportPostModal = ({ isOpen, onClose, postId }) => {
       };
 
       const response = await report(reason).unwrap();
-      
+
       // Set success states
       setSuccessMessage(response?.message || 'Report Send successfully!');
       setIsSuccess(true);
-      
+
       // Reset form
       form.resetFields();
-      
+
       // Close modal after 3 seconds to give user time to read message
       setTimeout(() => {
         handleClose();
@@ -128,7 +128,7 @@ const ReportPostModal = ({ isOpen, onClose, postId }) => {
               label={<span className="font-medium text-gray-700">Reason for reporting</span>}
               rules={[{ required: true, message: 'Please select a reason for reporting' }]}
             >
-              <Radio.Group 
+              <Radio.Group
                 className="flex flex-col gap-4"
                 style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}
                 onChange={(e) => setSelectedReason(e.target.value)}
@@ -177,7 +177,7 @@ const ReportPostModal = ({ isOpen, onClose, postId }) => {
                 type="primary"
                 onClick={handleSubmit}
                 loading={isLoading}
-                className="px-6 h-10 bg-blue-600 hover:bg-blue-700 font-medium"
+                className="px-6 h-10 bg-primary font-medium"
               >
                 Submit Report
               </Button>

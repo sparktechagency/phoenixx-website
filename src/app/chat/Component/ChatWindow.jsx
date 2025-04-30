@@ -154,7 +154,7 @@ const ChatWindow = ({ id }) => {
 
               {/* Message bubble */}
               <div className={`max-w-xs p-3 rounded-lg ${isCurrentUser
-                ? 'bg-blue-500 text-white'
+                ? 'bg-primary text-white'
                 : isDarkMode
                   ? 'bg-gray-700 text-gray-200'
                   : 'bg-white text-gray-800'

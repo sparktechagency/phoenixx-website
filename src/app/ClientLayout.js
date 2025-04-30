@@ -23,8 +23,8 @@ export default function ClientLayout({ children }) {
 
 
   useEffect(() => {
-    document.title = "MEHOR";
-  }, [document.title]);
+    document.title = "Mehor";
+  }, []);
 
 
   const pathname = usePathname();
@@ -87,7 +87,7 @@ export default function ClientLayout({ children }) {
 
   // Dark theme tokens
   const darkThemeTokens = {
-    colorPrimary: '#4E4EFB',
+    colorPrimary: '#0001FB',
     colorText: 'rgba(255, 255, 255, 0.85)',
     colorTextPlaceholder: '#737373',
     colorBgContainer: '#1a1a1a',

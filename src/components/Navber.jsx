@@ -37,7 +37,7 @@ import { useSelector } from 'react-redux';
 
 import { baseURL } from '../../utils/BaseURL';
 import { getImageUrl } from '../../utils/getImageUrl';
-import { Message } from '../../utils/svgImage';
+import { Message, MessageDark, MessageLight, NotificationDark, NotificationLight } from '../../utils/svgImage';
 import { ThemeContext } from '../app/ClientLayout';
 import { useGetAllChatQuery } from '../features/chat/massage';
 import { useGetAllNotificationQuery } from '../features/notification/noticationApi';
@@ -90,14 +90,19 @@ export default function Navbar() {
     {
       key: 'profile-header',
       label: (
-        <Flex gap="small" align="center" className={`p-2 cursor-pointer ${isDarkMode ? '' : 'hover:bg-gray-50'}`}>
+        <Flex gap="small" align="center" className={`p-2 cursor-pointer ${isDarkMode ? 'text-black' : 'hover:bg-gray-50'}`}>
           <Avatar
             src={getImageUrl(data?.data?.profile)}
             size={44}
           />
           <Space direction="vertical" size={0}>
-            <Text strong>{data?.data?.name || ""}</Text>
-            <Text type={data?.data?.name ? undefined : "secondary"}>
+            {/* Name - always black if exists */}
+            <Text strong className={data?.data?.name ? "text-black" : "text-transparent"}>
+              {data?.data?.name}
+            </Text>
+
+            {/* Username - gray if name exists, black otherwise */}
+            <Text className={data?.data?.name ? "text-gray-500" : "text-black"}>
               {data?.data?.userName ? `@${data?.data?.userName}` : ""}
             </Text>
           </Space>
@@ -422,7 +427,7 @@ export default function Navbar() {
                   <Button
                     onClick={() => handleNavigation("/chat")}
                     type="text"
-                    icon={<Message isDarkMode={isDarkMode} />}
+                    icon={isDarkMode ? <MessageDark /> : <MessageLight />}
                     style={iconButtonStyles}
                   />
                 </Badge>
@@ -431,7 +436,7 @@ export default function Navbar() {
                   <Button
                     onClick={() => handleNavigation("/notification")}
                     type="text"
-                    icon={<IoNotificationsSharp size={21} />}
+                    icon={isDarkMode ? <NotificationDark /> : <NotificationLight />}
                     style={iconButtonStyles}
                   />
                 </Badge>

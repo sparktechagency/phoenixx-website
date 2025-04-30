@@ -118,7 +118,7 @@ const ChatList = ({ setIsChatActive, status }) => {
 
                 <p className={`text-sm ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
                   {chats?.unreadCount === 0 ? null : (
-                    <span className="bg-blue-500 text-white rounded-full px-2 py-1 text-xs">
+                    <span className="bg-primary text-white rounded-full px-2 py-1 text-xs">
                       {chats?.unreadCount}
                     </span>
                   )}

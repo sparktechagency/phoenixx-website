@@ -4,15 +4,13 @@ import { Dropdown, message } from 'antd';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import React, { useCallback, useContext, useMemo, useState } from 'react';
+import toast from 'react-hot-toast';
 import { AiOutlineEllipsis } from 'react-icons/ai';
 import { FaHeart, FaRegHeart } from "react-icons/fa";
-import { baseURL } from '../../utils/BaseURL';
-import { PostSEE } from '../../utils/svgImage';
-import ReportPostModal from './ReportPostModal';
-
-import toast from 'react-hot-toast';
 import { getImageUrl } from '../../utils/getImageUrl';
+import { PostSEEDark, PostSEELight } from '../../utils/svgImage';
 import { ThemeContext } from '../app/ClientLayout';
+import ReportPostModal from './ReportPostModal';
 
 
 const useWindowSize = () => {
@@ -72,10 +70,29 @@ const PostCard = ({
     onLike?.(postData.id);
   }, [onLike, postData.id]);
 
-  const handleShare = useCallback(() => {
-    navigator.clipboard.writeText(`${baseURL}/posts/${postData.id}`)
-      .then(() => toast.success("Link copied to clipboard"))
-      .catch(() => toast.error("Failed to copy link"));
+  const handleShare = useCallback(async () => {
+    try {
+      if (!postData?.id) {
+        toast.error("Post ID is missing");
+        return;
+      }
+      const shareUrl = `${window.location.origin}/posts/${postData.id}`;
+      if (!navigator.clipboard) {
+        const textArea = document.createElement('textarea');
+        textArea.value = shareUrl;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        toast.success("Link copied to clipboard");
+        return;
+      }
+      await navigator.clipboard.writeText(shareUrl);
+      toast.success("Link copied to clipboard");
+    } catch (error) {
+      console.error("Failed to copy link:", error);
+      toast.error("Failed to copy link");
+    }
   }, [postData.id]);
 
   const handleSaveUnsave = useCallback(async () => {
@@ -97,8 +114,8 @@ const PostCard = ({
       label: (
         <div className="flex items-center gap-2 py-1">
           <Image
-            src={"/icons/save_post.png"}
-            width={16}
+            src={isDarkMode ? "/icons/savedark.png" : "/icons/savelight.png"}
+            width={isDarkMode ? 13 : 16}
             height={16}
             alt={isSaved ? "Unsave post" : "Save post"}
           />
@@ -113,7 +130,7 @@ const PostCard = ({
       label: (
         <div className="flex items-center gap-2 py-1">
           <Image
-            src={"/icons/report.png"}
+            src={isDarkMode ? "/icons/reportdark.png" : "/icons/report.png"}
             height={16}
             width={16}
             alt="report"
@@ -171,26 +188,27 @@ const PostCard = ({
     postData.tags?.length > 0 && (
       <div className="flex flex-wrap items-center gap-2">
         {postData.tags.map((tag, index) => (
-          <div className='flex items-center gap-2'>
-            <span
-              key={index}
-              className={`text-xs py-1 px-2 rounded ${isDarkMode
-                ? 'bg-gray-700 text-blue-400'
-                : 'bg-[#E6E6FF] text-gray-800'
-                }`}
-            >
-              {tag.category ? tag.category : ''}
-            </span>
-
-            <span
-              key={index}
-              className={`text-xs py-1 px-2 rounded ${isDarkMode
-                ? 'bg-gray-700 text-blue-400'
-                : 'bg-[#E6E6FF] text-gray-800'
-                }`}
-            >
-              {tag.subcategory ? tag.subcategory : ''}
-            </span>
+          <div key={index} className='flex items-center gap-2'>
+            {tag.category && (
+              <span
+                className={`text-xs py-1 px-2 rounded ${isDarkMode
+                  ? 'bg-gray-700 text-blue-400'
+                  : 'bg-[#E6E6FF] text-gray-800'
+                  }`}
+              >
+                {tag.category}
+              </span>
+            )}
+            {tag.subcategory && (
+              <span
+                className={`text-xs py-1 px-2 rounded ${isDarkMode
+                  ? 'bg-gray-700 text-blue-400'
+                  : 'bg-[#E6E6FF] text-gray-800'
+                  }`}
+              >
+                {tag.subcategory}
+              </span>
+            )}
           </div>
         ))}
       </div>
@@ -298,7 +316,7 @@ const PostCard = ({
                 }`}
             >
               <Image
-                src={"/icons/message.png"}
+                src={isDarkMode ? "/icons/commentdark.png" : "/icons/message.png"}
                 width={20}
                 height={20}
                 alt="message icon"
@@ -317,7 +335,7 @@ const PostCard = ({
             <div className={`flex items-center gap-1.5 ${isMobile ? 'text-xs' : 'text-sm'
               } ${isDarkMode ? 'text-gray-400' : 'text-gray-500'
               }`}>
-              <PostSEE fill={isDarkMode ? '#9CA3AF' : '#6B7280'} />
+              {isDarkMode ? <PostSEEDark /> : <PostSEELight />}
               <span>{postData.stats.reads}</span>
             </div>
 
@@ -327,7 +345,7 @@ const PostCard = ({
                 }`}
             >
               <Image
-                src={"/icons/share.png"}
+                src={isDarkMode ? "/icons/sharedark.png" : "/icons/share.png"}
                 width={20}
                 height={20}
                 alt="share button"
