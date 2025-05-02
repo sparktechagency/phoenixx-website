@@ -96,12 +96,12 @@ const ProfileBanner = () => {
         {
           getbuyUserLoading ? (
             <div className='flex justify-center py-20'>
-              <Spin tip={isDarkMode ? "Loading..." : undefined} className={isDarkMode ? 'text-gray-200' : ''} />
+              <Spin className={isDarkMode ? 'text-gray-200' : ''} />
             </div>
           ) : (
-            [...(data?.data || [])].reverse().map((post) => (
+            [...(data?.data || [])].reverse().map((post, index) => (
               <AuthorPostCard
-                key={post.id}
+                key={index}
                 postData={post}
                 onLike={handleLike}
                 isDarkMode={isDarkMode}

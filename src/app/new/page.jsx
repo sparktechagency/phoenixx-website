@@ -45,6 +45,8 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
   const [description, setDescription] = useState('');
   const [fileList, setFileList] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [formErrors, setFormErrors] = useState({});
+  const [initialImages, setInitialImages] = useState([]); // Track initial images
 
   const editorRef = useRef(null);
   const router = useRouter();
@@ -86,23 +88,24 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
     removeButtons: [
       'strikethrough', 'superscript', 'subscript',
       'font', 'fontsize', 'paragraph', 'outdent', 'indent', 'undo',
-      'redo', 'cut', 'copy', 'paste', 'link', 'unlink', 'image', 'table', 'hr',
+      'redo', 'cut', 'copy', 'paste', 'table', 'hr',
       'video', 'file', 'print', 'source', 'preview', 'clean', 'highlight',
       'directionality', 'left', 'right', 'center', 'justify', 'removeformat', 'formatblock',
       'format', 'textcolor', 'bgcolor', 'fontsize', 'fontname', 'spellcheck', 'settings',
       'fullsize', 'about', 'draft', 'statusbar', 'indent', 'outdent', 'insert', 'upload',
-      'replace', 'template', 'insertImage', 'insertTable', 'insertLink', 'insertText',
+      'replace', 'template', 'insertImage', 'insertTable', 'insertText',
       'selectAll', 'clear', 'save', 'code'
     ],
-    // Enhanced dark mode styling
+    buttons: [
+      'bold', 'italic', 'underline', 'ul', 'ol', 'link', 'image', 'smile'
+    ],
     colors: {
       greyscale: isDarkMode ? '#ffffff,#f5f5f5,#e8e8e8,#dddddd,#c0c0c0,#a9a9a9,#808080,#696969,#545454,#3f3f3f,#2f2f2f,#1e1e1e,#0f0f0f,#080808,#000000' : '#000000,#333333,#555555,#777777,#999999,#BBBBBB,#DDDDDD,#FFFFFF',
     },
     style: {
-      backgroundColor: isDarkMode ? '#1f2937' : '#fff',  // Match with bg-gray-800 from TailwindCSS
-      color: isDarkMode ? '#e5e7eb' : '#374151',  // Match with text-gray-200 from TailwindCSS
+      backgroundColor: isDarkMode ? '#1f2937' : '#fff',
+      color: isDarkMode ? '#e5e7eb' : '#374151',
     },
-    // Custom CSS for dark mode compatibility
     extraCss: isDarkMode ?
       `.jodit-container,.jodit-workplace {
         background-color: #1f2937 !important;
@@ -140,7 +143,6 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
         border-color: #4b5563 !important;
         color: #e5e7eb !important;
       }` : '',
-    // Event handlers for dark mode fixes
     events: {
       afterInit: (editor) => {
         if (isDarkMode) {
@@ -155,13 +157,17 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
           }
         }
       }
-    }
+    },
+    toolbarAdaptive: false,
+    toolbarSticky: true,
+    showCharsCounter: true,
+    showWordsCounter: true,
+    showXPathInStatusbar: false
   }), [isMobile, isDarkMode]);
 
   // Add CSS for dark mode to document head
   useEffect(() => {
     if (isDarkMode) {
-      // Create style element for Jodit dark mode
       const style = document.createElement('style');
       style.id = 'jodit-dark-mode-styles';
       style.innerHTML = `
@@ -184,6 +190,15 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
         }
         .dark-editor .jodit-container {
           border-color: #4b5563 !important;
+        }
+
+        /* Make sure all toolbar items appear in one line with overflow scrolling */
+        .jodit-toolbar__box {
+          flex-wrap: nowrap !important;
+          overflow-x: auto !important;
+        }
+        .jodit-toolbar-button {
+          flex-shrink: 0 !important;
         }
       `;
       document.head.appendChild(style);
@@ -234,35 +249,144 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
       setSubcategory(initialValues.subCategory || null);
       setDescription(initialValues.content || '');
 
-      if (initialValues.image) {
+      if (initialValues.images && Array.isArray(initialValues.images)) {
+        const initialImagesList = initialValues.images.map((image, index) => {
+          const imageUrl = image.startsWith('http')
+            ? image
+            : `${baseURL}${image}`;
+
+          return {
+            uid: `-${index}`,
+            name: `image-${index}`,
+            status: 'done',
+            url: imageUrl,
+            thumbUrl: imageUrl,
+            path: image // Store the original path
+          };
+        });
+
+        setFileList(initialImagesList);
+        setInitialImages(initialImagesList);
+      } else if (initialValues.image) {
         const imageUrl = initialValues.image.startsWith('http')
           ? initialValues.image
           : `${baseURL}${initialValues.image}`;
 
-        setFileList([{
+        const initialImage = [{
           uid: '-1',
           name: 'current-image',
           status: 'done',
           url: imageUrl,
-          thumbUrl: imageUrl
-        }]);
+          thumbUrl: imageUrl,
+          path: initialValues.image
+        }];
+
+        setFileList(initialImage);
+        setInitialImages(initialImage);
       }
     }
   }, [initialValues]);
 
-  const handleTitleChange = (e) => setTitle(e.target.value);
+  const handleTitleChange = (e) => {
+    setTitle(e.target.value);
+    if (formErrors.title) {
+      setFormErrors({ ...formErrors, title: null });
+    }
+  };
+
   const handleCategoryChange = (value) => {
     setCategory(value);
     setSubcategory(null);
+    if (formErrors.category) {
+      setFormErrors({ ...formErrors, category: null });
+    }
   };
-  const handleSubcategoryChange = (value) => setSubcategory(value);
-  const handleDescriptionChange = (newContent) => setDescription(newContent);
 
-  const handleFileChange = ({ fileList: newFileList }) => setFileList(newFileList);
+  const handleSubcategoryChange = (value) => {
+    setSubcategory(value);
+    if (formErrors.subcategory) {
+      setFormErrors({ ...formErrors, subcategory: null });
+    }
+  };
+
+  const handleDescriptionChange = (newContent) => {
+    setDescription(newContent);
+    if (formErrors.description) {
+      setFormErrors({ ...formErrors, description: null });
+    }
+  };
+
+  const handleFileChange = ({ fileList: newFileList }) => {
+    setFileList(newFileList.slice(0, 3));
+  };
 
   const beforeUpload = (file) => {
     const isImage = file.type.startsWith('image/');
-    if (!isImage) message.error('You can only upload image files!');
+    if (!isImage) {
+      toast.error('You can only upload image files!');
+      return Upload.LIST_IGNORE;
+    }
+
+    const isLt2M = file.size / 1024 / 1024 < 2;
+    if (!isLt2M) {
+      toast.error('Image must be smaller than 2MB!');
+      return Upload.LIST_IGNORE;
+    }
+
+    if (file.size / 1024 / 1024 > 1) {
+      toast.success('Optimizing image for faster upload...');
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => {
+          const img = new Image();
+          img.src = reader.result;
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+
+            let width = img.width;
+            let height = img.height;
+            const maxWidth = 1200;
+            const maxHeight = 1200;
+
+            if (width > height && width > maxWidth) {
+              height = Math.round((height * maxWidth) / width);
+              width = maxWidth;
+            } else if (height > maxHeight) {
+              width = Math.round((width * maxHeight) / height);
+              height = maxHeight;
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+
+            ctx.drawImage(img, 0, 0, width, height);
+
+            canvas.toBlob(
+              (blob) => {
+                const optimizedFile = new File([blob], file.name, {
+                  type: 'image/jpeg',
+                  lastModified: Date.now(),
+                });
+
+                const optimizedFileWithInfo = Object.assign(optimizedFile, {
+                  uid: file.uid,
+                  name: file.name,
+                  originFileObj: optimizedFile,
+                });
+
+                resolve(optimizedFileWithInfo);
+              },
+              'image/jpeg',
+              0.8
+            );
+          };
+        };
+        reader.onerror = (error) => reject(error);
+      });
+    }
+
     return isImage || Upload.LIST_IGNORE;
   };
 
@@ -308,28 +432,42 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
     setSubcategory(null);
     setDescription('');
     setFileList([]);
-    message.success('Draft cleared successfully');
+    toast.success('Draft cleared successfully');
+  };
+
+  const validateForm = () => {
+    const errors = {};
+
+    if (!title.trim()) {
+      errors.title = 'Title is required';
+    }
+
+    if (!category) {
+      errors.category = 'Category is required';
+    }
+
+    if (category && getSubcategories.length > 0 && !subcategory) {
+      errors.subcategory = 'Subcategory is required';
+    }
+
+    if (!description.trim()) {
+      errors.description = 'Description is required';
+    }
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
   };
 
   const handleSubmit = async () => {
-    if (!title || !category || !description) {
-      message.error('Please fill all required fields');
-      return;
-    }
-
-    if (isEditing && !subcategory) {
-      const selectedCategory = categoryOptions.find(cat => cat.value === category);
-      const categoryName = selectedCategory?.label || 'selected category';
-      const subcategoryNames = getSubcategories.map(sub => sub.label).join(', ');
-
-      if (getSubcategories.length > 0) {
-        message.error(
-          `Please select a subcategory for ${categoryName}. Available subcategories: ${subcategoryNames}`
-        );
-      } else {
-        message.error(
-          `No subcategories available for ${categoryName}. Please contact support.`
-        );
+    if (!validateForm()) {
+      if (formErrors.title) {
+        toast.error('Please enter a title');
+      } else if (formErrors.category) {
+        toast.error('Please select a category');
+      } else if (formErrors.subcategory) {
+        toast.error('Please select a subcategory');
+      } else if (formErrors.description) {
+        toast.error('Please enter content description');
       }
       return;
     }
@@ -342,10 +480,41 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
       if (subcategory) formData.append('subCategory', subcategory);
       formData.append('content', description);
 
-      if (fileList.length > 0 && fileList[0].originFileObj) {
-        formData.append("image", fileList[0].originFileObj);
-      } else if (isEditing && fileList.length === 0) {
-        formData.append("image", "");
+      // Handle image uploads differently for edit vs create
+      if (isEditing && postId) {
+        // For edit mode, track deleted images and new uploads
+        const deletedImages = [];
+        
+        // Compare initial images with current fileList to find deleted images
+        initialImages.forEach(initialImage => {
+          const stillExists = fileList.some(file => 
+            file.path === initialImage.path || 
+            file.url === initialImage.url
+          );
+          
+          if (!stillExists) {
+            deletedImages.push(initialImage.path);
+          }
+        });
+
+        // Add deleted images to formData if any
+        if (deletedImages.length > 0) {
+          formData.append('deletedImages', JSON.stringify(deletedImages));
+        }
+
+        // Add new images to upload
+        fileList.forEach((file) => {
+          if (file.originFileObj) {
+            formData.append('image', file.originFileObj);
+          }
+        });
+      } else {
+        // For create mode, just upload all files
+        fileList.forEach((file) => {
+          if (file.originFileObj) {
+            formData.append('image', file.originFileObj);
+          }
+        });
       }
 
       const response = isEditing && postId
@@ -355,10 +524,7 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
       toast.success(isEditing ? 'Post updated successfully' : 'Post created successfully');
 
       if (!isEditing) {
-        router.push('/')
-      }
-
-      if (!isEditing) {
+        router.push('/');
         localStorage.removeItem('blogPostDraft');
       }
 
@@ -407,7 +573,9 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
           <div className={`py-4 sm:p-6 ${isDarkMode ? 'dark-editor' : ''}`}>
             {/* Title Input */}
             <div className="mb-6 sm:mb-8">
-              <Title level={5} className={`mb-2 ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>Title</Title>
+              <Title level={5} className={`mb-2 ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>
+                Title <span className="text-red-500">*</span>
+              </Title>
               <Input
                 placeholder="Write your post title here..."
                 value={title}
@@ -415,29 +583,40 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
                 maxLength={300}
                 suffix={`${title.length}/300`}
                 className={`py-2 sm:py-3 px-4 rounded-lg hover:border-blue-400 focus:border-blue-500 transition-colors ${isDarkMode ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400' : 'bg-white border-gray-300'
-                  }`}
+                  } ${formErrors.title ? 'border-red-500' : ''}`}
                 size={isMobile ? "middle" : "large"}
+                status={formErrors.title ? "error" : ""}
               />
+              {formErrors.title && (
+                <div className="text-red-500 mt-1 text-sm">{formErrors.title}</div>
+              )}
             </div>
 
             {/* Category and Subcategory Selectors */}
             <div className="mb-6 sm:mb-8">
               <Row gutter={[16, 16]}>
                 <Col xs={24} md={12}>
-                  <Title level={5} className={`mb-2 ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>Category</Title>
+                  <Title level={5} className={`mb-2 ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>
+                    Category <span className="text-red-500">*</span>
+                  </Title>
                   <Select
                     placeholder="Select a category"
                     value={category}
                     onChange={handleCategoryChange}
-                    className={`w-full ${isDarkMode ? 'ant-select-dark' : ''
-                      }`}
+                    className={`w-full ${isDarkMode ? 'ant-select-dark' : ''} ${formErrors.category ? 'border-red-500 ant-select-status-error' : ''}`}
                     size={isMobile ? "middle" : "large"}
                     options={categoryOptions}
                     dropdownClassName={isDarkMode ? 'dark-dropdown' : ''}
+                    status={formErrors.category ? "error" : ""}
                   />
+                  {formErrors.category && (
+                    <div className="text-red-500 mt-1 text-sm">{formErrors.category}</div>
+                  )}
                 </Col>
                 <Col xs={24} md={12}>
-                  <Title level={5} className={`mb-2 ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>Subcategory</Title>
+                  <Title level={5} className={`mb-2 ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>
+                    Subcategory <span className="text-red-500">*</span>
+                  </Title>
                   <Select
                     placeholder={
                       isSubcategoriesLoading ? "Loading..." :
@@ -447,24 +626,29 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
                     }
                     value={subcategory}
                     onChange={handleSubcategoryChange}
-                    className={`w-full ${isDarkMode ? 'ant-select-dark' : ''
-                      }`}
+                    className={`w-full ${isDarkMode ? 'ant-select-dark' : ''} ${formErrors.subcategory ? 'border-red-500 ant-select-status-error' : ''}`}
                     size={isMobile ? "middle" : "large"}
                     options={getSubcategories}
                     disabled={!category || getSubcategories.length === 0 || isSubcategoriesLoading}
                     notFoundContent={category && "No subcategories found"}
                     dropdownClassName={isDarkMode ? 'dark-dropdown' : ''}
+                    status={formErrors.subcategory ? "error" : ""}
                   />
+                  {formErrors.subcategory && (
+                    <div className="text-red-500 mt-1 text-sm">{formErrors.subcategory}</div>
+                  )}
                 </Col>
               </Row>
             </div>
 
             {/* Content Editor */}
             <div className="mb-6 sm:mb-8">
-              <Title level={5} className={`mb-2 ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>Description</Title>
+              <Title level={5} className={`mb-2 ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>
+                Description <span className="text-red-500">*</span>
+              </Title>
               <Card
                 className={`border rounded-lg overflow-hidden hover:border-blue-300 transition-all p-0 ${isDarkMode ? 'border-gray-600' : 'border-gray-300'
-                  }`}
+                  } ${formErrors.description ? 'border-red-500' : ''}`}
                 bodyStyle={{ padding: 0 }}
               >
                 <div className={`${isDarkMode ? 'jodit-dark-theme' : ''}`}>
@@ -478,15 +662,17 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
                   />
                 </div>
               </Card>
-              <div className={`mt-2 text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                }`}>
+              <div className={`mt-2 text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                 Tip: You can use the formatting toolbar to style your content
               </div>
+              {formErrors.description && (
+                <div className="text-red-500 mt-1 text-sm">{formErrors.description}</div>
+              )}
             </div>
 
             {/* Image Upload */}
             <div className="mb-6 sm:mb-8">
-              <Title level={5} className={`mb-2 ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>Featured Images</Title>
+              <Title level={5} className={`mb-2 ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>Featured Images <span className="text-xs font-normal">(Maximum 3)</span></Title>
               <Card
                 className={`border-2 border-dashed rounded-xl hover:border-blue-400 transition-all text-center cursor-pointer ${isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-300'
                   }`}
@@ -498,22 +684,23 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
                   onPreview={handlePreview}
                   beforeUpload={beforeUpload}
                   className="flex justify-center"
-                  maxCount={1}
+                  maxCount={3}
                 >
-                  {fileList.length === 0 && (
+                  {fileList.length < 3 && (
                     isMobile ? (
                       <Button
                         icon={<UploadOutlined />}
                         size="middle"
                         className={isDarkMode ? 'text-gray-200' : 'text-gray-800'}
                       >
-                        Add Photo
+                        Add Photos
                       </Button>
                     ) : (
                       <div className={`flex flex-col items-center p-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'
                         }`}>
                         <UploadOutlined className="text-2xl mb-2" />
-                        <Text>Click or drag files to upload</Text>
+                        <Text>upload</Text>
+                        <Text className="text-xs mt-1">(Max 2MB)</Text>
                       </div>
                     )
                   )}

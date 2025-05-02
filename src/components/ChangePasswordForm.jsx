@@ -4,7 +4,6 @@ import { Button, Form, Input, message, notification } from 'antd';
 import { useContext } from 'react';
 import { ThemeContext } from '../app/ClientLayout';
 
-
 const ChangePasswordForm = () => {
   const [form] = Form.useForm();
   const [changePassword, { isLoading }] = useChangePasswordMutation();
@@ -25,16 +24,38 @@ const ChangePasswordForm = () => {
     }
   };
 
+  // Strong password validation function
+  const validatePassword = (_, value) => {
+    if (!value) {
+      return Promise.reject(new Error(''));
+    }
+
+    // Password requirements
+    const hasUpperCase = /[A-Z]/.test(value);
+    const hasLowerCase = /[a-z]/.test(value);
+    const hasNumber = /[0-9]/.test(value);
+    const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(value);
+    const isLongEnough = value.length >= 8;
+
+    let errorMessage = '';
+    if (!isLongEnough) errorMessage = 'Password must be at least 8 characters long. ';
+    if (!hasUpperCase) errorMessage += 'Include at least one uppercase letter. ';
+    if (!hasLowerCase) errorMessage += 'Include at least one lowercase letter. ';
+    if (!hasNumber) errorMessage += 'Include at least one number. ';
+    if (!hasSpecialChar) errorMessage += 'Include at least one special character (!@#$%^&*).';
+
+    if (errorMessage) {
+      return Promise.reject(new Error(errorMessage));
+    }
+
+    return Promise.resolve();
+  };
+
   return (
     <>
       {contextHolder}
-      <div className={`rounded-lg p-6 shadow-sm transition-colors duration-300 ${isDarkMode ? 'bg-gray-800' : 'bg-white'
-        }`}>
-        <Form
-          form={form}
-          layout="vertical"
-          onFinish={onFinish}
-        >
+      <div className={`rounded-lg p-6 shadow-sm transition-colors duration-300 ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
+        <Form form={form} layout="vertical" onFinish={onFinish}>
           <Form.Item
             label={<span className={isDarkMode ? 'text-gray-300' : 'text-gray-700'}>Current Password</span>}
             name="currentPassword"
@@ -50,7 +71,11 @@ const ChangePasswordForm = () => {
           <Form.Item
             label={<span className={isDarkMode ? 'text-gray-300' : 'text-gray-700'}>New Password</span>}
             name="newPassword"
-            rules={[{ required: true, message: 'Please input your new password!' }]}
+            rules={[
+              { required: true, message: 'Please input your new password!' },
+              { validator: validatePassword }
+            ]}
+            hasFeedback
           >
             <Input.Password
               placeholder="••••••••••"
@@ -62,6 +87,7 @@ const ChangePasswordForm = () => {
           <Form.Item
             label={<span className={isDarkMode ? 'text-gray-300' : 'text-gray-700'}>Confirm Password</span>}
             name="confirmPassword"
+            dependencies={['newPassword']}
             rules={[
               { required: true, message: 'Please confirm your password!' },
               ({ getFieldValue }) => ({
@@ -73,6 +99,7 @@ const ChangePasswordForm = () => {
                 },
               }),
             ]}
+            hasFeedback
           >
             <Input.Password
               placeholder="••••••••••"
@@ -85,8 +112,7 @@ const ChangePasswordForm = () => {
             <Button
               type="primary"
               htmlType="submit"
-              className={`w-full h-12 text-base font-medium transition-colors bg-primary hover:bg-blue-800
-                }`}
+              className={`w-full h-12 text-base font-medium transition-colors bg-primary hover:bg-blue-800`}
               loading={isLoading}
               disabled={isLoading}
             >

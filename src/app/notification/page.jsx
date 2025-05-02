@@ -207,7 +207,7 @@ export default function NotificationPage() {
     {
       key: 'all',
       label: (
-        <span className="flex items-center">
+        <span className="flex items-center gap-1">
           All
           <Badge
             count={unreadCount}
@@ -275,7 +275,7 @@ export default function NotificationPage() {
     {
       key: 'unread',
       label: (
-        <span className="flex items-center">
+        <span className="flex items-center gap-1">
           Unread
           <Badge
             count={unreadCount}

@@ -247,15 +247,15 @@ const ProfilePage = () => {
             <Card
               title="Your Activity"
               className={`shadow-sm hover:shadow transition-shadow ${isDarkMode ? 'dark-card' : 'light-card'}`}
-              bodyStyle={{
-                padding: screens.md ? '16px' : '12px',
-                backgroundColor: themeStyles.cardBackground
-              }}
-              headStyle={{
-                backgroundColor: themeStyles.cardBackground,
-                borderBottomColor: themeStyles.borderColor,
-                color: themeStyles.textColor
-              }}
+              // bodyStyle={{
+              //   padding: screens.md ? '16px' : '12px',
+              //   backgroundColor: themeStyles.cardBackground
+              // }}
+              // headStyle={{
+              //   backgroundColor: themeStyles.cardBackground,
+              //   borderBottomColor: themeStyles.borderColor,
+              //   color: themeStyles.textColor
+              // }}
               style={{
                 backgroundColor: themeStyles.cardBackground,
                 borderColor: themeStyles.borderColor

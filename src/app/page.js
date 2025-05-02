@@ -152,7 +152,7 @@ const HomePage = () => {
     timePosted: formatTime(post.createdAt),
     title: post.title,
     content: post.content,
-    image: post.image,
+    images: post.images,
     tags: [{ category: post.category?.name, subcategory: post.subCategory?.name }],
     stats: {
       likes: post.likes?.length || 0,
@@ -199,6 +199,8 @@ const HomePage = () => {
     }
     return "All Posts";
   };
+
+
 
   // Loading state
   if (isLoading) {

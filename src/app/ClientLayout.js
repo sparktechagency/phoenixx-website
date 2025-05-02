@@ -134,10 +134,6 @@ export default function ClientLayout({ children }) {
     Drawer: {
       colorBgElevated: isDarkMode ? '#1f1f1f' : '#ffffff',
     },
-    Button: {
-      colorPrimaryHover: isDarkMode ? '#6464FF' : '#2626FF',
-      colorBgContainerHover: isDarkMode ? '#2a2a2a' : '#f5f5f5',
-    },
     Dropdown: {
       colorBgElevated: isDarkMode ? '#1f1f1f' : '#ffffff',
       colorBgTextHover: isDarkMode ? '#2a2a2a' : '#f5f5f5',

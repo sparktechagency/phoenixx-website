@@ -37,7 +37,7 @@ import { useSelector } from 'react-redux';
 
 import { baseURL } from '../../utils/BaseURL';
 import { getImageUrl } from '../../utils/getImageUrl';
-import { Message, MessageDark, MessageLight, NotificationDark, NotificationLight } from '../../utils/svgImage';
+import { MessageDark, MessageLight, NotificationDark, NotificationLight } from '../../utils/svgImage';
 import { ThemeContext } from '../app/ClientLayout';
 import { useGetAllChatQuery } from '../features/chat/massage';
 import { useGetAllNotificationQuery } from '../features/notification/noticationApi';
@@ -64,7 +64,6 @@ export default function Navbar() {
   const { isLoading: allChatLoading, refetch: refetchChat } = useGetAllChatQuery("");
   const { notifications } = useSelector((state) => state);
   const { chats } = useSelector((state) => state);
-  console.log(chats)
 
   const { data, isLoading } = useGetProfileQuery();
   const { data: logo } = useLogoQuery();
@@ -343,7 +342,7 @@ export default function Navbar() {
       <Header
         className={`theme-transition ${isDarkMode ? 'dark-mode' : 'light-mode'}`}
         style={{
-          background: isDarkMode ? 'var(--secondary-bg)' : '#fff',
+          background: isDarkMode ? '#101828' : '#fff',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',

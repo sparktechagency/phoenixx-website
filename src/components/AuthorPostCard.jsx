@@ -4,15 +4,15 @@ import { Dropdown } from 'antd';
 import { formatDistanceToNow } from 'date-fns';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { useContext, useEffect, useRef, useState } from 'react';
+import { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { AiOutlineEllipsis } from 'react-icons/ai';
 import { FaHeart, FaRegBookmark, FaRegHeart } from "react-icons/fa";
 import { baseURL } from '../../utils/BaseURL';
 import { getImageUrl } from '../../utils/getImageUrl';
-import { PostSEE } from '../../utils/svgImage';
-import EditPostModal from './EditPostModal';
+import { PostSEE, PostSEEDark, PostSEELight } from '../../utils/svgImage';
 import { ThemeContext } from '../app/ClientLayout';
+import EditPostModal from './EditPostModal';
 
 
 
@@ -195,6 +195,79 @@ const AuthorPostCard = ({
   const likesCount = postData.likes?.length || 0;
   const readsCount = postData.reads || 0;
 
+  console.log(postData?.images)
+
+
+
+  const renderImageGrid = useMemo(() => (
+      postData.images && postData.images.length > 0 && (
+        <div className="mb-4 rounded-lg overflow-hidden">
+          {postData.images.length === 1 ? (
+            <img
+              src={getImageUrl(postData.images[0])}
+              alt="Post content"
+              className="w-full max-h-[500px] object-cover "
+            />
+          ) : postData.images.length === 2 ? (
+            <div className="flex gap-1 h-[350px]">
+              <img
+                src={getImageUrl(postData.images[0])}
+                alt="Post content 1"
+                className="w-1/2 h-full object-cover "
+              />
+              <img
+                src={getImageUrl(postData.images[1])}
+                alt="Post content 2"
+                className="w-1/2 h-full object-cover "
+
+              />
+            </div>
+          ) : postData.images.length === 3 ? (
+            <div className="flex gap-1 h-[350px]">
+              <div className="w-1/2 h-full">
+                <img
+                  src={getImageUrl(postData.images[0])}
+                  alt="Post content 1"
+                  className="w-full h-full object-cover "
+                />
+              </div>
+              <div className="w-1/2 flex flex-col gap-1">
+                <img
+                  src={getImageUrl(postData.images[1])}
+                  alt="Post content 2"
+                  className="w-full h-1/2 object-cover "
+
+                />
+                <img
+                  src={getImageUrl(postData.images[2])}
+                  alt="Post content 3"
+                  className="w-full h-1/2 object-cover "
+                />
+              </div>
+            </div>
+          ) : postData.images.length >= 4 ? (
+            <div className="grid grid-cols-2 gap-1 h-[350px]">
+              {postData.images.slice(0, 4).map((image, index) => (
+                <div key={index} className="relative">
+                  <img
+                    src={getImageUrl(image)}
+                    alt={`Post content ${index + 1}`}
+                    className={`w-full h-full object-cover ${index === 3 && postData.images.length > 4 ? 'opacity-80' : ''
+                      }`}
+                  />
+                  {index === 3 && postData.images.length > 4 && (
+                    <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center text-white text-2xl font-bold">
+                      +{postData.images.length - 4}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : null}
+        </div>
+      )
+    ), [postData.images]);
+
   return (
     <>
       <div className={`rounded-lg ${isDarkMode ? 'bg-gray-800 shadow-dark' : 'bg-white shadow'} mb-4 ${isMobile ? 'p-3' : isTablet ? 'p-4' : 'p-5'}`}>
@@ -236,15 +309,7 @@ const AuthorPostCard = ({
 
         {renderContent()}
 
-        {postData.image && (
-          <div className="mb-4">
-            <img
-              src={`${baseURL}${postData.image}`}
-              alt="Post content"
-              className="w-full h-[350px] rounded-lg object-cover"
-            />
-          </div>
-        )}
+        { renderImageGrid }
 
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-4 sm:gap-6">
@@ -266,7 +331,7 @@ const AuthorPostCard = ({
 
           <div className="flex items-center gap-3">
             <div className={`flex items-center gap-1 ${isMobile ? 'text-xs' : 'text-sm'} ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-              <PostSEE className={isDarkMode ? "fill-gray-400" : ""} />
+              {isDarkMode ? <PostSEEDark /> : <PostSEELight />}
               <span>{postData?.views}</span>
             </div>
 

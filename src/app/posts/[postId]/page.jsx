@@ -4,7 +4,7 @@ import { Avatar, Button, Card, Dropdown, Empty, Input, Menu, message, Select } f
 import moment from 'moment';
 import Image from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
-import { useEffect, useRef, useState, useContext } from 'react';
+import { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { FaEye, FaHeart, FaRegHeart } from "react-icons/fa";
 
@@ -516,6 +516,78 @@ const PostDetailsPage = () => {
     );
   }
 
+
+
+  const renderImageGrid = post?.images?.length > 0 ? (
+    <div className="mb-4 rounded-lg overflow-hidden">
+      {post.images.length === 1 ? (
+        <img
+          src={getImageUrl(post.images[0])}
+          alt="Post content"
+          className="w-full max-h-[500px] object-cover"
+        />
+      ) : post.images.length === 2 ? (
+        <div className="flex gap-1 h-[350px]">
+          <img
+            src={getImageUrl(post.images[0])}
+            alt="Post content 1"
+            className="w-1/2 h-full object-cover"
+          />
+          <img
+            src={getImageUrl(post.images[1])}
+            alt="Post content 2"
+            className="w-1/2 h-full object-cover"
+          />
+        </div>
+      ) : post.images.length === 3 ? (
+        <div className="flex gap-1 h-[350px]">
+          <div className="w-1/2 h-full">
+            <img
+              src={getImageUrl(post.images[0])}
+              alt="Post content 1"
+              className="w-full h-full object-cover"
+            />
+          </div>
+          <div className="w-1/2 flex flex-col gap-1">
+            <img
+              src={getImageUrl(post.images[1])}
+              alt="Post content 2"
+              className="w-full h-1/2 object-cover"
+            />
+            <img
+              src={getImageUrl(post.images[2])}
+              alt="Post content 3"
+              className="w-full h-1/2 object-cover"
+            />
+          </div>
+        </div>
+      ) : post.images.length >= 4 ? (
+        <div className="grid grid-cols-2 gap-1 h-[350px]">
+          {post.images.slice(0, 4).map((image, index) => (
+            <div key={index} className="relative">
+              <img
+                src={getImageUrl(image)}
+                alt={`Post content ${index + 1}`}
+                className={`w-full h-full object-cover ${
+                  index === 3 && post.images.length > 4 ? 'opacity-80' : ''
+                }`}
+              />
+              {index === 3 && post.images.length > 4 && (
+                <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center text-white text-2xl font-bold">
+                  +{post.images.length - 4}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  ) : null;
+
+
+
+
+
   return (
     <div className={`min-h-screen ${isDarkMode ? 'bg-gray-900' : 'bg-[#F2F4F7]'} p-4`}>
       <main className="max-w-3xl mx-auto">
@@ -566,17 +638,7 @@ const PostDetailsPage = () => {
               dangerouslySetInnerHTML={{ __html: post.content }}
             />
 
-            {post?.image && (
-              <div className="mb-4">
-                <Image
-                  src={`${baseURL}${post?.image}`}
-                  alt={post.title || "Post image"}
-                  width={800}
-                  height={350}
-                  className="w-full h-[350px] rounded-lg object-cover"
-                />
-              </div>
-            )}
+            {renderImageGrid}
 
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-4 sm:gap-6">
