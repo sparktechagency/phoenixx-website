@@ -160,8 +160,7 @@ export default function Navbar() {
         localStorage.removeItem('loginToken');
         localStorage.removeItem('login_user_id');
         localStorage.setItem('theme', 'light');
-        
-        
+        window.location.reload();
       },
       className: isDarkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-50'
     },

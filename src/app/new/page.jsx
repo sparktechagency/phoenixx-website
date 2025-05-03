@@ -97,7 +97,7 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
       'selectAll', 'clear', 'save', 'code'
     ],
     buttons: [
-      'bold', 'italic', 'underline', 'ul', 'ol', 'link', 'image', 'smile'
+      'bold', 'italic', 'underline', 'ul', 'ol', 
     ],
     colors: {
       greyscale: isDarkMode ? '#ffffff,#f5f5f5,#e8e8e8,#dddddd,#c0c0c0,#a9a9a9,#808080,#696969,#545454,#3f3f3f,#2f2f2f,#1e1e1e,#0f0f0f,#080808,#000000' : '#000000,#333333,#555555,#777777,#999999,#BBBBBB,#DDDDDD,#FFFFFF',
@@ -484,14 +484,14 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
       if (isEditing && postId) {
         // For edit mode, track deleted images and new uploads
         const deletedImages = [];
-        
+
         // Compare initial images with current fileList to find deleted images
         initialImages.forEach(initialImage => {
-          const stillExists = fileList.some(file => 
-            file.path === initialImage.path || 
+          const stillExists = fileList.some(file =>
+            file.path === initialImage.path ||
             file.url === initialImage.url
           );
-          
+
           if (!stillExists) {
             deletedImages.push(initialImage.path);
           }
