@@ -1,5 +1,5 @@
 import { useSilderQuery } from '@/features/report/reportApi';
-import React, { useState, useEffect, useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { baseURL } from '../../utils/BaseURL';
 
 const CarouselBanner = () => {
