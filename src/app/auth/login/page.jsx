@@ -14,7 +14,7 @@ const LoginPage = () => {
     password: '',
     rememberMe: false
   });
-  
+
   const [errors, setErrors] = useState({
     username: '',
     password: '',
@@ -36,7 +36,7 @@ const LoginPage = () => {
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
-    
+
     if (errors[name]) {
       setErrors(prev => ({
         ...prev,
@@ -71,10 +71,10 @@ const LoginPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (validateForm()) {
       setIsSubmitting(true);
-      
+
       try {
         const response = await Login({ email: formData.username, password: formData.password }).unwrap();
         saveToken(response?.data?.accessToken);
@@ -99,10 +99,10 @@ const LoginPage = () => {
       <div className="flex h-screen justify-center">
         {/* Left Section with Background Image */}
         <div className="hidden md:flex md:w-1/2 justify-center relative">
-          <Image 
-            src="/images/login.png" 
-            alt="People smiling" 
-            layout="fill" 
+          <Image
+            src="/images/login.png"
+            alt="People smiling"
+            layout="fill"
             objectFit="cover"
           />
         </div>

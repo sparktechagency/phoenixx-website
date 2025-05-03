@@ -157,7 +157,11 @@ export default function Navbar() {
       danger: true,
       onClick: () => {
         handleNavigation('/auth/login');
-        localStorage.clear();
+        localStorage.removeItem('loginToken');
+        localStorage.removeItem('login_user_id');
+        localStorage.setItem('theme', 'light');
+        
+        
       },
       className: isDarkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-50'
     },

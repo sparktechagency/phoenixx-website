@@ -192,6 +192,7 @@ const ProfilePage = () => {
     }
   };
 
+
   // Get posts based on active tab
   const getPostsToDisplay = () => {
     switch (activeTab) {
