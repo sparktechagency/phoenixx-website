@@ -80,90 +80,95 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
     }));
   }, [category, subcategoryData]);
 
-  // Enhanced Jodit editor configuration with proper dark mode support
-  const joditConfig = useMemo(() => ({
-    height: isMobile ? 300 : 400,
-    placeholder: "Write your post description here...",
-    theme: isDarkMode ? 'dark' : 'default',
-    removeButtons: [
-      'strikethrough', 'superscript', 'subscript',
-      'font', 'fontsize', 'paragraph', 'outdent', 'indent', 'undo',
-      'redo', 'cut', 'copy', 'paste', 'table', 'hr',
-      'video', 'file', 'print', 'source', 'preview', 'clean', 'highlight',
-      'directionality', 'left', 'right', 'center', 'justify', 'removeformat', 'formatblock',
-      'format', 'textcolor', 'bgcolor', 'fontsize', 'fontname', 'spellcheck', 'settings',
-      'fullsize', 'about', 'draft', 'statusbar', 'indent', 'outdent', 'insert', 'upload',
-      'replace', 'template', 'insertImage', 'insertTable', 'insertText',
-      'selectAll', 'clear', 'save', 'code'
-    ],
-    buttons: [
-      'bold', 'italic', 'underline', 'ul', 'ol', 
-    ],
-    colors: {
-      greyscale: isDarkMode ? '#ffffff,#f5f5f5,#e8e8e8,#dddddd,#c0c0c0,#a9a9a9,#808080,#696969,#545454,#3f3f3f,#2f2f2f,#1e1e1e,#0f0f0f,#080808,#000000' : '#000000,#333333,#555555,#777777,#999999,#BBBBBB,#DDDDDD,#FFFFFF',
-    },
-    style: {
-      backgroundColor: isDarkMode ? '#1f2937' : '#fff',
-      color: isDarkMode ? '#e5e7eb' : '#374151',
-    },
-    extraCss: isDarkMode ?
-      `.jodit-container,.jodit-workplace {
-        background-color: #1f2937 !important;
-        color: #e5e7eb !important;
-        border-color: #4b5563 !important;
-      }
-      .jodit-toolbar {
-        background-color: #374151 !important;
-        border-color: #4b5563 !important;
-      }
-      .jodit-toolbar__box {
-        background-color: #374151 !important;
-        border-color: #4b5563 !important;
-      }
-      .jodit-toolbar__box a.jodit-toolbar-button {
-        color: #e5e7eb !important;
-      }
-      .jodit-toolbar__box a.jodit-toolbar-button:hover {
-        background-color: #4b5563 !important;
-        color: #ffffff !important;
-      }
-      .jodit-container.jodit-wysiwyg {
-        color: #e5e7eb !important;
-        background-color: #1f2937 !important;
-      }
-      .jodit-wysiwyg {
-        color: #e5e7eb !important;
-        background-color: #1f2937 !important;
-      }
-      .jodit-workplace {
-        background-color: #1f2937 !important;
-      }
-      .jodit-status-bar {
-        background-color: #374151 !important;
-        border-color: #4b5563 !important;
-        color: #e5e7eb !important;
-      }` : '',
-    events: {
-      afterInit: (editor) => {
-        if (isDarkMode) {
-          if (editor && editor.workplace) {
-            editor.workplace.style.backgroundColor = '#1f2937';
-            editor.workplace.style.color = '#e5e7eb';
-
-            if (editor.editor) {
-              editor.editor.style.backgroundColor = '#1f2937';
-              editor.editor.style.color = '#e5e7eb';
-            }
-          }
-        }
+ const joditConfig = useMemo(() => ({
+  height: isMobile ? 300 : 400,
+  placeholder: "Write your post description here...",
+  theme: isDarkMode ? 'dark' : 'default',
+  buttons: ['bold', 'italic', 'underline', '|', 'ul', 'ol'],
+  buttonsMD: ['bold', 'italic', 'underline', '|', 'ul', 'ol'],
+  buttonsSM: ['bold', 'italic', 'underline', '|', 'ul', 'ol'],
+  buttonsXS: ['bold', 'italic', 'underline', '|', 'ul', 'ol'],
+  extraPlugins: ['list'],
+  enablePaste: true,
+  allowPasteFromWord: true,
+  defaultActionOnPaste: "insert_format_html",
+  pastePlainText: false,
+  cleanHTML: {
+    fillEmptyParagraph: true,
+    removeEmptyNodes: false,
+  },
+  clipboard: {
+    keepHtml: true,
+  },
+  style: {
+    padding: "20px",
+    backgroundColor: isDarkMode ? '#1f2937' : '#fff',
+    color: isDarkMode ? '#e5e7eb' : '#374151',
+  },
+  colors: {
+    greyscale: isDarkMode ? '#ffffff,#f5f5f5,#e8e8e8,#dddddd,#c0c0c0,#a9a9a9,#808080,#696969,#545454,#3f3f3f,#2f2f2f,#1e1e1e,#0f0f0f,#080808,#000000' : '#000000,#333333,#555555,#777777,#999999,#BBBBBB,#DDDDDD,#FFFFFF',
+  },
+  extraCss: `
+    /* Remove bullets from all unordered lists */
+    .jodit-wysiwyg ul,
+    .jodit ul {
+      list-style-type: none !important;
+      padding-left: 20px !important;
+      margin: 10px 0 !important;
+    }
+    /* Remove pseudo-elements (bullets) */
+    .jodit-wysiwyg ul li::before,
+    .jodit ul li::before {
+      content: none !important;
+      margin-right: 0 !important;
+    }
+    /* Ordered list styling */
+    .jodit-wysiwyg ol,
+    .jodit ol {
+      padding-left: 40px !important;
+      margin: 10px 0 !important;
+    }
+    /* Ensure list items display correctly */
+    .jodit-wysiwyg li,
+    .jodit li {
+      display: list-item !important;
+    }
+    /* Hide dot and lower-roman options in dropdown menus */
+    .jodit-ui-list-menu [data-value="dot"],
+    .jodit-ui-list-menu [data-value="lower-roman"] {
+      display: none !important;
+    }`,
+  controls: {
+    ul: {
+      list: {
+        // Removed 'default' to hide dot option
+        circle: 'Circle',
+        square: 'Square',
+        dot:true
       }
     },
-    toolbarAdaptive: false,
-    toolbarSticky: true,
-    showCharsCounter: true,
-    showWordsCounter: true,
-    showXPathInStatusbar: false
-  }), [isMobile, isDarkMode]);
+    ol: {
+      list: {
+        default: 'Default',
+        upper: 'Upper Case',
+        'upper-alpha': 'Upper Alpha'
+      }
+    }
+  },
+  enableDragAndDropFileToEditor: false,
+  toolbarAdaptive: false,
+  toolbarSticky: true,
+  showCharsCounter: true,
+  showWordsCounter: true,
+  showXPathInStatusbar: false,
+  allowTags: {
+    ul: true,
+    ol: true,
+    li: true
+  },
+  processPasteHTML: true,
+  enter: 'p'
+}), [isMobile, isDarkMode]);
 
   // Add CSS for dark mode to document head
   useEffect(() => {

@@ -108,7 +108,7 @@ const ChatList = ({ setIsChatActive, status }) => {
                   {chat?.participants?.[0]?.userName || "User"}
                 </h3>
                 <p className={`text-sm truncate ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                  {chat?.lastMessage?.text}
+                  {chat?.lastMessage?.text.slice(0, 25)}
                 </p>
               </div>
               <div className="text-right flex flex-col gap-2">

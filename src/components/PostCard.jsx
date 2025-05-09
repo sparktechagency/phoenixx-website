@@ -100,10 +100,10 @@ const PostCard = ({
     setIsSaving(true);
     try {
       await savepost({ postId: postData.id }).unwrap();
-      message.success(isSaved ? 'Post removed from saved items' : 'Post saved successfully');
+      toast.success(isSaved ? 'Post removed from saved items' : 'Post saved successfully');
     } catch (error) {
       console.error('Save/Unsave error:', error);
-      message.error('Failed to update saved status');
+      toast.error('Failed to update saved status');
     } finally {
       setIsSaving(false);
     }

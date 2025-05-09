@@ -2,11 +2,12 @@
 import { useGetAllChatQuery, useGetAllMassageQuery, useMessageSendMutation } from '@/features/chat/massage';
 import { Avatar, Badge, Button, Form, Input, Upload } from 'antd';
 import { useContext, useEffect, useRef, useState } from 'react';
-import { IoIosAttach } from 'react-icons/io';
+import { IoIosAttach, IoMdSend } from 'react-icons/io';
+import { BsEmojiSmile } from 'react-icons/bs';
 import { useSelector } from 'react-redux';
 import { getImageUrl } from '../../../../utils/getImageUrl';
 import { ThemeContext } from '../../ClientLayout';
-
+import EmojiPicker from 'emoji-picker-react';
 
 const ChatWindow = ({ id }) => {
   useGetAllMassageQuery(id);
@@ -18,8 +19,37 @@ const ChatWindow = ({ id }) => {
   const [imagePreview, setImagePreview] = useState(null);
   const { data: chatList, isLoading: chatLoading } = useGetAllChatQuery("");
   const { isDarkMode } = useContext(ThemeContext);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const inputRef = useRef(null);
+  const emojiPickerRef = useRef(null);
+  const emojiButtonRef = useRef(null);
 
   const users = chatList?.data?.find(chat => chat?.participants?.map(item => item === id));
+
+  // Handle outside click for emoji picker
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (
+        showEmojiPicker && 
+        emojiPickerRef.current && 
+        !emojiPickerRef.current.contains(event.target) &&
+        emojiButtonRef.current && 
+        !emojiButtonRef.current.contains(event.target)
+      ) {
+        setShowEmojiPicker(false);
+      }
+    }
+
+    // Add event listener when emoji picker is shown
+    if (showEmojiPicker) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    
+    // Clean up the event listener
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showEmojiPicker]);
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -49,6 +79,7 @@ const ChatWindow = ({ id }) => {
       // Reset form and image preview
       form.resetFields();
       setImagePreview(null);
+      setShowEmojiPicker(false);
     } catch (error) {
       console.error(error);
     }
@@ -66,7 +97,6 @@ const ChatWindow = ({ id }) => {
     });
   };
 
-  // Handle file selection to show preview
   const handleFileChange = ({ fileList }) => {
     if (fileList.length > 0) {
       const file = fileList[0].originFileObj;
@@ -83,17 +113,25 @@ const ChatWindow = ({ id }) => {
     form.setFieldsValue({ file: { fileList } });
   };
 
-  // Function to remove the image preview
   const removeImage = () => {
     setImagePreview(null);
     form.setFieldsValue({ file: { fileList: [] } });
   };
 
+  const onEmojiClick = (emojiData) => {
+    const currentMessage = form.getFieldValue('message') || '';
+    form.setFieldsValue({ message: currentMessage + emojiData.emoji });
+    inputRef.current.focus();
+  };
+
+  const toggleEmojiPicker = () => {
+    setShowEmojiPicker(!showEmojiPicker);
+  };
+
   return (
     <div className={`flex flex-col h-[80vh] ${isDarkMode ? 'bg-gray-900 text-white' : ''}`}>
       {/* Header */}
-      <div className={`p-4 flex items-center gap-4 border-b ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
-        }`}>
+      <div className={`p-4 flex items-center gap-4 border-b ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
         {users?.participants?.map((participantId, index) => (
           <div key={participantId} className="relative">
             <Avatar
@@ -124,8 +162,7 @@ const ChatWindow = ({ id }) => {
       </div>
 
       {/* Message container */}
-      <div className={`flex-1 p-4 pb-0 overflow-y-auto message-container ${isDarkMode ? 'bg-gray-800' : 'bg-[#F5F5F6]'
-        }`}>
+      <div className={`flex-1  p-4 pb-0 overflow-y-auto message-container ${isDarkMode ? 'bg-gray-800' : 'bg-[#fffff]'}`}>
         <style jsx global>{`
           .message-container::-webkit-scrollbar {
             width: 6px;
@@ -142,7 +179,6 @@ const ChatWindow = ({ id }) => {
           const isCurrentUser = message.sender?._id === loginUserId;
           return (
             <div key={message._id || index} className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'} mb-4`}>
-              {/* Avatar for other users (top-aligned) */}
               {!isCurrentUser && (
                 <Avatar
                   src={getImageUrl(message.sender?.profile)}
@@ -152,16 +188,15 @@ const ChatWindow = ({ id }) => {
                 />
               )}
 
-              {/* Message bubble */}
               <div className={`max-w-xs p-3 rounded-lg ${isCurrentUser
-                ? 'bg-primary text-white'
+                ? 'bg-[#F3F4F6] text-black'
                 : isDarkMode
                   ? 'bg-gray-700 text-gray-200'
                   : 'bg-white text-gray-800'
                 }`}>
-                {!isCurrentUser && (
+                {/* {!isCurrentUser && (
                   <p className="text-xs font-semibold mb-1">{message.sender?.userName}</p>
-                )}
+                )} */}
 
                 <p>{message.text}</p>
 
@@ -177,7 +212,6 @@ const ChatWindow = ({ id }) => {
                 </p>
               </div>
 
-              {/* Avatar for current user (bottom-aligned) */}
               {isCurrentUser && (
                 <Avatar
                   src={getImageUrl(message.sender?.profile)}
@@ -192,8 +226,7 @@ const ChatWindow = ({ id }) => {
       </div>
 
       {/* Input form */}
-      <div className={`p-1 border-t ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
-        }`}>
+      <div className={`p-1 border-t ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
         {/* Image preview area */}
         {imagePreview && (
           <div className="mx-4 mt-2 relative">
@@ -201,13 +234,11 @@ const ChatWindow = ({ id }) => {
               <img
                 src={imagePreview}
                 alt="Preview"
-                className={`h-20 w-auto rounded object-cover border ${isDarkMode ? 'border-gray-600' : 'border-gray-200'
-                  }`}
+                className={`h-20 w-auto rounded object-cover border ${isDarkMode ? 'border-gray-600' : 'border-gray-200'}`}
               />
               <Button
                 type="text"
-                className={`absolute -top-2 -right-2 rounded-full p-0 flex items-center justify-center h-6 w-6 shadow-md ${isDarkMode ? 'bg-gray-700' : 'bg-white'
-                  }`}
+                className={`absolute top-1 right-1 rounded-full p-0 flex items-center justify-center h-6 w-6 shadow-md ${isDarkMode ? 'bg-gray-700 text-white' : 'bg-white text-gray-800'}`}
                 onClick={removeImage}
                 style={{ fontSize: '12px' }}
               >
@@ -221,46 +252,71 @@ const ChatWindow = ({ id }) => {
           form={form}
           onFinish={handleCreateNewMessage}
           name="messageForm"
-          className="flex w-full items-center gap-2"
+          className="flex w-full items-center px-2 py-1 gap-2 relative"
+          style={{ marginTop:"10px" , marginBottom:"-15px" }}
         >
-          <Form.Item name="file" valuePropName="file" className="flex items-center" >
-            <Upload
-              beforeUpload={() => false}
-              accept="image/*"
-              maxCount={1}
-              showUploadList={false}
-              className="flex items-center"
-              onChange={handleFileChange}
-            >
+          <div className="flex items-center">
+            <Form.Item name="file" valuePropName="file" className="mb-0 mr-1">
+              <Upload
+                beforeUpload={() => false}
+                accept="image/*"
+                maxCount={1}
+                showUploadList={false}
+                onChange={handleFileChange}
+              >
+                <Button
+                  type="text"
+                  icon={<IoIosAttach color={isDarkMode ? "#9BA3AF" : "#9F9F9F"} size={24} />}
+                  className="flex items-center justify-center"
+                />
+              </Upload>
+            </Form.Item>
+            
+            <Form.Item className="mb-0 mr-1">
               <Button
+                ref={emojiButtonRef}
                 type="text"
-                icon={<IoIosAttach color={isDarkMode ? "#9BA3AF" : "#9F9F9F"} size={24} />}
-                className="flex items-center justify-center"
-                style={{ marginTop: imagePreview ? "0" : "25px" }}
+                icon={<BsEmojiSmile color={isDarkMode ? "#9BA3AF" : "#9F9F9F"} size={20} />}
+                onClick={toggleEmojiPicker}
               />
-            </Upload>
-          </Form.Item>
-          <Form.Item style={{ width: '100%', margin: 0 }} name="message">
-            <Input.Search
+            </Form.Item>
+          </div>
+
+          {showEmojiPicker && (
+            <div className="absolute bottom-16 left-16 z-10" ref={emojiPickerRef}>
+              <EmojiPicker 
+                onEmojiClick={onEmojiClick}
+                width={300}
+                height={350}
+                theme={isDarkMode ? 'dark' : 'light'}
+              />
+            </div>
+          )}
+
+          <Form.Item name="message" className="flex-1 mb-0">
+            <Input
+              ref={inputRef}
               style={{
                 backgroundColor: isDarkMode ? '#374151' : '#F5F5F6',
                 borderRadius: '8px',
-                width: '100%',
                 color: isDarkMode ? 'white' : 'inherit',
               }}
               placeholder="Type something ..."
-              allowClear
               className={isDarkMode ? 'dark-input' : ''}
-              enterButton={
-                <Button
-                  htmlType='submit'
-                  type="primary"
-                  style={{ backgroundColor: '#0047FF', border: 'none' }}
-                >
-                  {isLoading ? "Sending..." : "Send"}
-                </Button>
-              }
               size="large"
+            />
+          </Form.Item>
+
+          <Form.Item className="mb-0 ml-1">
+            <Button
+              htmlType="submit"
+              type="primary"
+              icon={<IoMdSend />}
+              style={{ 
+                backgroundColor: '#0047FF', 
+                border: 'none',
+              }}
+              loading={isLoading}
             />
           </Form.Item>
         </Form>

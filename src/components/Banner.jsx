@@ -43,7 +43,7 @@ const CarouselBanner = () => {
     const interval = setInterval(() => {
       const nextSlide = activeSlide === slides.length - 1 ? 0 : activeSlide + 1;
       changeSlide(nextSlide);
-    }, 5000);
+    }, 10000);
 
     // Clean up interval on component unmount
     return () => clearInterval(interval);
