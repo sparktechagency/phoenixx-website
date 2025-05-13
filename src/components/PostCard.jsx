@@ -1,6 +1,6 @@
 "use client";
 import { useGetSaveAllPostQuery, useSavepostMutation } from '@/features/SavePost/savepostApi';
-import { Dropdown, message } from 'antd';
+import { Dropdown } from 'antd';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import React, { useCallback, useContext, useMemo, useState } from 'react';
@@ -225,7 +225,7 @@ const PostCard = ({
           <img
             src={getImageUrl(postData.images[0])}
             alt="Post content"
-            className="w-full max-h-[500px] object-cover cursor-pointer"
+            className="w-full max-h-96 object-cover cursor-pointer"
             onClick={handlePostDetails}
           />
         ) : postData.images.length === 2 ? (

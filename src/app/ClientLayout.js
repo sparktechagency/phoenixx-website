@@ -157,7 +157,7 @@ export default function ClientLayout({ children }) {
     },
     Tabs: {
       inkBarColor: isDarkMode ? '#4E4EFB' : '#0001FB',
-      itemHoverColor: isDarkMode ? '#6464FF' : '#2626FF',
+      // itemHoverColor: isDarkMode ? '#6464FF' : '#2626FF',
       itemSelectedColor: isDarkMode ? '#4E4EFB' : '#0001FB',
     },
     Timeline: {

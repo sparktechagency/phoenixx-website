@@ -57,6 +57,9 @@ const ChatList = ({ setIsChatActive, status }) => {
     return <LoadingUi />
   }
 
+
+  console.log(chatList)
+
   return (
     <div className={`w-full h-[80vh]  shadow rounded-lg flex flex-col
       ${isDarkMode ? 'dark-mode bg-gray-800 border-gray-700' : 'light-mode bg-white border-gray-200'}`}>
@@ -113,7 +116,7 @@ const ChatList = ({ setIsChatActive, status }) => {
               </div>
               <div className="text-right flex flex-col gap-2">
                 <p className={`text-sm ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
-                  {formatTime(chat.createdAt)}
+                  {formatTime(chat.lastMessage.createdAt)}
                 </p>
 
                 <p className={`text-sm ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>

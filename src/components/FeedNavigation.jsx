@@ -6,11 +6,23 @@ import { RiArrowUpDownLine } from "react-icons/ri";
 import { ThemeContext } from '../app/ClientLayout';
 
 const FeedNavigation = ({ handlefeedGrid, onSortChange, currentSort }) => {
+  // Initialize clickCount from localStorage or default to 1
   const [clickCount, setClickCount] = useState(1);
   const [isHovered, setIsHovered] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
   const { isDarkMode } = useContext(ThemeContext);
+
+  // Load saved grid state on component mount
+  useEffect(() => {
+    // Check if we're in browser environment (not during SSR)
+    if (typeof window !== 'undefined') {
+      const savedGridState = localStorage.getItem('feedGridState');
+      if (savedGridState) {
+        setClickCount(parseInt(savedGridState));
+      }
+    }
+  }, []);
 
   useEffect(() => {
     const handleResize = () => {
@@ -23,7 +35,13 @@ const FeedNavigation = ({ handlefeedGrid, onSortChange, currentSort }) => {
   }, []);
 
   const handleFeedsClick = () => {
-    setClickCount((prevCount) => (prevCount % 2) + 1);
+    const newCount = (clickCount % 2) + 1;
+    setClickCount(newCount);
+    
+    // Save the new state to localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('feedGridState', newCount.toString());
+    }
   };
 
   useEffect(() => {

@@ -11,7 +11,7 @@ import { ThemeContext } from '../ClientLayout';
 const AccountTabs = () => {
   const [activeKey, setActiveKey] = useState('1');
   const { isDarkMode } = useContext(ThemeContext);
-  const primaryColor = '#0001FB';
+  const primaryColor = '#ffffff';
 
   const onChange = (key) => {
     setActiveKey(key);

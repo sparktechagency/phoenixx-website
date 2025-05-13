@@ -200,8 +200,6 @@ const HomePage = () => {
     return "All Posts";
   };
 
-
-
   // Loading state
   if (isLoading) {
     return (
@@ -292,6 +290,38 @@ const HomePage = () => {
     );
   }
 
+  // Function to distribute posts into columns for masonry layout
+  const distributePostsToColumns = (posts, columnCount) => {
+    if (!posts || posts.length === 0) return Array(columnCount).fill([]);
+    
+    // Initialize columns
+    const columns = Array(columnCount).fill().map(() => []);
+    
+    // Distribute posts to columns
+    posts.forEach((post, index) => {
+      // Find the column with the least content
+      const targetColumnIndex = index % columnCount;
+      columns[targetColumnIndex].push(post);
+    });
+    
+    return columns;
+  };
+
+  // Calculate column counts based on screen width and grid setting
+  const getColumnCount = () => {
+    // Mobile: always 1 column
+    if (windowWidth < 640) return 1;
+    
+    // Tablet: always 1 column if grid is 1, 2 columns if grid is 2
+    if (windowWidth < 1024) return gridNumber === 2 ? 2 : 1;
+    
+    // Desktop: 1 column if grid is 1, 2 columns if grid is 2
+    return gridNumber === 2 ? 2 : 1;
+  };
+
+  const columnCount = getColumnCount();
+  const postColumns = distributePostsToColumns(posts, columnCount);
+
   // Main render
   return (
     <div key={routeKey} className={`${isDarkMode ? 'dark-mode' : 'light-mode'}`}>
@@ -357,17 +387,19 @@ const HomePage = () => {
                   </Card>
                 ) : (
                   <>
-                    <motion.div
-                      layout
-                      className={`grid ${isGrid2 ? 'grid-cols-2 gap-4' : 'grid-cols-1 gap-1'} mb-6`}
-                    >
-                      {posts.map((post) => (
-                        <div key={post._id}>
-                          <PostCard
-                            postData={formatPostData(post)}
-                            currentUser={currentUser}
-                            onLike={handleLike}
-                          />
+                    {/* Masonry layout for posts */}
+                    <motion.div layout className="flex gap-4 mb-6">
+                      {postColumns.map((column, columnIndex) => (
+                        <div key={columnIndex} className="flex-1 flex flex-col gap-4">
+                          {column.map((post) => (
+                            <div key={post._id}>
+                              <PostCard
+                                postData={formatPostData(post)}
+                                currentUser={currentUser}
+                                onLike={handleLike}
+                              />
+                            </div>
+                          ))}
                         </div>
                       ))}
                     </motion.div>
@@ -427,14 +459,19 @@ const HomePage = () => {
                 </Card>
               ) : (
                 <>
-                  <div className={`grid gap-5 ${gridNumber === 2 && windowWidth >= 640 ? 'grid-cols-2' : 'grid-cols-1'} mb-6`}>
-                    {posts.map((post) => (
-                      <div key={post._id}>
-                        <PostCard
-                          postData={formatPostData(post)}
-                          currentUser={currentUser}
-                          onLike={handleLike}
-                        />
+                  {/* Mobile masonry layout */}
+                  <div className="flex gap-4">
+                    {postColumns.map((column, columnIndex) => (
+                      <div key={columnIndex} className="flex-1 flex flex-col gap-4">
+                        {column.map((post) => (
+                          <div key={post._id}>
+                            <PostCard
+                              postData={formatPostData(post)}
+                              currentUser={currentUser}
+                              onLike={handleLike}
+                            />
+                          </div>
+                        ))}
                       </div>
                     ))}
                   </div>

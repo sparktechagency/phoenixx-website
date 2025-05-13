@@ -2,17 +2,13 @@
 
 import { useCategoriesQuery, useSubCategoriesQuery } from '@/features/Category/CategoriesApi';
 import { useCreatePostMutation, useEditPostMutation } from '@/features/post/postApi';
-import {
-  SaveOutlined,
-  UploadOutlined
-} from '@ant-design/icons';
+import { SaveOutlined, UploadOutlined } from '@ant-design/icons';
 import {
   Button,
   Card,
   Col,
   Grid,
   Input,
-  message,
   Row,
   Select,
   Space,
@@ -27,7 +23,6 @@ import toast from 'react-hot-toast';
 import { baseURL } from '../../../utils/BaseURL';
 import { useAuth } from '../../hooks/useAuth';
 import { ThemeContext } from '../ClientLayout';
-
 
 const JoditEditor = dynamic(() => import('jodit-react'), {
   ssr: false,
@@ -46,7 +41,7 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
   const [fileList, setFileList] = useState([]);
   const [loading, setLoading] = useState(false);
   const [formErrors, setFormErrors] = useState({});
-  const [initialImages, setInitialImages] = useState([]); // Track initial images
+  const [initialImages, setInitialImages] = useState([]);
 
   const editorRef = useRef(null);
   const router = useRouter();
@@ -61,8 +56,6 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
 
   // Responsive breakpoints
   const isMobile = !screens.md;
-  const isTablet = screens.md && !screens.lg;
-  const isDesktop = screens.lg;
 
   // Memoized category options
   const categoryOptions = useMemo(() => (
@@ -80,95 +73,25 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
     }));
   }, [category, subcategoryData]);
 
- const joditConfig = useMemo(() => ({
-  height: isMobile ? 300 : 400,
-  placeholder: "Write your post description here...",
-  theme: isDarkMode ? 'dark' : 'default',
-  buttons: ['bold', 'italic', 'underline', '|', 'ul', 'ol'],
-  buttonsMD: ['bold', 'italic', 'underline', '|', 'ul', 'ol'],
-  buttonsSM: ['bold', 'italic', 'underline', '|', 'ul', 'ol'],
-  buttonsXS: ['bold', 'italic', 'underline', '|', 'ul', 'ol'],
-  extraPlugins: ['list'],
-  enablePaste: true,
-  allowPasteFromWord: true,
-  defaultActionOnPaste: "insert_format_html",
-  pastePlainText: false,
-  cleanHTML: {
-    fillEmptyParagraph: true,
-    removeEmptyNodes: false,
-  },
-  clipboard: {
-    keepHtml: true,
-  },
-  style: {
-    padding: "20px",
-    backgroundColor: isDarkMode ? '#1f2937' : '#fff',
-    color: isDarkMode ? '#e5e7eb' : '#374151',
-  },
-  colors: {
-    greyscale: isDarkMode ? '#ffffff,#f5f5f5,#e8e8e8,#dddddd,#c0c0c0,#a9a9a9,#808080,#696969,#545454,#3f3f3f,#2f2f2f,#1e1e1e,#0f0f0f,#080808,#000000' : '#000000,#333333,#555555,#777777,#999999,#BBBBBB,#DDDDDD,#FFFFFF',
-  },
-  extraCss: `
-    /* Remove bullets from all unordered lists */
-    .jodit-wysiwyg ul,
-    .jodit ul {
-      list-style-type: none !important;
-      padding-left: 20px !important;
-      margin: 10px 0 !important;
-    }
-    /* Remove pseudo-elements (bullets) */
-    .jodit-wysiwyg ul li::before,
-    .jodit ul li::before {
-      content: none !important;
-      margin-right: 0 !important;
-    }
-    /* Ordered list styling */
-    .jodit-wysiwyg ol,
-    .jodit ol {
-      padding-left: 40px !important;
-      margin: 10px 0 !important;
-    }
-    /* Ensure list items display correctly */
-    .jodit-wysiwyg li,
-    .jodit li {
-      display: list-item !important;
-    }
-    /* Hide dot and lower-roman options in dropdown menus */
-    .jodit-ui-list-menu [data-value="dot"],
-    .jodit-ui-list-menu [data-value="lower-roman"] {
-      display: none !important;
-    }`,
-  controls: {
-    ul: {
-      list: {
-        // Removed 'default' to hide dot option
-        circle: 'Circle',
-        square: 'Square',
-        dot:true
-      }
+  const joditConfig = useMemo(() => ({
+    height: isMobile ? 300 : 400,
+    placeholder: "Write your post description here...",
+    theme: isDarkMode ? 'dark' : 'default',
+    buttons: ['bold', 'italic', 'underline', '|', 'ul', 'ol'],
+    buttonsMD: ['bold', 'italic', 'underline', '|', 'ul', 'ol'],
+    buttonsSM: ['bold', 'italic', 'underline', '|', 'ul', 'ol'],
+    buttonsXS: ['bold', 'italic', 'underline', '|', 'ul', 'ol'],
+    extraPlugins: ['list'],
+    style: {
+      padding: "20px",
+      backgroundColor: isDarkMode ? '#1f2937' : '#fff',
+      color: isDarkMode ? '#e5e7eb' : '#374151',
     },
-    ol: {
-      list: {
-        default: 'Default',
-        upper: 'Upper Case',
-        'upper-alpha': 'Upper Alpha'
-      }
-    }
-  },
-  enableDragAndDropFileToEditor: false,
-  toolbarAdaptive: false,
-  toolbarSticky: true,
-  showCharsCounter: true,
-  showWordsCounter: true,
-  showXPathInStatusbar: false,
-  allowTags: {
-    ul: true,
-    ol: true,
-    li: true
-  },
-  processPasteHTML: true,
-  enter: 'p'
-}), [isMobile, isDarkMode]);
+    toolbarAdaptive: false,
+    toolbarSticky: true,
+    showCharsCounter: true,
+    showWordsCounter: true,
+  }), [isMobile, isDarkMode]);
 
   // Add CSS for dark mode to document head
   useEffect(() => {
@@ -237,7 +160,7 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
               thumbUrl: file.url
             })));
           }
-          message.info('Draft loaded successfully');
+          toast.success('Draft loaded successfully');
         } catch (error) {
           console.error('Error loading draft:', error);
           localStorage.removeItem('blogPostDraft');
@@ -266,7 +189,7 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
             status: 'done',
             url: imageUrl,
             thumbUrl: imageUrl,
-            path: image // Store the original path
+            path: image
           };
         });
 
@@ -331,67 +254,7 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
       toast.error('You can only upload image files!');
       return Upload.LIST_IGNORE;
     }
-
-    const isLt2M = file.size / 1024 / 1024 < 2;
-    if (!isLt2M) {
-      toast.error('Image must be smaller than 2MB!');
-      return Upload.LIST_IGNORE;
-    }
-
-    if (file.size / 1024 / 1024 > 1) {
-      toast.success('Optimizing image for faster upload...');
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = () => {
-          const img = new Image();
-          img.src = reader.result;
-          img.onload = () => {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-
-            let width = img.width;
-            let height = img.height;
-            const maxWidth = 1200;
-            const maxHeight = 1200;
-
-            if (width > height && width > maxWidth) {
-              height = Math.round((height * maxWidth) / width);
-              width = maxWidth;
-            } else if (height > maxHeight) {
-              width = Math.round((width * maxHeight) / height);
-              height = maxHeight;
-            }
-
-            canvas.width = width;
-            canvas.height = height;
-
-            ctx.drawImage(img, 0, 0, width, height);
-
-            canvas.toBlob(
-              (blob) => {
-                const optimizedFile = new File([blob], file.name, {
-                  type: 'image/jpeg',
-                  lastModified: Date.now(),
-                });
-
-                const optimizedFileWithInfo = Object.assign(optimizedFile, {
-                  uid: file.uid,
-                  name: file.name,
-                  originFileObj: optimizedFile,
-                });
-
-                resolve(optimizedFileWithInfo);
-              },
-              'image/jpeg',
-              0.8
-            );
-          };
-        };
-        reader.onerror = (error) => reject(error);
-      });
-    }
-
+    
     return isImage || Upload.LIST_IGNORE;
   };
 
@@ -554,13 +417,10 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
   };
 
   return (
-    <div className={`min-h-screen py-4 sm:py-8 px-2 sm:px-4 transition-colors duration-200 ${isDarkMode ? 'bg-gray-900 text-gray-100' : 'bg-gray-50 text-gray-900'
-      }`}>
+    <div className={`min-h-screen py-4 sm:py-8 px-2 sm:px-4 transition-colors duration-200 ${isDarkMode ? 'bg-gray-900 text-gray-100' : 'bg-gray-50 text-gray-900'}`}>
       <div className="max-w-4xl mx-auto">
         <Card
-          className={`rounded-xl shadow-lg border-0 overflow-hidden transition-colors duration-200 ${isEditing ? 'border-0 shadow-none' : ''
-            } ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
-            }`}
+          className={`rounded-xl shadow-lg border-0 overflow-hidden transition-colors duration-200 ${isEditing ? 'border-0 shadow-none' : ''} ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}
           bodyStyle={{ backgroundColor: 'transparent' }}
         >
           {!isEditing && (
@@ -587,8 +447,7 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
                 onChange={handleTitleChange}
                 maxLength={300}
                 suffix={`${title.length}/300`}
-                className={`py-2 sm:py-3 px-4 rounded-lg hover:border-blue-400 focus:border-blue-500 transition-colors ${isDarkMode ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400' : 'bg-white border-gray-300'
-                  } ${formErrors.title ? 'border-red-500' : ''}`}
+                className={`py-2 sm:py-3 px-4 rounded-lg hover:border-blue-400 focus:border-blue-500 transition-colors ${isDarkMode ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400' : 'bg-white border-gray-300'} ${formErrors.title ? 'border-red-500' : ''}`}
                 size={isMobile ? "middle" : "large"}
                 status={formErrors.title ? "error" : ""}
               />
@@ -652,8 +511,7 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
                 Description <span className="text-red-500">*</span>
               </Title>
               <Card
-                className={`border rounded-lg overflow-hidden hover:border-blue-300 transition-all p-0 ${isDarkMode ? 'border-gray-600' : 'border-gray-300'
-                  } ${formErrors.description ? 'border-red-500' : ''}`}
+                className={`border rounded-lg overflow-hidden hover:border-blue-300 transition-all p-0 ${isDarkMode ? 'border-gray-600' : 'border-gray-300'} ${formErrors.description ? 'border-red-500' : ''}`}
                 bodyStyle={{ padding: 0 }}
               >
                 <div className={`${isDarkMode ? 'jodit-dark-theme' : ''}`}>
@@ -667,9 +525,6 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
                   />
                 </div>
               </Card>
-              <div className={`mt-2 text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                Tip: You can use the formatting toolbar to style your content
-              </div>
               {formErrors.description && (
                 <div className="text-red-500 mt-1 text-sm">{formErrors.description}</div>
               )}
@@ -679,8 +534,7 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
             <div className="mb-6 sm:mb-8">
               <Title level={5} className={`mb-2 ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>Featured Images <span className="text-xs font-normal">(Maximum 3)</span></Title>
               <Card
-                className={`border-2 border-dashed rounded-xl hover:border-blue-400 transition-all text-center cursor-pointer ${isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-300'
-                  }`}
+                className={`border-2 border-dashed rounded-xl hover:border-blue-400 transition-all text-center cursor-pointer ${isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-300'}`}
               >
                 <Upload
                   listType={isMobile ? "picture" : "picture-card"}
@@ -701,11 +555,9 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
                         Add Photos
                       </Button>
                     ) : (
-                      <div className={`flex flex-col items-center p-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'
-                        }`}>
+                      <div className={`flex flex-col items-center p-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                         <UploadOutlined className="text-2xl mb-2" />
                         <Text>upload</Text>
-                        <Text className="text-xs mt-1">(Max 2MB)</Text>
                       </div>
                     )
                   )}
@@ -721,8 +573,7 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
                     <Button
                       icon={<SaveOutlined />}
                       size={isMobile ? "middle" : "large"}
-                      className={`flex items-center ${isDarkMode ? 'text-gray-200 hover:text-white' : 'text-gray-800'
-                        }`}
+                      className={`flex items-center ${isDarkMode ? 'text-gray-200 hover:text-white' : 'text-gray-800'}`}
                       onClick={handleSaveDraft}
                     >
                       {isMobile ? 'Save' : 'Save draft'}

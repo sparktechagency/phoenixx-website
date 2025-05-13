@@ -21,16 +21,27 @@ const LoginPage = () => {
     rememberMe: ''
   });
 
-
-  useEffect(() => {
-    localStorage.setItem("theme","light");
-  }, [])
-  
-
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [Login, { isLoading }] = useLoginMutation();
+
+  // Load saved credentials when the component mounts
+  useEffect(() => {
+    localStorage.setItem("theme", "light");
+    
+    // Check if credentials are saved in localStorage
+    const savedCredentials = localStorage.getItem('rememberedCredentials');
+    if (savedCredentials) {
+      const { username, password } = JSON.parse(savedCredentials);
+      setFormData(prev => ({
+        ...prev,
+        username,
+        password,
+        rememberMe: true
+      }));
+    }
+  }, []);
 
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
@@ -83,14 +94,26 @@ const LoginPage = () => {
 
       try {
         const response = await Login({ email: formData.username, password: formData.password }).unwrap();
+        
+        // Save or remove credentials based on rememberMe
+        if (formData.rememberMe) {
+          // Save credentials in localStorage
+          localStorage.setItem('rememberedCredentials', JSON.stringify({
+            username: formData.username,
+            password: formData.password
+          }));
+          
+          // Also save a flag to indicate user wants to be remembered
+          localStorage.setItem('rememberUser', 'true');
+        } else {
+          // Remove any saved credentials
+          localStorage.removeItem('rememberedCredentials');
+          localStorage.removeItem('rememberUser');
+        }
+        
         saveToken(response?.data?.accessToken);
         decodedUser(response?.data?.accessToken);
         router.push("/");
-        setFormData({
-          username: '',
-          password: '',
-          rememberMe: false
-        });
       } catch (error) {
         console.error('Login error:', error);
         toast.error(error?.data?.message);
