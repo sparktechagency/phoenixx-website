@@ -67,6 +67,12 @@ export default function Navbar() {
 
   const { data, isLoading } = useGetProfileQuery();
   const { data: logo } = useLogoQuery();
+  console.log(logo?.data);
+
+  const filteredLogo = logo?.data?.find(item => 
+  (isDarkMode && item.status === 'dark') || (!isDarkMode && item.status === 'light')
+);
+
 
   // Initialize search query from URL
   useEffect(() => {
@@ -387,7 +393,7 @@ export default function Navbar() {
               }}
             >
               <Image
-                src={logo?.data?.logo ? `${baseURL}${logo?.data?.logo}` : "/images/logo.png"}
+                src={filteredLogo?.logo ? `${baseURL}${filteredLogo.logo}` : "/images/logo.png"}
                 width={!screens.md ? 70 : 120}
                 height={!screens.md ? 30 : 50} // Set an appropriate height based on screen size
                 alt='logo'

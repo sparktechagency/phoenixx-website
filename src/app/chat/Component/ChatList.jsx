@@ -26,7 +26,6 @@ const ChatList = ({ setIsChatActive, status }) => {
   const { data: chatList, isLoading, isError, refetch } = useGetAllChatQuery(debouncedSearchTerm);
 
   const { chats } = useSelector((state) => state);
-  console.log(chats)
 
   const handleSelectChat = async (id) => {
     router.push(`/chat/${id}`);
@@ -57,8 +56,6 @@ const ChatList = ({ setIsChatActive, status }) => {
     return <LoadingUi />
   }
 
-
-  console.log(chatList)
 
   return (
     <div className={`w-full h-[80vh]  shadow rounded-lg flex flex-col
@@ -116,7 +113,7 @@ const ChatList = ({ setIsChatActive, status }) => {
               </div>
               <div className="text-right flex flex-col gap-2">
                 <p className={`text-sm ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
-                  {formatTime(chat.lastMessage.createdAt)}
+                  {formatTime(chat?.lastMessage?.createdAt)}
                 </p>
 
                 <p className={`text-sm ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>

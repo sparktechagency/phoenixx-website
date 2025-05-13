@@ -1,18 +1,22 @@
 'use client';
-import { useGetAllChatQuery, useGetAllMassageQuery, useMessageSendMutation } from '@/features/chat/massage';
-import { Avatar, Badge, Button, Form, Input, Upload } from 'antd';
+import { useDeleteMessageMutation, useGetAllChatQuery, useGetAllMassageQuery, useMessageSendMutation, useReactMessageMutation } from '@/features/chat/massage';
+import { Avatar, Badge, Button, Dropdown, Form, Input, Tooltip, Upload } from 'antd';
+import EmojiPicker from 'emoji-picker-react';
 import { useContext, useEffect, useRef, useState } from 'react';
-import { IoIosAttach, IoMdSend } from 'react-icons/io';
 import { BsEmojiSmile } from 'react-icons/bs';
+import { FiMoreVertical } from 'react-icons/fi';
+import { IoIosAttach, IoMdSend } from 'react-icons/io';
+import { TbTrash } from 'react-icons/tb';
 import { useSelector } from 'react-redux';
 import { getImageUrl } from '../../../../utils/getImageUrl';
 import { ThemeContext } from '../../ClientLayout';
-import EmojiPicker from 'emoji-picker-react';
 
 const ChatWindow = ({ id }) => {
   useGetAllMassageQuery(id);
   const { messages } = useSelector((state) => state.message);
   const [sendMessage, { isLoading }] = useMessageSendMutation();
+  const [messageReact] = useReactMessageMutation();
+  const [DeleteMessage] = useDeleteMessageMutation();
   const loginUserId = localStorage.getItem("login_user_id");
   const [form] = Form.useForm();
   const messagesEndRef = useRef(null);
@@ -20,36 +24,55 @@ const ChatWindow = ({ id }) => {
   const { data: chatList, isLoading: chatLoading } = useGetAllChatQuery("");
   const { isDarkMode } = useContext(ThemeContext);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [showReactionPicker, setShowReactionPicker] = useState({ messageId: null, show: false });
   const inputRef = useRef(null);
   const emojiPickerRef = useRef(null);
   const emojiButtonRef = useRef(null);
+  const reactionPickerRef = useRef(null);
 
   const users = chatList?.data?.find(chat => chat?.participants?.map(item => item === id));
+
+  // The available reactions
+  const reactions = [
+    { emoji: '❤️', name: 'love' },
+    { emoji: '👍', name: 'thumbs_up' },
+    { emoji: '😂', name: 'laugh' },
+    { emoji: '😡', name: 'angry' },
+    { emoji: '😢', name: 'sad' }
+  ];
 
   // Handle outside click for emoji picker
   useEffect(() => {
     function handleClickOutside(event) {
       if (
-        showEmojiPicker && 
-        emojiPickerRef.current && 
+        showEmojiPicker &&
+        emojiPickerRef.current &&
         !emojiPickerRef.current.contains(event.target) &&
-        emojiButtonRef.current && 
+        emojiButtonRef.current &&
         !emojiButtonRef.current.contains(event.target)
       ) {
         setShowEmojiPicker(false);
       }
+
+      if (
+        showReactionPicker.show &&
+        reactionPickerRef.current &&
+        !reactionPickerRef.current.contains(event.target)
+      ) {
+        setShowReactionPicker({ messageId: null, show: false });
+      }
     }
 
     // Add event listener when emoji picker is shown
-    if (showEmojiPicker) {
+    if (showEmojiPicker || showReactionPicker.show) {
       document.addEventListener('mousedown', handleClickOutside);
     }
-    
+
     // Clean up the event listener
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [showEmojiPicker]);
+  }, [showEmojiPicker, showReactionPicker]);
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -128,6 +151,36 @@ const ChatWindow = ({ id }) => {
     setShowEmojiPicker(!showEmojiPicker);
   };
 
+  // Function to handle message deletion
+  const handleUnsendMessage = async (messageId) => {
+    try {
+      const response = await DeleteMessage(messageId).unwrap();
+      console.log(response);
+    } catch (error) {
+      console.error("Failed to unsend message:", error);
+    }
+  };
+
+  // Function to handle adding reactions
+  const handleAddReaction = async (messageId, reaction) => {
+    try {
+      const response = await messageReact({ messageId, reaction }).unwrap();
+      // Close the reaction picker after selecting a reaction
+      setShowReactionPicker({ messageId: null, show: false });
+    } catch (error) {
+      console.error("Failed to add reaction:", error);
+    }
+  };
+
+  // Function to toggle reaction picker
+  const toggleReactionPicker = (messageId) => {
+    setShowReactionPicker(prev =>
+      prev.messageId === messageId && prev.show
+        ? { messageId: null, show: false }
+        : { messageId, show: true }
+    );
+  };
+
   return (
     <div className={`flex flex-col h-[80vh] ${isDarkMode ? 'bg-gray-900 text-white' : ''}`}>
       {/* Header */}
@@ -162,7 +215,7 @@ const ChatWindow = ({ id }) => {
       </div>
 
       {/* Message container */}
-      <div className={`flex-1  p-4 pb-0 overflow-y-auto message-container ${isDarkMode ? 'bg-gray-800' : 'bg-[#fffff]'}`}>
+      <div className={`flex-1 p-4 overflow-y-auto message-container ${isDarkMode ? 'bg-gray-800' : 'bg-[#f9f9f9]'}`}>
         <style jsx global>{`
           .message-container::-webkit-scrollbar {
             width: 6px;
@@ -173,50 +226,146 @@ const ChatWindow = ({ id }) => {
           .message-container::-webkit-scrollbar-thumb {
             background-color: ${isDarkMode ? '#4A5568' : '#CBD5E0'};
           }
+          .message-bubble {
+            position: relative;
+            transition: all 0.2s ease;
+          }
+          .message-options {
+            opacity: 0;
+            transition: opacity 0.2s ease;
+          }
+          .message-wrapper:hover .message-options {
+            opacity: 1;
+          }
+          .deleted-message {
+            background-color: ${isDarkMode ? '#3B3B3B' : '#f0f0f0'} !important;
+            font-style: italic;
+          }
         `}</style>
 
         {messages.map((message, index) => {
           const isCurrentUser = message.sender?._id === loginUserId;
+          const isDeleted = message.isDeleted === true;
+
           return (
-            <div key={message._id || index} className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'} mb-4`}>
+            <div key={message._id || index} className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'} mb-6 message-wrapper`}>
               {!isCurrentUser && (
                 <Avatar
                   src={getImageUrl(message.sender?.profile)}
                   size={32}
-                  className="mr-2 self-start"
-                  style={{ marginRight: "3px" }}
+                  className="mr-2 self-start mt-1"
                 />
               )}
 
-              <div className={`max-w-xs p-3 rounded-lg ${isCurrentUser
-                ? 'bg-[#F3F4F6] text-black'
-                : isDarkMode
-                  ? 'bg-gray-700 text-gray-200'
-                  : 'bg-white text-gray-800'
-                }`}>
-                {/* {!isCurrentUser && (
-                  <p className="text-xs font-semibold mb-1">{message.sender?.userName}</p>
-                )} */}
+              <div className="relative group ">
+                <div className={`message-bubble max-w-xs p-3 rounded-2xl ${isDeleted
+                    ? 'deleted-message'
+                    : isCurrentUser
+                      ? 'bg-[#f2f2f2] text-black'
+                      : isDarkMode
+                        ? 'bg-gray-700 text-gray-200'
+                        : 'bg-white text-gray-800'
+                  } shadow-sm`}>
+                  <p className={`${isDeleted ? "text-red-500" : ""}`}>{message.text}</p>
 
-                <p>{message.text}</p>
+                  {message.image && !isDeleted && (
+                    <img
+                      src={getImageUrl(message.image)}
+                      alt="Message attachment"
+                      className="rounded-lg w-44 my-2 h-44 object-cover"
+                    />
+                  )}
 
-                {message.image && (
-                  <img
-                    src={getImageUrl(message.image)}
-                    alt="Message attachment"
-                    className="rounded w-44 my-2 h-44 object-cover"
-                  />
+                  <p className={`text-xs mt-1 ${isDarkMode ? 'opacity-50' : 'opacity-70'}`}>
+                    {formatDate(message.createdAt)}
+                  </p>
+
+                  {/* Display reactions if any and message is not deleted */}
+                  {!isDeleted && message.reactions && message.reactions.length > 0 && (
+                    <div className="flex gap-1 absolute -mb-3 -ml-3">
+                      <div className={`flex items-center px-1.5 py-0.5 rounded-full ${isDarkMode ? 'bg-gray-600' : 'bg-gray-100'} shadow-sm`}>
+                        {message.reactions.map((reaction, i) => (
+                          <Tooltip key={i} title={`${reaction?.userId?.userName}`}>
+                            <span className="text-sm">
+                              {reaction.reactionType === "love" && "❤️"}
+                              {reaction.reactionType === "thumbs_up" && "👍"}
+                              {reaction.reactionType === "laugh" && "😂"}
+                              {reaction.reactionType === "angry" && "😡"}
+                              {reaction.reactionType === "sad" && "😢"}
+                            </span>
+                          </Tooltip>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Action buttons that appear on hover - only show if message is NOT deleted */}
+                {!isDeleted && (
+                  <div className={`message-options absolute ${isCurrentUser ? 'left-0 top-1/2 -translate-x-full -translate-y-1/2' : 'right-0 top-1/2 translate-x-full -translate-y-1/2'} flex`}>
+                    {/* Reaction button */}
+                    <Button
+                      type="text"
+                      size="small"
+                      icon={<BsEmojiSmile />}
+                      className={`flex items-center justify-center p-1 rounded-full ${isDarkMode ? 'text-gray-300 bg-gray-700 hover:bg-gray-600' : 'text-gray-600 bg-white hover:bg-gray-100'} shadow-sm`}
+                      onClick={() => toggleReactionPicker(message._id)}
+                    />
+
+                    {/* 3-dot menu button - for current user's messages */}
+                    {isCurrentUser && (
+                      <Dropdown
+                        menu={{
+                          items: [
+                            {
+                              key: '1',
+                              label: 'Unsend Message',
+                              icon: <TbTrash size={14} />,
+                              onClick: () => handleUnsendMessage(message._id),
+                              danger: true
+                            }
+                          ]
+                        }}
+                        trigger={['click']}
+                        placement="bottomRight"
+                      >
+                        <Button
+                          type="text"
+                          size="small"
+                          icon={<FiMoreVertical />}
+                          className={`ml-1 flex items-center justify-center p-1 rounded-full ${isDarkMode ? 'text-gray-300 bg-gray-700 hover:bg-gray-600' : 'text-gray-600 bg-white hover:bg-gray-100'} shadow-sm`}
+                        />
+                      </Dropdown>
+                    )}
+                  </div>
                 )}
-                <p className={`text-xs mt-1 ${isDarkMode ? 'opacity-50' : 'opacity-70'}`}>
-                  {formatDate(message.createdAt)}
-                </p>
+
+                {/* Reaction picker - only show if message is NOT deleted */}
+                {!isDeleted && showReactionPicker.show && showReactionPicker.messageId === message._id && (
+                  <div
+                    ref={reactionPickerRef}
+                    className={`absolute z-10 p-1 mt-3 rounded-full shadow-md flex gap-1 ${isDarkMode ? 'bg-gray-700' : 'bg-white border border-gray-200'} ${isCurrentUser ? 'right-0' : 'left-0'} -top-8`}
+                  >
+                    {reactions.map((reaction) => (
+                      <Button
+                        key={reaction.name}
+                        type="text"
+                        size="small"
+                        className="p-1 hover:bg-gray-100 rounded-full"
+                        onClick={() => handleAddReaction(message._id, reaction.name)}
+                      >
+                        {reaction.emoji}
+                      </Button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {isCurrentUser && (
                 <Avatar
                   src={getImageUrl(message.sender?.profile)}
                   size={32}
-                  className="ml-2 self-end"
+                  className="ml-2 self-start mt-1"
                 />
               )}
             </div>
@@ -253,7 +402,7 @@ const ChatWindow = ({ id }) => {
           onFinish={handleCreateNewMessage}
           name="messageForm"
           className="flex w-full items-center px-2 py-1 gap-2 relative"
-          style={{ marginTop:"10px" , marginBottom:"-15px" }}
+          style={{ marginTop: "10px", marginBottom: "-15px" }}
         >
           <div className="flex items-center">
             <Form.Item name="file" valuePropName="file" className="mb-0 mr-1">
@@ -271,7 +420,7 @@ const ChatWindow = ({ id }) => {
                 />
               </Upload>
             </Form.Item>
-            
+
             <Form.Item className="mb-0 mr-1">
               <Button
                 ref={emojiButtonRef}
@@ -284,7 +433,7 @@ const ChatWindow = ({ id }) => {
 
           {showEmojiPicker && (
             <div className="absolute bottom-16 left-16 z-10" ref={emojiPickerRef}>
-              <EmojiPicker 
+              <EmojiPicker
                 onEmojiClick={onEmojiClick}
                 width={300}
                 height={350}
@@ -298,8 +447,9 @@ const ChatWindow = ({ id }) => {
               ref={inputRef}
               style={{
                 backgroundColor: isDarkMode ? '#374151' : '#F5F5F6',
-                borderRadius: '8px',
+                borderRadius: '20px',
                 color: isDarkMode ? 'white' : 'inherit',
+                padding: '8px 16px'
               }}
               placeholder="Type something ..."
               className={isDarkMode ? 'dark-input' : ''}
@@ -312,8 +462,10 @@ const ChatWindow = ({ id }) => {
               htmlType="submit"
               type="primary"
               icon={<IoMdSend />}
-              style={{ 
-                backgroundColor: '#0047FF', 
+              shape="circle"
+              size="large"
+              style={{
+                backgroundColor: '#0047FF',
                 border: 'none',
               }}
               loading={isLoading}

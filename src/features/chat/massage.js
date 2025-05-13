@@ -50,6 +50,25 @@ export const commentApi = baseApi.injectEndpoints({
       invalidatesTags: ["chat"],
     }),
 
+    reactMessage: builder.mutation({
+      query: (data) => ({
+        url: `/messages/react/${data.messageId}`,
+        method: "POST",
+        body: {reactionType : data.reaction},
+      }),
+      invalidatesTags: ["chat"],
+    }),
+
+    
+    DeleteMessage: builder.mutation({
+      query: (id) => ({
+        url: `/messages/delete/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["chat"],
+    }),
+
+
 
   }),
 });
@@ -59,5 +78,7 @@ export const {
   useMessageSendMutation,
   useGetAllChatQuery,
   useGetAllMassageQuery,
-  useMarkAsReadMutation
+  useMarkAsReadMutation,
+  useReactMessageMutation,
+  useDeleteMessageMutation
 } = commentApi;

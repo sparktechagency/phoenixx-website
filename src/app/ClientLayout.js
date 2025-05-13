@@ -141,10 +141,7 @@ export default function ClientLayout({ children }) {
     Popover: {
       colorBgElevated: isDarkMode ? '#1f1f1f' : '#ffffff',
     },
-    Tooltip: {
-      colorBgDefault: isDarkMode ? '#2a2a2a' : '#ffffff',
-      colorTextLightSolid: isDarkMode ? '#ffffff' : '#000000',
-    },
+
     Avatar: {
       colorBgContainer: isDarkMode ? '#2a2a2a' : '#f5f5f5',
     },
