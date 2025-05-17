@@ -220,12 +220,12 @@ const PostCard = ({
 
   const renderImageGrid = useMemo(() => (
     postData.images && postData.images.length > 0 && (
-      <div className="mb-4 rounded-lg overflow-hidden">
+      <div className="mb-4 rounded-lg h-[250px] overflow-hidden">
         {postData.images.length === 1 ? (
           <img
             src={getImageUrl(postData.images[0])}
             alt="Post content"
-            className="w-full max-h-96 object-cover cursor-pointer"
+            className="w-full  object-cover cursor-pointer"
             onClick={handlePostDetails}
           />
         ) : postData.images.length === 2 ? (
@@ -269,7 +269,7 @@ const PostCard = ({
             </div>
           </div>
         ) : postData.images.length >= 4 ? (
-          <div className="grid grid-cols-2 gap-1 h-[350px]">
+          <div className="grid grid-cols-2 gap-1 h-[250px]">
             {postData.images.slice(0, 4).map((image, index) => (
               <div key={index} className="relative">
                 <img

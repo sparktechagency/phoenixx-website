@@ -254,7 +254,7 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
       toast.error('You can only upload image files!');
       return Upload.LIST_IGNORE;
     }
-    
+
     return isImage || Upload.LIST_IGNORE;
   };
 
@@ -540,7 +540,7 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
                   listType={isMobile ? "picture" : "picture-card"}
                   fileList={fileList}
                   onChange={handleFileChange}
-                  onPreview={handlePreview}
+                  onPreview={false}
                   beforeUpload={beforeUpload}
                   className="flex justify-center"
                   maxCount={3}
@@ -608,7 +608,10 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
           </div>
         </Card>
       </div>
+    
     </div>
+
+
   );
 };
 

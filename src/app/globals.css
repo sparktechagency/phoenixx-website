@@ -95,3 +95,8 @@
   transform: translateY(-10px);
   transition: all 300ms ease;
 }
+
+
+.ant-upload-list-item-actions .anticon-eye {
+  display: none !important;
+}
