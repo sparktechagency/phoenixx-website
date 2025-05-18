@@ -68,11 +68,10 @@ export default function Navbar() {
   const { data, isLoading } = useGetProfileQuery();
   const { data: logo } = useLogoQuery();
 
-  //   const filteredLogo = logo?.data?.find(item => 
-  //   (isDarkMode && item.status === 'dark') || (!isDarkMode && item.status === 'light')
-  // );
+    const filteredLogo = logo?.data?.find(item => 
+    (isDarkMode && item.status === 'dark') || (!isDarkMode && item.status === 'light')
+  );
 
-  const filteredLogo = { logo: "" }
 
   // Initialize search query from URL
   useEffect(() => {
