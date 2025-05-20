@@ -136,7 +136,7 @@ export default function ClientLayout({ children }) {
     },
     Dropdown: {
       colorBgElevated: isDarkMode ? '#1f1f1f' : '#ffffff',
-      colorBgTextHover: isDarkMode ? '#2a2a2a' : '#f5f5f5',
+      // colorBgTextHover: isDarkMode ? '#2a2a2a' : '#f5f5f5',
     },
     Popover: {
       colorBgElevated: isDarkMode ? '#1f1f1f' : '#ffffff',

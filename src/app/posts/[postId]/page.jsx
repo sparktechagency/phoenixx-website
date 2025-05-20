@@ -1,12 +1,12 @@
 "use client";
-import { EllipsisOutlined, MessageOutlined } from '@ant-design/icons';
-import { Avatar, Button, Card, Dropdown, Empty, Input, Menu, message, Select } from 'antd';
+import { DeleteOutlined, EditOutlined, EllipsisOutlined, MessageOutlined } from '@ant-design/icons';
+import { Avatar, Button, Card, Dropdown, Empty, Input, Menu, message } from 'antd';
 import moment from 'moment';
 import Image from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
-import { useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { useContext, useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
-import { FaEye, FaHeart, FaRegHeart } from "react-icons/fa";
+import { FaChevronDown, FaChevronUp, FaEye, FaHeart, FaRegHeart } from "react-icons/fa";
 
 
 // API hooks
@@ -54,6 +54,7 @@ const PostDetailsPage = () => {
   const [replayComment, { isLoading: replayCommentLoading }] = useReplayCommentMutation();
   const [editComment, { isLoading: editCommentLoading }] = useUpdateCommentMutation();
   const { data: profile } = useGetProfileQuery();
+    const [showRepliesFor, setShowRepliesFor] = useState({});
 
   const [commentText, setCommentText] = useState('');
   const [editingCommentId, setEditingCommentId] = useState(null);
@@ -64,6 +65,7 @@ const PostDetailsPage = () => {
   const [windowWidth, setWindowWidth] = useState(0);
   const [showReportModal, setShowReportModal] = useState(false);
   const [login_user_id, setLoginUserId] = useState(null);
+  const [collapsedReplies, setCollapsedReplies] = useState({});
 
   const post = postDetails?.data;
   const comments = post?.comments || [];
@@ -301,9 +303,9 @@ const PostDetailsPage = () => {
       label: (
         <div className="flex items-center gap-2 py-1">
           <Image
-            src={"/icons/save_post.png"}
-            height={16}
-            width={16}
+            src={isDarkMode ? "/icons/savedark.png" : "/icons/savelight.png"}
+            height={13}
+            width={13}
             alt="save"
           />
           <span>{isSaved ? "Unsave post" : "Save post"}</span>
@@ -314,7 +316,7 @@ const PostDetailsPage = () => {
       key: 'report',
       label: (
         <div className="flex items-center gap-2 py-1">
-          <Image src="/icons/report.png" height={16} width={16} alt="report" />
+          <Image src={isDarkMode ? "/icons/reportdark.png" : "/icons/report.png"} height={16} width={16} alt="report" />
           <span>Report Post</span>
         </div>
       ),
@@ -326,61 +328,81 @@ const PostDetailsPage = () => {
     else if (key === 'report') setShowReportModal(true);
   };
 
-  const renderCommentMenu = (comment) => {
-    const isCurrentUserComment = comment.author?._id === login_user_id;
+const renderCommentMenu = (comment) => {
+  const isCurrentUserComment = comment.author?._id === login_user_id;
 
-    return (
-      <Menu
-        className={isDarkMode ? 'bg-gray-800 text-gray-200' : ''}
-      >
-        {isCurrentUserComment && (
-          <>
-            <Menu.Item key="edit" onClick={() => handleEditComment(comment._id, comment.content)}>
-              Edit Comment
-            </Menu.Item>
-            <Menu.Item key="delete" onClick={() => handleDeleteComment(comment._id)}>
-              Delete Comment
-            </Menu.Item>
-          </>
-        )}
-        {!isCurrentUserComment && (
-          <Menu.Item key="report">Report Comment</Menu.Item>
-        )}
-      </Menu>
-    );
-  };
+  return (
+    <Menu className={isDarkMode ? 'bg-gray-800 text-gray-200' : ''}>
+      {isCurrentUserComment && (
+        <>
+          <Menu.Item 
+            key="edit" 
+            onClick={() => {
+              setEditingCommentId(comment._id);
+              setEditCommentText(comment.content);
+            }}
+            icon={<EditOutlined />}
+          >
+            Edit Comment
+          </Menu.Item>
+          <Menu.Item 
+            key="delete" 
+            onClick={() => handleDeleteComment(comment._id)}
+            icon={<DeleteOutlined />}
+            danger
+          >
+            Delete Comment
+          </Menu.Item>
+        </>
+      )}
+      {!isCurrentUserComment && (
+        <Menu.Item key="report">Report Comment</Menu.Item>
+      )}
+    </Menu>
+  );
+};
 
-  const renderComment = (comment, depth = 0) => {
 
-    if (!comment) return null;
 
-    const isEditing = editingCommentId === comment._id;
-    const isCommentLiked = comment.likes?.includes(login_user_id);
-    const commentAuthor = comment.author || { userName: "Unknown" };
 
-    const authorImage = commentAuthor.profile || commentAuthor.avatar;
-    return (
-      <div
-        key={comment._id}
-        className={`mb-4 ${depth > 0 ? `ml-8 border-l-2 ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} pl-4` : ''}`}
-      >
-        <Card
-          className={`rounded-2xl ${isDarkMode ? 'bg-gray-800 border-gray-700' : ''}`}
-        >
-          <div className="flex items-center justify-start mb-3 ">
-            {authorImage ? (
-              <Avatar src={`${baseURL}${authorImage}`} size={32} />
-            ) : (
-              <Avatar size={32}>{commentAuthor.userName?.charAt(0).toUpperCase() || 'U'}</Avatar>
-            )}
-            <div className="ml-2">
-              <div className={`font-medium ${isDarkMode ? 'text-gray-200' : ''}`}>
+ const renderComment = (comment) => {
+  if (!comment) return null;
+
+  const isEditing = editingCommentId === comment._id;
+  const isCommentLiked = comment.likes?.includes(login_user_id);
+  const commentAuthor = comment.author || { userName: "Unknown" };
+  const authorImage = commentAuthor.profile || commentAuthor.avatar;
+  
+  // State for showing/hiding replies
+
+
+  return (
+    <div key={comment._id} className="w-full mb-4">
+      {/* Main Comment */}
+      <div className={`flex w-full ${isDarkMode ? 'dark-mode' : ''}`}>
+        {/* User Avatar */}
+        <div className="mr-4 flex-shrink-0">
+          {authorImage ? (
+            <Avatar src={`${baseURL}${authorImage}`} size={40} />
+          ) : (
+            <Avatar size={40}>{commentAuthor.userName?.charAt(0).toUpperCase() || 'U'}</Avatar>
+          )}
+        </div>
+
+        {/* Comment Content */}
+         {/* Comment Content */}
+        <div className="flex-1 w-full">
+          {/* Comment Header */}
+          <div className="flex items-start justify-between mb-1">
+            <div>
+              <span className={`font-medium text-sm ${isDarkMode ? 'text-gray-200' : 'text-gray-900'}`}>
                 {commentAuthor.userName}
-              </div>
-              <div className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+              </span>
+              <span className={`text-xs ml-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                 {formatDate(comment.createdAt)}
-              </div>
+              </span>
             </div>
+            
             <div className="ml-auto">
               <Dropdown
                 overlay={renderCommentMenu(comment)}
@@ -390,14 +412,15 @@ const PostDetailsPage = () => {
                 <Button
                   type="text"
                   icon={<EllipsisOutlined className={isDarkMode ? 'text-gray-300' : ''} />}
-                  className={isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}
+                  className={`${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
                 />
               </Dropdown>
             </div>
           </div>
 
+          {/* Comment Text */}
           {isEditing ? (
-            <div className="mb-3">
+            <div className="my-2">
               <Input.TextArea
                 value={editCommentText}
                 onChange={(e) => setEditCommentText(e.target.value)}
@@ -422,14 +445,15 @@ const PostDetailsPage = () => {
               </div>
             </div>
           ) : (
-            <p className={`${isDarkMode ? 'text-gray-300' : 'text-gray-700'} mb-3 pl-10`}>
+            <p className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'} mb-2 whitespace-pre-wrap`}>
               {comment.content}
             </p>
           )}
 
-          <div className="flex items-center text-gray-600">
+          {/* Comment Actions */}
+          <div className="flex items-center mt-1">
             <button
-              className={`flex items-center mr-4 ${isDarkMode ? 'text-gray-400 hover:text-blue-400' : 'hover:text-blue-500'} cursor-pointer`}
+              className={`flex items-center cursor-pointer mr-4 px-2 py-1 rounded-full ${isDarkMode ? 'text-gray-400 hover:text-blue-400' : 'hover:text-blue-500'}`}
               onClick={() => handleCommentLike(comment._id)}
               disabled={likeCommentLoading}
             >
@@ -438,20 +462,21 @@ const PostDetailsPage = () => {
               ) : (
                 <FaRegHeart className="mr-1" />
               )}
-              <span className={isDarkMode ? 'text-gray-300' : ''}>{comment.likes?.length || 0}</span>
+              <span className={`text-xs ${isDarkMode ? 'text-gray-300' : ''}`}>{comment.likes?.length || 0}</span>
             </button>
 
             <button
-              className={`flex items-center ${isDarkMode ? 'text-gray-400 hover:text-blue-400' : 'hover:text-blue-500'} cursor-pointer`}
+              className={`flex items-center cursor-pointer px-2 py-1 rounded-full ${isDarkMode ? 'text-gray-400 hover:text-blue-400' : 'hover:text-blue-500'}`}
               onClick={() => setReplyingTo(replyingTo === comment._id ? null : comment._id)}
             >
               <MessageOutlined className="mr-1" />
-              <span className={isDarkMode ? 'text-gray-300' : ''}>Reply</span>
+              <span className={`text-xs ${isDarkMode ? 'text-gray-300' : ''}`}>Reply</span>
             </button>
           </div>
 
+          {/* Reply Input */}
           {replyingTo === comment._id && (
-            <div className="mt-3 ml-10">
+            <div className="mt-3">
               <Input.TextArea
                 placeholder="Write your reply..."
                 value={replyText}
@@ -470,24 +495,68 @@ const PostDetailsPage = () => {
                   type="primary"
                   onClick={() => handleReplySubmit(comment._id)}
                   loading={replayCommentLoading}
+    
                 >
                   Reply
                 </Button>
               </div>
             </div>
           )}
+        </div>
+      </div>
 
-          {comment.replies?.length > 0 && (
-            <div className={`mt-3 ml-6 border-l-2 ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} pl-4`}>
+      {/* Replies Toggle Button */}
+      {comment.replies?.length > 0 && (
+        <>
+          <div className="ml-12 mt-1 mb-2">
+            <button 
+              className={`flex items-center cursor-pointer ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}
+              onClick={() => {
+                // Toggle showing replies for this comment
+                setShowRepliesFor(prevState => ({
+                  ...prevState,
+                  [comment._id]: !prevState[comment._id]
+                }));
+              }}
+            >
+              {showRepliesFor[comment._id] ? (
+                <>
+                  <FaChevronUp className="mr-2 text-xs" />
+                  <span className="text-xs">Hide replies</span>
+                </>
+              ) : (
+                <>
+                  <FaChevronDown className="mr-2 text-xs" />
+                  <span className="text-xs">{comment.replies.length} {comment.replies.length === 1 ? 'reply' : 'replies'}</span>
+                </>
+              )}
+            </button>
+          </div>
+          
+          {/* Show Replies only when toggled */}
+          {showRepliesFor[comment._id] && (
+            <div className={` mt-2 pl-3`}>
               {sortComments(comment.replies).map(reply =>
-                renderComment(reply, depth + 1)
+                renderComment(reply)
               )}
             </div>
           )}
-        </Card>
-      </div>
-    );
-  };
+        </>
+      )}
+    </div>
+  );
+};
+
+
+
+
+
+
+
+
+
+
+
 
   if (isLoading) {
     return (
@@ -568,9 +637,8 @@ const PostDetailsPage = () => {
               <img
                 src={getImageUrl(image)}
                 alt={`Post content ${index + 1}`}
-                className={`w-full h-full object-cover ${
-                  index === 3 && post.images.length > 4 ? 'opacity-80' : ''
-                }`}
+                className={`w-full h-full object-cover ${index === 3 && post.images.length > 4 ? 'opacity-80' : ''
+                  }`}
               />
               {index === 3 && post.images.length > 4 && (
                 <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center text-white text-2xl font-bold">
@@ -593,8 +661,8 @@ const PostDetailsPage = () => {
       <main className="max-w-3xl mx-auto">
         <div className="mb-6">
           <div className={`rounded-lg ${isDarkMode ? 'bg-gray-800 shadow-dark' : 'bg-white shadow'} ${isMobile ? 'p-3' : isTablet ? 'p-4' : 'p-5'}`}>
-            <div onClick={() => router.push(`/profiles/${post?.author?._id}`)} className="flex justify-between items-center mb-3">
-              <div className="flex items-center gap-2">
+            <div className="flex justify-between items-center mb-3">
+              <div onClick={() => router.push(`/profiles/${post?.author?._id}`)} className="flex items-center gap-2">
                 {post.author?.profile ? (
                   <img
                     src={getImageUrl(post.author.profile)}
@@ -679,7 +747,7 @@ const PostDetailsPage = () => {
                 <button
                   onClick={handleShare}
                   className={`${isDarkMode ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-500 hover:bg-gray-100'} px-2 py-1.5 cursor-pointer rounded-sm`}>
-                  <Image src="/icons/share.png" width={20} height={20} alt="share button" />
+                  <Image src={isDarkMode ? "/icons/sharedark.png" : "/icons/share.png"} width={20} height={20} alt="share button" />
                 </button>
               </div>
             </div>
@@ -723,7 +791,7 @@ const PostDetailsPage = () => {
         </form>
 
         <div id="comments" className='flex flex-col gap-3'>
-          <div className="flex items-center justify-between mb-2">
+          {/* <div className="flex items-center justify-between mb-2">
             <h3 className={`text-lg font-medium ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>Comments ({comments.length})</h3>
             <Select
               value={commentSort}
@@ -735,7 +803,7 @@ const PostDetailsPage = () => {
               ]}
               dropdownStyle={isDarkMode ? { backgroundColor: '#374151', color: '#e5e7eb' } : {}}
             />
-          </div>
+          </div> */}
 
           {comments.length === 0 ? (
             <Card className={`text-center p-8 ${isDarkMode ? 'bg-gray-800 border-gray-700' : ''}`}>

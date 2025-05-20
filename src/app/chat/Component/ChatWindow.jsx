@@ -12,11 +12,16 @@ import { getImageUrl } from '../../../../utils/getImageUrl';
 import { ThemeContext } from '../../ClientLayout';
 
 const ChatWindow = ({ id }) => {
-  useGetAllMassageQuery(id);
+  // Use refetchOnMountOrArgChange to ensure data is fresh when component mounts
+  const { data: messagesData, refetch: refetchMessages } = useGetAllMassageQuery(id, {
+    refetchOnMountOrArgChange: true,
+    pollingInterval: 3000 // Poll every 3 seconds for updates
+  });
+  
   const { messages } = useSelector((state) => state.message);
   const [sendMessage, { isLoading }] = useMessageSendMutation();
   const [messageReact] = useReactMessageMutation();
-  const [DeleteMessage] = useDeleteMessageMutation();
+  const [deleteMessage] = useDeleteMessageMutation();
   const loginUserId = localStorage.getItem("login_user_id");
   const [form] = Form.useForm();
   const messagesEndRef = useRef(null);
@@ -103,6 +108,8 @@ const ChatWindow = ({ id }) => {
       form.resetFields();
       setImagePreview(null);
       setShowEmojiPicker(false);
+      // Refetch messages to get updated list
+      refetchMessages();
     } catch (error) {
       console.error(error);
     }
@@ -154,8 +161,10 @@ const ChatWindow = ({ id }) => {
   // Function to handle message deletion
   const handleUnsendMessage = async (messageId) => {
     try {
-      const response = await DeleteMessage(messageId).unwrap();
+      const response = await deleteMessage(messageId).unwrap();
       console.log(response);
+      // Refetch messages to update UI immediately
+      refetchMessages();
     } catch (error) {
       console.error("Failed to unsend message:", error);
     }
@@ -167,6 +176,8 @@ const ChatWindow = ({ id }) => {
       const response = await messageReact({ messageId, reaction }).unwrap();
       // Close the reaction picker after selecting a reaction
       setShowReactionPicker({ messageId: null, show: false });
+      // Refetch messages to update UI immediately
+      refetchMessages();
     } catch (error) {
       console.error("Failed to add reaction:", error);
     }
@@ -185,10 +196,10 @@ const ChatWindow = ({ id }) => {
     <div className={`flex flex-col h-[80vh] ${isDarkMode ? 'bg-gray-900 text-white' : ''}`}>
       {/* Header */}
       <div className={`p-4 flex items-center gap-4 border-b ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
-        {users?.participants?.map((participantId, index) => (
-          <div key={participantId} className="relative">
+        {users?.participants?.map((participant, index) => (
+          <div key={index} className="relative">
             <Avatar
-              src={getImageUrl(participantId?.profile)}
+              src={getImageUrl(participant?.profile)}
               size={40}
             />
             <Badge
@@ -208,7 +219,9 @@ const ChatWindow = ({ id }) => {
 
         <h3 className={`font-medium ${isDarkMode ? 'text-white' : ''}`}>
           {users?.participants?.length > 0
-            ? users.participants.map(participantId => <h3>{participantId.userName}</h3>)
+            ? users.participants.map((participant, idx) => (
+                <h3 key={idx}>{participant.userName}</h3>
+              ))
             : "Chat Participants"
           }
         </h3>

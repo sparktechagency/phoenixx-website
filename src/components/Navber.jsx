@@ -68,7 +68,7 @@ export default function Navbar() {
   const { data, isLoading } = useGetProfileQuery();
   const { data: logo } = useLogoQuery();
 
-    const filteredLogo = logo?.data?.find(item => 
+  const filteredLogo = logo?.data?.find(item =>
     (isDarkMode && item.status === 'dark') || (!isDarkMode && item.status === 'light')
   );
 
@@ -165,7 +165,6 @@ export default function Navbar() {
         localStorage.removeItem('loginToken');
         localStorage.removeItem('login_user_id');
         localStorage.setItem('theme', 'light');
-        window.location.reload();
       },
       className: isDarkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-50'
     },

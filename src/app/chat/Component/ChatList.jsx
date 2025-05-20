@@ -5,15 +5,13 @@ import { useGetAllChatQuery, useMarkAsReadMutation } from '@/features/chat/massa
 import { Avatar, Flex, Input } from 'antd';
 import moment from 'moment';
 import { useParams, useRouter } from 'next/navigation';
-import { useContext, useState } from 'react';
+import { useContext, useState, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import { BsSearch } from 'react-icons/bs';
 import { useSelector } from 'react-redux';
 import { getImageUrl } from '../../../../utils/getImageUrl';
 import { useDebounce } from '../../../hooks/useDebounce';
 import { ThemeContext } from '../../ClientLayout';
-
-
 
 const ChatList = ({ setIsChatActive, status }) => {
   const { isDarkMode } = useContext(ThemeContext);
@@ -23,20 +21,32 @@ const ChatList = ({ setIsChatActive, status }) => {
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
   const [markAsRead, { isLoading: markAsReadLoading }] = useMarkAsReadMutation()
-  const { data: chatList, isLoading, isError, refetch } = useGetAllChatQuery(debouncedSearchTerm);
+  const { data: chatListData, isLoading, isError, refetch } = useGetAllChatQuery(debouncedSearchTerm);
 
   const { chats } = useSelector((state) => state);
 
-  const handleSelectChat = async (id) => {
-    router.push(`/chat/${id}`);
+
+  // Memoize and sort the chat list to maintain consistent order
+  const chatList = useMemo(() => {
+    if (!chatListData?.data) return [];
+    // Sort by last message time (newest first) or any other criteria you prefer
+    return [...chatListData.data].sort((a, b) => {
+      return new Date(b.lastMessage?.createdAt || 0) - new Date(a.lastMessage?.createdAt || 0);
+    });
+  }, [chatListData]);
+
+
+  console.log(chatList)
+
+  const handleSelectChat = async (chatId) => {
+    router.push(`/chat/${chatId}`);
     if (setIsChatActive) {
       setIsChatActive(true);
     }
 
     try {
-      const response = await markAsRead(id).unwrap();
-      console.log(response)
-      refetch()
+      await markAsRead(chatId).unwrap();
+      refetch();
     } catch (error) {
       toast.error(error.message);
     }
@@ -56,9 +66,8 @@ const ChatList = ({ setIsChatActive, status }) => {
     return <LoadingUi />
   }
 
-
   return (
-    <div className={`w-full h-[80vh]  shadow rounded-lg flex flex-col
+    <div className={`w-full h-[80vh] shadow rounded-lg flex flex-col
       ${isDarkMode ? 'dark-mode bg-gray-800 border-gray-700' : 'light-mode bg-white border-gray-200'}`}>
 
       <div className="p-4 ">
@@ -91,8 +100,8 @@ const ChatList = ({ setIsChatActive, status }) => {
             background-color: ${isDarkMode ? '#4B5563' : '#CBD5E0'};
           }
         `}</style>
-        {chatList?.data && chatList?.data?.length > 0 ? (
-          chatList?.data?.map((chat) => (
+        {chatList?.length > 0 ? (
+          chatList.map((chat) => (
             <div
               key={chat?._id}
               onClick={() => handleSelectChat(chat?._id)}
@@ -104,27 +113,23 @@ const ChatList = ({ setIsChatActive, status }) => {
             >
               <Avatar size={50} src={getImageUrl(chat?.participants?.[0]?.profile)} />
               <div className="flex-1">
-                <h3 className="font-medium ellipsis truncate max-w-[20ch]">
+                <h3 className="font-medium max-w-[20ch]">
                   {chat?.participants?.[0]?.userName || "User"}
                 </h3>
                 <p className={`text-sm truncate ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                  {chat?.lastMessage?.text.slice(0, 25)}
+                  {chat?.lastMessage?.text?.slice(0, 25) || ''}
                 </p>
               </div>
               <div className="text-right flex flex-col gap-2">
                 <p className={`text-sm ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
                   {formatTime(chat?.lastMessage?.createdAt)}
                 </p>
-
-                <p className={`text-sm ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
-                  {chats?.unreadCount === 0 ? null : (
-                    <span className="bg-primary text-white rounded-full px-2 py-1 text-xs">
-                      {chats?.unreadCount}
-                    </span>
-                  )}
-                </p>
+                {chat?.unreadCount > 0 && (
+                  <span className="bg-primary text-white rounded-full px-2 py-1 text-xs">
+                    {chat?.unreadCount}
+                  </span>
+                )}
               </div>
-
             </div>
           ))
         ) : (

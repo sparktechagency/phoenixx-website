@@ -30,6 +30,12 @@ const ProfilePostCard = ({
     height: typeof window !== 'undefined' ? window.innerHeight : 0
   });
 
+
+  // console.log(postData);
+
+  const loginUserPost = postData?.author?._id === localStorage.getItem("login_user_id");
+  console.log(loginUserPost);
+
   console.log(postData.images);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [reportModalVisible, setReportModalVisible] = useState(false);

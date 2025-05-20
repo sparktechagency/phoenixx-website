@@ -179,9 +179,9 @@ const AuthorPostCard = ({
       label: (
         <div className={`flex items-center gap-2 py-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-800'}`}>
           <Image
-            src={"/icons/save_post.png"}
-            width={16}
-            height={16}
+            src={`${isDarkMode ? '/icons/edit.png' : '/icons/save_post.png'}`}
+            width={isDarkMode ? 12 : 16}
+            height={isDarkMode ? 12 : 16}
             alt="Edit post"
           />
           <span className="-mt-1">Edit Post</span>

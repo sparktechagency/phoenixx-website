@@ -12,7 +12,6 @@ import { PostSEEDark, PostSEELight } from '../../utils/svgImage';
 import { ThemeContext } from '../app/ClientLayout';
 import ReportPostModal from './ReportPostModal';
 
-
 const useWindowSize = () => {
   const [windowSize, setWindowSize] = useState({
     width: typeof window !== 'undefined' ? window.innerWidth : 0,
@@ -38,6 +37,7 @@ const PostCard = ({
   postData,
   onLike,
   onCommentSubmit,
+  onRepost,
   currentUser = {}
 }) => {
   const router = useRouter();
@@ -46,10 +46,13 @@ const PostCard = ({
   const windowSize = useWindowSize();
   const { isDarkMode } = useContext(ThemeContext);
 
+  // console.log(postData);
+
   const [isSaving, setIsSaving] = useState(false);
   const [savepost] = useSavepostMutation();
   const { data: savedPosts } = useGetSaveAllPostQuery();
 
+  const loginUserPost = postData?.author?.id === localStorage.getItem("login_user_id");
 
   const isSaved = useMemo(() =>
     savedPosts?.data?.some(savedPost => savedPost?.postId?._id === postData?.id),
@@ -58,6 +61,11 @@ const PostCard = ({
 
   const isMobile = windowSize.width < 640;
   const isTablet = windowSize.width >= 640 && windowSize.width < 1024;
+
+  const isOwnPost = useMemo(() => 
+    postData?.author?.id === currentUser?.id,
+    [postData?.author?.id, currentUser?.id]
+  );
 
   const handlePostDetails = useCallback(() => {
     router.push(`/posts/${postData.id}`);
@@ -70,6 +78,11 @@ const PostCard = ({
   const handleLike = useCallback(() => {
     onLike?.(postData.id);
   }, [onLike, postData.id]);
+
+  const handleRepost = useCallback(() => {
+    if (isOwnPost) return;
+    onRepost?.(postData.id);
+  }, [onRepost, postData.id, isOwnPost]);
 
   const handleShare = useCallback(async () => {
     try {
@@ -126,20 +139,24 @@ const PostCard = ({
         </div>
       ),
     },
-    {
-      key: 'report',
-      label: (
-        <div className="flex items-center gap-2 py-1">
-          <Image
-            src={isDarkMode ? "/icons/reportdark.png" : "/icons/report.png"}
-            height={16}
-            width={16}
-            alt="report"
-          />
-          <span className={`-mt-1 ${isDarkMode ? 'text-gray-200' : ''}`}>Report Post</span>
-        </div>
-      ),
-    },
+    
+      !loginUserPost && {
+        key: 'report',
+        label: (
+          <div className="flex items-center gap-2 py-1">
+            <Image
+              src={isDarkMode ? "/icons/reportdark.png" : "/icons/report.png"}
+              width={isDarkMode ? 16 : 16}
+              height={16}
+              alt="Report post"
+            />
+            <span className={`-mt-1 ${isDarkMode ? 'text-gray-200' : ''}`}>
+              Report Post
+            </span>
+          </div>
+        ),
+      },
+    
   ], [isSaved, isSaving, isDarkMode]);
 
   const handleMenuClick = useCallback(({ key }) => {
@@ -216,8 +233,6 @@ const PostCard = ({
     )
   ), [postData.tags, isDarkMode]);
 
-
-
   const renderImageGrid = useMemo(() => (
     postData.images && postData.images.length > 0 && (
       <div className="mb-4 rounded-lg h-[250px] overflow-hidden">
@@ -291,9 +306,6 @@ const PostCard = ({
       </div>
     )
   ), [postData.images, handlePostDetails]);
-
-
-
 
   return (
     <>
@@ -397,6 +409,26 @@ const PostCard = ({
                 {postData.stats.comments || 0}
               </span>
             </button>
+
+            {!isOwnPost && (
+              <button
+                onClick={handleRepost}
+                className={`flex items-center cursor-pointer p-1 rounded ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
+                  }`}
+              >
+                <Image
+                  src={isDarkMode ? "/icons/repost-dark.png" : "/icons/repost-light.png"}
+                  width={20}
+                  height={20}
+                  alt="repost icon"
+                />
+                <span className={`ml-1 -mt-[1px] ${isMobile ? 'text-xs' : 'text-sm'
+                  } ${isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                  }`}>
+                  {postData.stats.reposts || 0}
+                </span>
+              </button>
+            )}
 
             {renderTags}
           </div>

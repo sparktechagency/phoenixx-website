@@ -19,6 +19,7 @@
     "date-fns": "^4.1.0",
     "dayjs": "^1.11.13",
     "draft-js": "^0.11.7",
+    "emoji-mart": "^3.0.1",
     "emoji-picker-react": "^4.12.2",
     "framer-motion": "^12.6.3",
     "jodit-react": "^5.2.19",

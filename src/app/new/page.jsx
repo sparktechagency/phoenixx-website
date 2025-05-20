@@ -608,9 +608,7 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
           </div>
         </Card>
       </div>
-    
     </div>
-
 
   );
 };
