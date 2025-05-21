@@ -73,7 +73,7 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
     }));
   }, [category, subcategoryData]);
 
-  const joditConfig = useMemo(() => ({
+   const joditConfig = useMemo(() => ({
     height: isMobile ? 300 : 400,
     placeholder: "Write your post description here...",
     theme: isDarkMode ? 'dark' : 'default',
@@ -86,6 +86,13 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
       padding: "20px",
       backgroundColor: isDarkMode ? '#1f2937' : '#fff',
       color: isDarkMode ? '#e5e7eb' : '#374151',
+      // Ensure ordered list shows numbers
+      'ol': {
+        listStyleType: 'decimal',
+        paddingLeft: '20px',
+      },
+      'ol[type="a"]': { listStyleType: 'lower-alpha' },   // lower alpha
+      'ol[type="g"]': { listStyleType: 'lower-greek' },  // lower greek
     },
     toolbarAdaptive: false,
     toolbarSticky: true,
@@ -93,7 +100,6 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
     showWordsCounter: true,
   }), [isMobile, isDarkMode]);
 
-  // Add CSS for dark mode to document head
   useEffect(() => {
     if (isDarkMode) {
       const style = document.createElement('style');
@@ -119,8 +125,7 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
         .dark-editor .jodit-container {
           border-color: #4b5563 !important;
         }
-
-        /* Make sure all toolbar items appear in one line with overflow scrolling */
+        /* Toolbar styling */
         .jodit-toolbar__box {
           flex-wrap: nowrap !important;
           overflow-x: auto !important;
@@ -128,12 +133,18 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
         .jodit-toolbar-button {
           flex-shrink: 0 !important;
         }
+        /* Force ol with decimal numbers */
+        .jodit-wysiwyg ol {
+          list-style-type: decimal !important;
+          padding-left: 20px !important;
+        }
       `;
       document.head.appendChild(style);
 
       return () => {
-        if (document.getElementById('jodit-dark-mode-styles')) {
-          document.head.removeChild(document.getElementById('jodit-dark-mode-styles'));
+        const existingStyle = document.getElementById('jodit-dark-mode-styles');
+        if (existingStyle) {
+          document.head.removeChild(existingStyle);
         }
       };
     }
