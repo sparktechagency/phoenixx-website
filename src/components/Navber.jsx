@@ -164,7 +164,9 @@ export default function Navbar() {
         handleNavigation('/auth/login');
         localStorage.removeItem('loginToken');
         localStorage.removeItem('login_user_id');
+         localStorage.removeItem('rememberedCredentials');
         localStorage.setItem('theme', 'light');
+
       },
       className: isDarkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-50'
     },
