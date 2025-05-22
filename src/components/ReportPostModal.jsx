@@ -2,10 +2,14 @@ import { useReportMutation } from '@/features/report/reportApi';
 import { ExclamationCircleOutlined, InfoCircleOutlined } from '@ant-design/icons';
 import { Alert, Button, Form, Input, Modal, Radio } from 'antd';
 import { useEffect, useState } from 'react';
+import { isAuthenticated } from '../../utils/auth';
+import { useRouter } from 'next/navigation';
+import toast from 'react-hot-toast';
 
 const { TextArea } = Input;
 
 const ReportPostModal = ({ isOpen, onClose, postId }) => {
+  const router = useRouter();
   const [form] = Form.useForm();
   const [selectedReason, setSelectedReason] = useState('');
   const [report, { isLoading }] = useReportMutation();
@@ -36,23 +40,24 @@ const ReportPostModal = ({ isOpen, onClose, postId }) => {
   }, [isOpen, postId, form]);
 
   const handleSubmit = async () => {
-    try {
+    if (!isAuthenticated()) {
+      // router.push('/auth/login');
+      toast.error('please login first then send report');
+      return;
+    }else{
+ try {
       const values = await form.validateFields();
       const reason = {
         reason: values.reportReason,
         description: values.message,
         postId: postId
       };
-
       const response = await report(reason).unwrap();
-
       // Set success states
       setSuccessMessage(response?.message || 'Report Send successfully!');
       setIsSuccess(true);
-
       // Reset form
       form.resetFields();
-
       // Close modal after 3 seconds to give user time to read message
       setTimeout(() => {
         handleClose();
@@ -61,6 +66,7 @@ const ReportPostModal = ({ isOpen, onClose, postId }) => {
       setSuccessMessage('Failed to submit report. Please try again later.');
       setIsSuccess(false);
       console.error('Report submission failed:', error);
+    }
     }
   };
 

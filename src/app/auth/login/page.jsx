@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
+import CryptoJS from 'crypto-js';
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
 
 const LoginPage = () => {
@@ -94,17 +95,21 @@ const LoginPage = () => {
 
       try {
         const response = await Login({ email: formData.username, password: formData.password }).unwrap();
-        
+        const encryptedPassword = CryptoJS.AES.encrypt(formData.password, secretKey).toString();
         // Save or remove credentials based on rememberMe
         if (formData.rememberMe) {
           // Save credentials in localStorage
           localStorage.setItem('rememberedCredentials', JSON.stringify({
             username: formData.username,
-            password: formData.password
+            password: encryptedPassword
           }));
           
           // Also save a flag to indicate user wants to be remembered
+           localStorage.setItem('isLoggedIn', 'true');
+          // Redirect back to where they came from or home
+          router.push(router.query.returnUrl || '/');
           localStorage.setItem('rememberUser', 'true');
+
         } else {
           // Remove any saved credentials
           localStorage.removeItem('rememberedCredentials');

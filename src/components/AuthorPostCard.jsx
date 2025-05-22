@@ -13,8 +13,8 @@ import { getImageUrl } from '../../utils/getImageUrl';
 import { PostSEE, PostSEEDark, PostSEELight } from '../../utils/svgImage';
 import { ThemeContext } from '../app/ClientLayout';
 import EditPostModal from './EditPostModal';
-
-
+import { isAuthenticated } from '../../utils/auth';
+import ReportPostModal from './ReportPostModal';
 
 const AuthorPostCard = ({
   postData,
@@ -29,9 +29,12 @@ const AuthorPostCard = ({
     width: typeof window !== 'undefined' ? window.innerWidth : 0,
     height: typeof window !== 'undefined' ? window.innerHeight : 0
   });
+
   const [editModalVisible, setEditModalVisible] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
   const dropdownRef = useRef(null);
   const login_user_id = typeof window !== 'undefined' ? localStorage.getItem("login_user_id") : null;
+  const loginUserPost = postData?.author?._id === localStorage.getItem("login_user_id");
 
   const { data } = useMyPostQuery();
 
@@ -59,16 +62,33 @@ const AuthorPostCard = ({
   }
 
   const handlePostDetails = () => {
-    const postId = postData._id;
-    router.push(`/posts/${postId}`);
+    if (!isAuthenticated()) {
+      router.push('/auth/login');
+      return;
+    } else {
+      const postId = postData._id;
+      router.push(`/posts/${postId}`);
+    }
   };
 
   const handleCommentClick = () => {
-    const postId = postData._id;
-    router.push(`/posts/${postId}#comments`);
+    if (!isAuthenticated()) {
+      router.push('/auth/login');
+      return;
+    } else {
+      const postId = postData._id;
+      router.push(`/posts/${postId}#comments`);
+    }
   };
 
-  const handleLike = () => onLike?.(postData._id);
+  const handleLike = () => {
+    if (!isAuthenticated()) {
+      router.push('/auth/login');
+      return;
+    } else {
+      onLike?.(postData._id)
+    }
+  };
 
   const handleShare = () => {
     const postId = postData?._id;
@@ -82,6 +102,8 @@ const AuthorPostCard = ({
   const handleOptionSelect = ({ key }) => {
     if (key === 'edit') {
       setEditModalVisible(true);
+    } else if (key === 'report') {
+      setShowReportModal(true);
     } else if (key === 'unsave') {
       onUnsave?.(postData._id);
     } else {
@@ -153,7 +175,7 @@ const AuthorPostCard = ({
     }
   };
 
-  // Determine whether to show owner options or saved post options
+  // Menu items configuration
   const menuItems = postData.isSavedPost ? [
     {
       key: 'unsave',
@@ -164,7 +186,7 @@ const AuthorPostCard = ({
         </div>
       ),
     }
-  ] : [
+  ] : loginUserPost ? [
     {
       key: 'delete',
       label: (
@@ -188,6 +210,23 @@ const AuthorPostCard = ({
         </div>
       ),
     }
+  ] : [
+    {
+      key: 'report',
+      label: (
+                <div className="flex items-center gap-2 py-1">
+                  <Image
+                    src={isDarkMode ? "/icons/reportdark.png" : "/icons/report.png"}
+                    width={isDarkMode ? 16 : 16}
+                    height={16}
+                    alt="Report post"
+                  />
+                  <span className={`-mt-1 ${isDarkMode ? 'text-gray-200' : ''}`}>
+                    Report Post
+                  </span>
+                </div>
+              ),
+    }
   ];
 
   const author = postData.author || {};
@@ -195,78 +234,72 @@ const AuthorPostCard = ({
   const likesCount = postData.likes?.length || 0;
   const readsCount = postData.reads || 0;
 
-  console.log(postData?.images)
-
-
-
   const renderImageGrid = useMemo(() => (
-      postData.images && postData.images.length > 0 && (
-        <div className="mb-4 rounded-lg overflow-hidden">
-          {postData.images.length === 1 ? (
+    postData.images && postData.images.length > 0 && (
+      <div className="mb-4 rounded-lg overflow-hidden">
+        {postData.images.length === 1 ? (
+          <img
+            src={getImageUrl(postData.images[0])}
+            alt="Post content"
+            className="w-full max-h-[500px] object-cover "
+          />
+        ) : postData.images.length === 2 ? (
+          <div className="flex gap-1 h-[350px]">
             <img
               src={getImageUrl(postData.images[0])}
-              alt="Post content"
-              className="w-full max-h-[500px] object-cover "
+              alt="Post content 1"
+              className="w-1/2 h-full object-cover "
             />
-          ) : postData.images.length === 2 ? (
-            <div className="flex gap-1 h-[350px]">
+            <img
+              src={getImageUrl(postData.images[1])}
+              alt="Post content 2"
+              className="w-1/2 h-full object-cover "
+            />
+          </div>
+        ) : postData.images.length === 3 ? (
+          <div className="flex gap-1 h-[350px]">
+            <div className="w-1/2 h-full">
               <img
                 src={getImageUrl(postData.images[0])}
                 alt="Post content 1"
-                className="w-1/2 h-full object-cover "
+                className="w-full h-full object-cover "
               />
+            </div>
+            <div className="w-1/2 flex flex-col gap-1">
               <img
                 src={getImageUrl(postData.images[1])}
                 alt="Post content 2"
-                className="w-1/2 h-full object-cover "
-
+                className="w-full h-1/2 object-cover "
+              />
+              <img
+                src={getImageUrl(postData.images[2])}
+                alt="Post content 3"
+                className="w-full h-1/2 object-cover "
               />
             </div>
-          ) : postData.images.length === 3 ? (
-            <div className="flex gap-1 h-[350px]">
-              <div className="w-1/2 h-full">
+          </div>
+        ) : postData.images.length >= 4 ? (
+          <div className="grid grid-cols-2 gap-1 h-[350px]">
+            {postData.images.slice(0, 4).map((image, index) => (
+              <div key={index} className="relative">
                 <img
-                  src={getImageUrl(postData.images[0])}
-                  alt="Post content 1"
-                  className="w-full h-full object-cover "
+                  src={getImageUrl(image)}
+                  alt={`Post content ${index + 1}`}
+                  className={`w-full h-full object-cover ${index === 3 && postData.images.length > 4 ? 'opacity-80' : ''
+                    }`}
                 />
+                {index === 3 && postData.images.length > 4 && (
+                  <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center text-white text-2xl font-bold">
+                    +{postData.images.length - 4}
+                  </div>
+                )}
               </div>
-              <div className="w-1/2 flex flex-col gap-1">
-                <img
-                  src={getImageUrl(postData.images[1])}
-                  alt="Post content 2"
-                  className="w-full h-1/2 object-cover "
-
-                />
-                <img
-                  src={getImageUrl(postData.images[2])}
-                  alt="Post content 3"
-                  className="w-full h-1/2 object-cover "
-                />
-              </div>
-            </div>
-          ) : postData.images.length >= 4 ? (
-            <div className="grid grid-cols-2 gap-1 h-[350px]">
-              {postData.images.slice(0, 4).map((image, index) => (
-                <div key={index} className="relative">
-                  <img
-                    src={getImageUrl(image)}
-                    alt={`Post content ${index + 1}`}
-                    className={`w-full h-full object-cover ${index === 3 && postData.images.length > 4 ? 'opacity-80' : ''
-                      }`}
-                  />
-                  {index === 3 && postData.images.length > 4 && (
-                    <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center text-white text-2xl font-bold">
-                      +{postData.images.length - 4}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          ) : null}
-        </div>
-      )
-    ), [postData.images]);
+            ))}
+          </div>
+        ) : null}
+      </div>
+    )
+  ), [postData.images]);
 
   return (
     <>
@@ -309,7 +342,7 @@ const AuthorPostCard = ({
 
         {renderContent()}
 
-        { renderImageGrid }
+        {renderImageGrid}
 
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-4 sm:gap-6">
@@ -346,6 +379,13 @@ const AuthorPostCard = ({
         visible={editModalVisible}
         onClose={() => setEditModalVisible(false)}
         postData={postData}
+        isDarkMode={isDarkMode}
+      />
+
+      <ReportPostModal
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        postId={postData._id}
         isDarkMode={isDarkMode}
       />
     </>

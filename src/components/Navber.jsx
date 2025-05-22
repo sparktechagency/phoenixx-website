@@ -465,7 +465,10 @@ export default function Navbar() {
               />
             )}
 
-            <Dropdown
+           {
+
+            localStorage.getItem('isLoggedIn') === 'true' ? (
+              <Dropdown
               menu={{ items }}
               trigger={['click']}
               placement="bottomRight"
@@ -481,7 +484,31 @@ export default function Navbar() {
                   }}
                 />
               </div>
-            </Dropdown>
+            </Dropdown> 
+            ) : (
+              <Button type="primary" style={{height:"38px" , width:"100px"}} onClick={() => router.push('/auth/login')}>Sign In</Button>
+            )
+
+           } 
+           
+           
+           {/* <Dropdown
+              menu={{ items }}
+              trigger={['click']}
+              placement="bottomRight"
+              arrow={{ pointAtCenter: true }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', height: '100%', padding: '0 8px' }}>
+                <Avatar
+                  src={getImageUrl(data?.data?.profile)}
+                  size={44}
+                  style={{
+                    cursor: 'pointer',
+                    border: isDarkMode ? '1px solid #333' : 'none'
+                  }}
+                />
+              </div>
+            </Dropdown> */}
           </Flex>
         )}
       </Header>

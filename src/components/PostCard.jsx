@@ -11,6 +11,7 @@ import { getImageUrl } from '../../utils/getImageUrl';
 import { PostSEEDark, PostSEELight } from '../../utils/svgImage';
 import { ThemeContext } from '../app/ClientLayout';
 import ReportPostModal from './ReportPostModal';
+import { isAuthenticated, redirectToLogin } from '../../utils/auth';
 
 const useWindowSize = () => {
   const [windowSize, setWindowSize] = useState({
@@ -68,15 +69,31 @@ const PostCard = ({
   );
 
   const handlePostDetails = useCallback(() => {
-    router.push(`/posts/${postData.id}`);
+     if (!isAuthenticated()) {
+      router.push(`/auth/login`);
+      return;
+    }else{
+      router.push(`/posts/${postData.id}`);
+    }
   }, [postData.id, router]);
 
   const handleCommentClick = useCallback(() => {
-    router.push(`/posts/${postData.id}#comments`);
+
+     if (!isAuthenticated()) {
+      router.push(`/auth/login`);
+      return;
+    }else{
+      router.push(`/posts/${postData.id}#comments`);
+    }
   }, [postData.id, router]);
 
   const handleLike = useCallback(() => {
-    onLike?.(postData.id);
+     if (!isAuthenticated()) {
+      router.push(`/auth/login`);
+      return;
+    }else{
+      onLike?.(postData.id);
+    }
   }, [onLike, postData.id]);
 
   const handleRepost = useCallback(() => {
@@ -110,15 +127,20 @@ const PostCard = ({
   }, [postData.id]);
 
   const handleSaveUnsave = useCallback(async () => {
-    setIsSaving(true);
-    try {
-      await savepost({ postId: postData.id }).unwrap();
-      toast.success(isSaved ? 'Post removed from saved items' : 'Post saved successfully');
-    } catch (error) {
-      console.error('Save/Unsave error:', error);
-      toast.error('Failed to update saved status');
-    } finally {
-      setIsSaving(false);
+    if (!isAuthenticated()) {
+      router.push('/auth/login');
+      return;
+    }else{
+      setIsSaving(true);
+      try {
+        await savepost({ postId: postData.id }).unwrap();
+        toast.success(isSaved ? 'Post removed from saved items' : 'Post saved successfully');
+      } catch (error) {
+        console.error('Save/Unsave error:', error);
+        toast.error('Failed to update saved status');
+      } finally {
+        setIsSaving(false);
+      }
     }
   }, [postData.id, isSaved, savepost]);
 
@@ -140,7 +162,7 @@ const PostCard = ({
       ),
     },
     
-      !loginUserPost && {
+      !loginUserPost &&  {
         key: 'report',
         label: (
           <div className="flex items-center gap-2 py-1">

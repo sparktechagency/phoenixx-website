@@ -3,13 +3,10 @@
 import { useContext, useState } from 'react';
 import { IoIosArrowBack } from 'react-icons/io';
 
-import { useAuth } from '../../hooks/useAuth';
-
 import { ThemeContext } from '../ClientLayout';
 import ChatList from './Component/ChatList';
 
 const ChatLayout = ({ children }) => {
-  useAuth();
   const [isChatActive, setIsChatActive] = useState(false);
   const { isDarkMode } = useContext(ThemeContext);
 

@@ -14,7 +14,6 @@ import { Avatar, Badge, Button, Dropdown, Layout, List, Menu, Pagination, Spin, 
 import { useContext, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
-import { useAuth } from '../../hooks/useAuth';
 import { ThemeContext } from '../ClientLayout';
 
 
@@ -24,7 +23,6 @@ const { Content } = Layout;
 const antIcon = <LoadingOutlined style={{ fontSize: 24 }} spin />;
 
 export default function NotificationPage() {
-  useAuth();
   const dispatch = useDispatch();
   const [activeTab, setActiveTab] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);

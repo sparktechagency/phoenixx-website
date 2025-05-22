@@ -21,7 +21,6 @@ import { useRouter } from 'next/navigation';
 import { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { baseURL } from '../../../utils/BaseURL';
-import { useAuth } from '../../hooks/useAuth';
 import { ThemeContext } from '../ClientLayout';
 
 const JoditEditor = dynamic(() => import('jodit-react'), {
@@ -33,7 +32,7 @@ const { Title, Text } = Typography;
 const { useBreakpoint } = Grid;
 
 const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) => {
-  useAuth();
+
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState(null);
   const [subcategory, setSubcategory] = useState(null);
@@ -432,7 +431,6 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
       <div className="max-w-4xl mx-auto">
         <Card
           className={`rounded-xl shadow-lg border-0 overflow-hidden transition-colors duration-200 ${isEditing ? 'border-0 shadow-none' : ''} ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}
-          bodyStyle={{ backgroundColor: 'transparent' }}
         >
           {!isEditing && (
             <div className="">

@@ -9,7 +9,6 @@ import { formatDistanceToNow } from 'date-fns';
 import React, { useContext, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { FiBookmark, FiFile, FiMessageSquare } from 'react-icons/fi';
-import { useAuth } from '../../hooks/useAuth';
 import { ThemeContext } from '../ClientLayout';
 
 
@@ -17,7 +16,6 @@ const { useBreakpoint } = Grid;
 const { TextArea } = Input;
 
 const ProfilePage = () => {
-  useAuth();
   const screens = useBreakpoint();
   const { isDarkMode } = useContext(ThemeContext);
   const { data: postsData, isLoading: isPostsLoading, isError: isPostsError, refetch: refetchPosts } = useMyPostQuery();

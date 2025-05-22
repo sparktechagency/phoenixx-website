@@ -9,6 +9,7 @@ import { useContext } from 'react';
 import toast from 'react-hot-toast';
 import { getImageUrl } from '../../../../utils/getImageUrl';
 import { ThemeContext } from '../../ClientLayout';
+import { isAuthenticated } from '../../../../utils/auth';
 
 
 const ProfileBanner = () => {
@@ -32,14 +33,19 @@ const ProfileBanner = () => {
   };
 
   const handleChat = async (id) => {
-    try {
-      const response = await createChat({ participant: id }).unwrap();
-      console.log(response)
-      if (response.success) {
-        router.push(`/chat/${response?.data?._id}`)
+    if (!isAuthenticated()) {
+      router.push('/auth/login');
+      return;
+    }else{
+      try {
+        const response = await createChat({ participant: id }).unwrap();
+        console.log(response)
+        if (response.success) {
+          router.push(`/chat/${response?.data?._id}`)
+        }
+      } catch (error) {
+        console.log(error)
       }
-    } catch (error) {
-      console.log(error)
     }
   }
 
