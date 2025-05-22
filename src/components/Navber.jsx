@@ -35,6 +35,7 @@ import { useContext, useEffect, useRef, useState } from 'react';
 import { IoNotificationsSharp } from "react-icons/io5";
 import { useSelector } from 'react-redux';
 
+import { isAuthenticated } from '../../utils/auth';
 import { baseURL } from '../../utils/BaseURL';
 import { getImageUrl } from '../../utils/getImageUrl';
 import { MessageDark, MessageLight, NotificationDark, NotificationLight } from '../../utils/svgImage';
@@ -43,7 +44,6 @@ import { useGetAllChatQuery } from '../features/chat/massage';
 import { useGetAllNotificationQuery } from '../features/notification/noticationApi';
 import { useLogoQuery } from '../features/report/reportApi';
 import SocketComponent from './SocketCompo';
-import { isAuthenticated } from '../../utils/auth';
 
 const { Header } = Layout;
 const { Text } = Typography;
@@ -87,13 +87,14 @@ export default function Navbar() {
   }, [searchParams]);
 
   const handleNavigation = (path) => {
-     if (!isAuthenticated()) {
-          router.push(`/auth/login`);
-          return;
-        }else{
-          router.push(path);
-          setDrawerVisible(false);
-        }
+    if (!isAuthenticated()) {
+      router.push('/auth/login');
+      return;
+    } else {
+      router.push(path);
+      setDrawerVisible(false);
+    }
+
   };
 
   const items = [
@@ -170,8 +171,9 @@ export default function Navbar() {
         handleNavigation('/auth/login');
         localStorage.removeItem('loginToken');
         localStorage.removeItem('login_user_id');
-         localStorage.removeItem('rememberedCredentials');
+        localStorage.removeItem('rememberedCredentials');
         localStorage.setItem('theme', 'light');
+        localStorage.removeItem('isLoggedIn');
 
       },
       className: isDarkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-50'
@@ -471,34 +473,34 @@ export default function Navbar() {
               />
             )}
 
-           {
+            {
 
-            localStorage.getItem('isLoggedIn') === 'true' ? (
-              <Dropdown
-              menu={{ items }}
-              trigger={['click']}
-              placement="bottomRight"
-              arrow={{ pointAtCenter: true }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', height: '100%', padding: '0 8px' }}>
-                <Avatar
-                  src={getImageUrl(data?.data?.profile)}
-                  size={44}
-                  style={{
-                    cursor: 'pointer',
-                    border: isDarkMode ? '1px solid #333' : 'none'
-                  }}
-                />
-              </div>
-            </Dropdown> 
-            ) : (
-              <Button type="primary" style={{height:"38px" , width:"100px"}} onClick={() => router.push('/auth/login')}>Sign In</Button>
-            )
+              localStorage.getItem('isLoggedIn') === 'true' ? (
+                <Dropdown
+                  menu={{ items }}
+                  trigger={['click']}
+                  placement="bottomRight"
+                  arrow={{ pointAtCenter: true }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', height: '100%', padding: '0 8px' }}>
+                    <Avatar
+                      src={getImageUrl(data?.data?.profile)}
+                      size={44}
+                      style={{
+                        cursor: 'pointer',
+                        border: isDarkMode ? '1px solid #333' : 'none'
+                      }}
+                    />
+                  </div>
+                </Dropdown>
+              ) : (
+                <Button type="primary" style={{ height: "38px", width: "100px" }} onClick={() => router.push('/auth/login')}>Sign In</Button>
+              )
 
-           } 
-           
-           
-           {/* <Dropdown
+            }
+
+
+            {/* <Dropdown
               menu={{ items }}
               trigger={['click']}
               placement="bottomRight"
