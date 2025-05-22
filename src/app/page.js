@@ -1,57 +1,37 @@
 "use client";
 
-import dynamic from 'next/dynamic';
-import { Suspense, useMemo, useCallback } from 'react';
+import Banner from '@/components/Banner';
+import CategoriesSidebar from '@/components/CategoriesSidebar';
+import FeedNavigation from '@/components/FeedNavigation';
+import PostCard from '@/components/PostCard';
+import { useGetPostQuery, useLikePostMutation } from '@/features/post/postApi';
 import { LeftOutlined, RightOutlined } from '@ant-design/icons';
 import { Button, Card, Empty, Pagination } from 'antd';
 import { LayoutGroup, motion } from 'framer-motion';
 import moment from 'moment';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useContext, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { ThemeContext } from './ClientLayout';
-import { useGetPostQuery, useLikePostMutation } from '@/features/post/postApi';
-
-// Dynamically import heavy components
-const Banner = dynamic(() => import('@/components/Banner'), { 
-  suspense: true,
-  ssr: false // Disable SSR for faster initial load
-});
-
-const CategoriesSidebar = dynamic(() => import('@/components/CategoriesSidebar'), { 
-  suspense: true,
-  loading: () => <div className="h-64 bg-gray-200 dark:bg-gray-700 animate-pulse" />
-});
-
-const FeedNavigation = dynamic(() => import('@/components/FeedNavigation'), { 
-  suspense: true,
-  ssr: false
-});
-
-const PostCard = dynamic(() => import('@/components/PostCard'), { 
-  suspense: true,
-  ssr: false
-});
 
 const HomePage = () => {
-  // Routing
+
+  // Force rerender when navigating back to this page
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const router = useRouter();
-  const { isDarkMode } = useContext(ThemeContext);
+  const routeKey = pathname + searchParams.toString();
 
   // State management
   const [gridNumber, setGridNumber] = useState(1);
+  const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1024);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [selectedSubCategory, setSelectedSubCategory] = useState(null);
   const [sortOrder, setSortOrder] = useState("newest");
-  const [currentUser] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return { id: localStorage.getItem("login_user_id") };
-    }
-    return { id: null };
-  });
+  const [currentUser, setCurrentUser] = useState({ id: null });
 
-  // Memoized URL params
+  const { isDarkMode } = useContext(ThemeContext);
+
+  // Routing and params
+  const router = useRouter();
   const searchValue = searchParams.get("search");
   const pageParam = searchParams.get("page") || "1";
   const categoryParam = searchParams.get("category");
@@ -59,62 +39,107 @@ const HomePage = () => {
   const sortParam = searchParams.get("sort");
   const limitParam = searchParams.get("limit") || "10";
 
-  // API query params
-  const queryParams = useMemo(() => ({
+  // Initialize state from URL params and user
+  useEffect(() => {
+    if (categoryParam) setSelectedCategory(categoryParam);
+    if (subcategoryParam) setSelectedSubCategory(subcategoryParam);
+    if (sortParam) setSortOrder(sortParam);
+
+    if (typeof window !== 'undefined') {
+      setCurrentUser({
+        id: localStorage.getItem("login_user_id")
+      });
+    }
+  }, [categoryParam, subcategoryParam, sortParam]);
+
+  // API query params directly from URL
+  const queryParams = {
     ...(searchValue && { searchTerm: searchValue }),
     ...(categoryParam && { category: categoryParam }),
     ...(subcategoryParam && { subCategory: subcategoryParam }),
     sort: sortParam || sortOrder,
     page: parseInt(pageParam),
     limit: parseInt(limitParam)
-  }), [searchValue, categoryParam, subcategoryParam, sortParam, sortOrder, pageParam, limitParam]);
+  };
 
   // API calls
   const { data, isLoading, error } = useGetPostQuery(queryParams);
   const [likePost] = useLikePostMutation();
 
-  // Memoized derived data
-  const { currentPage, postsPerPage, totalPosts, totalPages } = useMemo(() => ({
-    currentPage: data?.data?.meta?.page || parseInt(pageParam),
-    postsPerPage: data?.data?.meta?.limit || parseInt(limitParam),
-    totalPosts: data?.data?.meta?.total || 0,
-    totalPages: data?.data?.meta?.totalPage || Math.ceil((data?.data?.meta?.total || 0) / (data?.data?.meta?.limit || parseInt(limitParam)))
-  }), [data, pageParam, limitParam]);
+  // Extract pagination metadata from API response
+  const currentPage = data?.data?.meta?.page || parseInt(pageParam);
+  const postsPerPage = data?.data?.meta?.limit || parseInt(limitParam);
+  const totalPosts = data?.data?.meta?.total || 0;
+  const totalPages = data?.data?.meta?.totalPage || Math.ceil(totalPosts / postsPerPage);
 
-  // Memoized posts data
-  const posts = useMemo(() => {
-    if (!data?.data?.data) return [];
-    
-    let processedPosts = [...data.data.data];
-    
-    if (!data.data.meta?.sorted) {
-      switch (sortOrder) {
-        case "newest":
-          return processedPosts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-        case "oldest":
-          return processedPosts.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-        case "popular":
-          return processedPosts.sort((a, b) => {
-            const aPopularity = (a.likes?.length || 0) + (a.views || 0);
-            const bPopularity = (b.likes?.length || 0) + (b.views || 0);
-            return bPopularity - aPopularity;
-          });
-        default:
-          return processedPosts;
-      }
+  // Window resize handler
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Handlers
+  const handleLike = async (postId) => {
+    try {
+      await likePost(postId).unwrap();
+    } catch (error) {
+      console.error("Like error:", error);
     }
-    
-    return processedPosts;
-  }, [data, sortOrder]);
+  };
 
-  // Memoized utility functions
-  const formatTime = useCallback((timestamp) => {
+  const handleCategorySelect = (categoryId, subCategoryId = null) => {
+    setSelectedCategory(categoryId);
+    setSelectedSubCategory(subCategoryId);
+    updateUrlParams({
+      category: categoryId || undefined,
+      subcategory: subCategoryId || undefined,
+      page: 1
+    });
+  };
+
+  const handleSortChange = (sortOption) => {
+    setSortOrder(sortOption);
+    updateUrlParams({ sort: sortOption, page: 1 });
+  };
+
+  const handlePageChange = (page) => {
+    updateUrlParams({ page });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const updateUrlParams = (params) => {
+    const newParams = new URLSearchParams(searchParams.toString());
+
+    Object.entries(params).forEach(([key, value]) => {
+      if (value) {
+        newParams.set(key, value);
+      } else {
+        newParams.delete(key);
+      }
+    });
+
+    router.push(`${pathname}?${newParams.toString()}`);
+  };
+
+  const clearAllFilters = () => {
+    setSelectedCategory(null);
+    setSelectedSubCategory(null);
+    setSortOrder("newest");
+    router.push(pathname);
+  };
+
+  // Helper functions
+  const isDesktop = windowWidth >= 1024;
+  const isGrid2 = gridNumber === 2 && isDesktop;
+
+  const formatTime = (timestamp) => {
     if (!timestamp) return "Just now";
     const bangladeshTime = moment.utc(timestamp).utcOffset(6);
     return bangladeshTime.fromNow();
-  }, []);
+  };
 
-  const formatPostData = useCallback((post) => ({
+  const formatPostData = (post) => ({
     id: post._id,
     author: {
       id: post.author._id,
@@ -134,59 +159,35 @@ const HomePage = () => {
       likedBy: post.likes || []
     },
     isLiked: post.likes?.includes(currentUser.id) || false
-  }), [formatTime, currentUser.id]);
+  });
 
-  // Event handlers
-  const handleLike = useCallback(async (postId) => {
-    try {
-      await likePost(postId).unwrap();
-    } catch (error) {
-      console.error("Like error:", error);
+  // Data processing
+  let posts = data?.data?.data || [];
+
+  // Client-side sorting if needed
+  if (posts.length > 0 && !data?.data?.meta?.sorted) {
+    switch (sortOrder) {
+      case "newest":
+        posts = [...posts].sort((a, b) =>
+          new Date(b.createdAt) - new Date(a.createdAt)
+        );
+        break;
+      case "oldest":
+        posts = [...posts].sort((a, b) =>
+          new Date(a.createdAt) - new Date(b.createdAt)
+        );
+        break;
+      case "popular":
+        posts = [...posts].sort((a, b) => {
+          const aPopularity = (a.likes?.length || 0) + (a.views || 0);
+          const bPopularity = (b.likes?.length || 0) + (b.views || 0);
+          return bPopularity - aPopularity;
+        });
+        break;
     }
-  }, [likePost]);
+  }
 
-  const updateUrlParams = useCallback((params) => {
-    const newParams = new URLSearchParams(searchParams.toString());
-
-    Object.entries(params).forEach(([key, value]) => {
-      if (value) {
-        newParams.set(key, value);
-      } else {
-        newParams.delete(key);
-      }
-    });
-
-    router.push(`${pathname}?${newParams.toString()}`);
-  }, [pathname, router, searchParams]);
-
-  const handleCategorySelect = useCallback((categoryId, subCategoryId = null) => {
-    setSelectedCategory(categoryId);
-    setSelectedSubCategory(subCategoryId);
-    updateUrlParams({
-      category: categoryId || undefined,
-      subcategory: subCategoryId || undefined,
-      page: 1
-    });
-  }, [updateUrlParams]);
-
-  const handleSortChange = useCallback((sortOption) => {
-    setSortOrder(sortOption);
-    updateUrlParams({ sort: sortOption, page: 1 });
-  }, [updateUrlParams]);
-
-  const handlePageChange = useCallback((page) => {
-    updateUrlParams({ page });
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [updateUrlParams]);
-
-  const clearAllFilters = useCallback(() => {
-    setSelectedCategory(null);
-    setSelectedSubCategory(null);
-    setSortOrder("newest");
-    router.push(pathname);
-  }, [pathname, router]);
-
-  const getCategoryName = useCallback(() => {
+  const getCategoryName = () => {
     if (selectedSubCategory) {
       const post = posts.find(p => p.subcategory?._id === selectedSubCategory);
       return post?.subcategory?.name || "Selected Subcategory";
@@ -195,35 +196,18 @@ const HomePage = () => {
       return post?.category?.name || "Selected Category";
     }
     return "All Posts";
-  }, [posts, selectedCategory, selectedSubCategory]);
-
-  // Layout helpers
-  const distributePostsToColumns = useCallback((posts, columnCount) => {
-    if (!posts || posts.length === 0) return Array(columnCount).fill([]);
-    
-    const columns = Array(columnCount).fill().map(() => []);
-    posts.forEach((post, index) => {
-      columns[index % columnCount].push(post);
-    });
-    
-    return columns;
-  }, []);
-
-  const postColumns = useMemo(() => {
-    const columnCount = gridNumber === 2 ? 2 : 1;
-    return distributePostsToColumns(posts, columnCount);
-  }, [posts, gridNumber, distributePostsToColumns]);
+  };
 
   // Loading state
   if (isLoading) {
     return (
       <div className={`${isDarkMode ? 'dark-mode' : 'light-mode'}`}>
-        <Suspense fallback={<div className="h-64 bg-gray-200 dark:bg-gray-700 animate-pulse" />}>
-          <Banner />
-        </Suspense>
+        {/* Banner Skeleton */}
+        <div className="h-64 bg-gray-200 dark:bg-gray-700 animate-pulse"></div>
 
         <main className="container mx-auto px-4 py-6">
           <div className="flex gap-5">
+            {/* Sidebar Skeleton - Desktop */}
             <div className="hidden lg:block w-3/12 pr-6 sticky top-20 self-start">
               <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-4 animate-pulse">
                 <div className="h-6 w-3/4 bg-gray-300 dark:bg-gray-600 rounded mb-4"></div>
@@ -236,7 +220,9 @@ const HomePage = () => {
               </div>
             </div>
 
+            {/* Main Content Skeleton */}
             <div className="w-full lg:w-6/12">
+              {/* Feed Navigation Skeleton */}
               <div className="flex justify-between items-center mb-6">
                 <div className="h-8 w-24 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
                 <div className="flex gap-2">
@@ -246,6 +232,7 @@ const HomePage = () => {
                 </div>
               </div>
 
+              {/* Post Cards Skeleton */}
               <div className="grid grid-cols-1 gap-6">
                 {[...Array(5)].map((_, i) => (
                   <div key={i} className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 animate-pulse">
@@ -274,6 +261,9 @@ const HomePage = () => {
                 ))}
               </div>
             </div>
+
+            {/* Right Sidebar Skeleton - Desktop */}
+
           </div>
         </main>
       </div>
@@ -298,37 +288,137 @@ const HomePage = () => {
     );
   }
 
-  return (
-    <div className={`${isDarkMode ? 'dark-mode' : 'light-mode'}`}>
-      <Suspense fallback={<div className="h-64 bg-gray-200 dark:bg-gray-700 animate-pulse" />}>
-        <Banner />
-      </Suspense>
+  // Function to distribute posts into columns for masonry layout
+  const distributePostsToColumns = (posts, columnCount) => {
+    if (!posts || posts.length === 0) return Array(columnCount).fill([]);
 
+    // Initialize columns
+    const columns = Array(columnCount).fill().map(() => []);
+
+    // Distribute posts to columns
+    posts.forEach((post, index) => {
+      // Find the column with the least content
+      const targetColumnIndex = index % columnCount;
+      columns[targetColumnIndex].push(post);
+    });
+
+    return columns;
+  };
+
+  // Calculate column counts based on screen width and grid setting
+  const getColumnCount = () => {
+    // Mobile: always 1 column
+    if (windowWidth < 640) return 1;
+
+    // Tablet: always 1 column if grid is 1, 2 columns if grid is 2
+    if (windowWidth < 1024) return gridNumber === 2 ? 2 : 1;
+
+    // Desktop: 1 column if grid is 1, 2 columns if grid is 2
+    return gridNumber === 2 ? 2 : 1;
+  };
+
+  const columnCount = getColumnCount();
+  const postColumns = distributePostsToColumns(posts, columnCount);
+
+  // Main render
+  return (
+    <div key={routeKey} className={`${isDarkMode ? 'dark-mode' : 'light-mode'}`}>
+      <Banner />
       <main className="container mx-auto px-4 py-6">
         <LayoutGroup>
-          <div className="flex flex-col lg:flex-row gap-5">
-            {/* Sidebar - Desktop */}
-            <div className="hidden lg:block w-3/12 pr-6 sticky top-20 self-start">
-              <Suspense fallback={<div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-4 animate-pulse h-64" />}>
+          {isDesktop ? (
+            <motion.div layout className="flex gap-5">
+              {/* Sidebar */}
+              <motion.div layout className={`${isGrid2 ? 'w-3/12' : 'w-3/12 pr-6 sticky top-20 self-start'}`}>
                 <CategoriesSidebar
                   onSelectCategory={handleCategorySelect}
                   selectedCategory={selectedCategory}
                   selectedSubCategory={selectedSubCategory}
                 />
-              </Suspense>
-            </div>
+              </motion.div>
 
-            {/* Main content */}
-            <section className={`w-full lg:${gridNumber === 2 ? 'w-9/12' : 'w-6/12'}`}>
-              <Suspense fallback={<div className="h-12 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mb-6" />}>
+              {/* Main content */}
+              <motion.section layout className={`${isGrid2 ? 'w-9/12' : 'w-6/12'}`}>
                 <FeedNavigation
                   handlefeedGrid={setGridNumber}
                   onSortChange={handleSortChange}
                   currentSort={sortOrder}
                 />
-              </Suspense>
 
-              {/* Filters indicator */}
+                {/* Filters indicator */}
+                {(selectedCategory || selectedSubCategory || searchValue) && (
+                  <Card className="mb-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        <span className="text-gray-700 mr-2">Viewing:</span>
+                        <span className="font-medium text-blue-600">
+                          {searchValue ? `Search results for "${searchValue}"` : getCategoryName()}
+                        </span>
+                        {sortOrder !== "newest" && (
+                          <span className="ml-2 text-gray-500">
+                            (Sorted by: {sortOrder === "oldest" ? "Oldest first" : "Most popular"})
+                          </span>
+                        )}
+                      </div>
+                      <Button type="link" onClick={clearAllFilters}>
+                        Clear All Filters
+                      </Button>
+                    </div>
+                  </Card>
+                )}
+
+                {/* Posts list */}
+                {posts.length === 0 ? (
+                  <Card className="text-center">
+                    <Empty
+                      description={
+                        <>
+                          <h3 className="text-lg font-medium text-gray-700">No posts found</h3>
+                          <p className="text-gray-500 mt-2">
+                            {searchValue
+                              ? "Try a different search term"
+                              : "Try selecting a different category or subcategory"}
+                          </p>
+                        </>
+                      }
+                    />
+                  </Card>
+                ) : (
+                  <>
+                    {/* Masonry layout for posts */}
+                    <motion.div layout className="flex gap-4 mb-6">
+                      {postColumns.map((column, columnIndex) => (
+                        <div key={columnIndex} className="flex-1 flex flex-col gap-4">
+                          {column.map((post) => (
+                            <div key={post._id}>
+                              <PostCard
+                                postData={formatPostData(post)}
+                                currentUser={currentUser}
+                                onLike={handleLike}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      ))}
+                    </motion.div>
+                  </>
+                )}
+              </motion.section>
+            </motion.div>
+          ) : (
+            /* Mobile layout */
+            <div className="flex flex-col">
+              <CategoriesSidebar
+                onSelectCategory={handleCategorySelect}
+                selectedCategory={selectedCategory}
+                selectedSubCategory={selectedSubCategory}
+              />
+              <FeedNavigation
+                handlefeedGrid={setGridNumber}
+                onSortChange={handleSortChange}
+                currentSort={sortOrder}
+              />
+
               {(selectedCategory || selectedSubCategory || searchValue) && (
                 <Card className="mb-4">
                   <div className="flex items-center justify-between">
@@ -350,7 +440,6 @@ const HomePage = () => {
                 </Card>
               )}
 
-              {/* Posts list */}
               {posts.length === 0 ? (
                 <Card className="text-center">
                   <Empty
@@ -367,29 +456,30 @@ const HomePage = () => {
                   />
                 </Card>
               ) : (
-                <div className="flex gap-4 mb-6">
-                  {postColumns.map((column, columnIndex) => (
-                    <div key={columnIndex} className="flex-1 flex flex-col gap-4">
-                      {column.map((post) => (
-                        <div key={post._id}>
-                          <Suspense fallback={<div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 h-64 animate-pulse" />}>
+                <>
+                  {/* Mobile masonry layout */}
+                  <div className="flex gap-4">
+                    {postColumns.map((column, columnIndex) => (
+                      <div key={columnIndex} className="flex-1 flex flex-col gap-4">
+                        {column.map((post) => (
+                          <div key={post._id}>
                             <PostCard
                               postData={formatPostData(post)}
                               currentUser={currentUser}
                               onLike={handleLike}
                             />
-                          </Suspense>
-                        </div>
-                      ))}
-                    </div>
-                  ))}
-                </div>
+                          </div>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                </>
               )}
-            </section>
-          </div>
+            </div>
+          )}
         </LayoutGroup>
 
-        {/* Pagination */}
+        {/* Single Pagination component at the bottom */}
         {totalPages > 1 && (
           <div className="flex justify-center my-1">
             <Pagination
