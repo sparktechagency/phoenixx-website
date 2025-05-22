@@ -43,6 +43,7 @@ import { useGetAllChatQuery } from '../features/chat/massage';
 import { useGetAllNotificationQuery } from '../features/notification/noticationApi';
 import { useLogoQuery } from '../features/report/reportApi';
 import SocketComponent from './SocketCompo';
+import { isAuthenticated } from '../../utils/auth';
 
 const { Header } = Layout;
 const { Text } = Typography;
@@ -86,8 +87,13 @@ export default function Navbar() {
   }, [searchParams]);
 
   const handleNavigation = (path) => {
-    router.push(path);
-    setDrawerVisible(false);
+     if (!isAuthenticated()) {
+          router.push(`/auth/login`);
+          return;
+        }else{
+          router.push(path);
+          setDrawerVisible(false);
+        }
   };
 
   const items = [
