@@ -113,7 +113,7 @@ const LoginPage = () => {
           localStorage.removeItem('rememberedCredentials');
           localStorage.removeItem('rememberUser');
         }
-        localStorage.setItem('isLoggedIn', 'true');
+        localStorage.setItem('isLoggedIn', true);
         saveToken(response?.data?.accessToken);
         decodedUser(response?.data?.accessToken);
         router.push("/");
