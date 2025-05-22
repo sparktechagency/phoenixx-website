@@ -29,7 +29,7 @@ const LoginPage = () => {
   // Load saved credentials when the component mounts
   useEffect(() => {
     localStorage.setItem("theme", "light");
-    
+
     // Check if credentials are saved in localStorage
     const savedCredentials = localStorage.getItem('rememberedCredentials');
     if (savedCredentials) {
@@ -95,15 +95,15 @@ const LoginPage = () => {
       try {
         const response = await Login({ email: formData.username, password: formData.password }).unwrap();
         // Save or remove credentials based on rememberMe
+
         if (formData.rememberMe) {
           // Save credentials in localStorage
           localStorage.setItem('rememberedCredentials', JSON.stringify({
             username: formData.username,
             password: formData.password
           }));
-          
-          // Also save a flag to indicate user wants to be remembered
-           localStorage.setItem('isLoggedIn', 'true');
+
+
           // Redirect back to where they came from or home
           router.push(router.query.returnUrl || '/');
           localStorage.setItem('rememberUser', 'true');
@@ -113,7 +113,7 @@ const LoginPage = () => {
           localStorage.removeItem('rememberedCredentials');
           localStorage.removeItem('rememberUser');
         }
-        
+        localStorage.setItem('isLoggedIn', 'true');
         saveToken(response?.data?.accessToken);
         decodedUser(response?.data?.accessToken);
         router.push("/");
