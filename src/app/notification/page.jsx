@@ -192,7 +192,6 @@ export default function NotificationPage() {
   const unreadCount = transformedNotifications.filter(item => !item.read).length;
 
   // Define dynamic classes based on dark mode
-  const layoutClass = isDarkMode ? "bg-gray-900" : "bg-gray-50";
   const contentClass = isDarkMode ? "bg-gray-800 text-gray-200" : "bg-white";
   const borderClass = isDarkMode ? "border-gray-700" : "border-gray-200";
   const textClass = isDarkMode ? "text-gray-200" : "text-gray-600";
@@ -240,7 +239,7 @@ export default function NotificationPage() {
                 ]}
               >
                 <List.Item.Meta
-                  style={{marginLeft: '10px'}}
+                  style={{ marginLeft: '10px' }}
                   avatar={
                     <Avatar
                       icon={getNotificationIcon(item.type)}
@@ -308,7 +307,7 @@ export default function NotificationPage() {
                 ]}
               >
                 <List.Item.Meta
-                  style={{marginLeft: '10px'}}
+                  style={{ marginLeft: '10px' }}
                   avatar={
                     <Avatar
                       icon={getNotificationIcon(item.type)}
@@ -340,8 +339,11 @@ export default function NotificationPage() {
 
   return (
     <>
-      <Layout className={`min-h-screen ${layoutClass} md:p-6 p-0`}>
-        <Content className=" p-2 md:p-2 lg:w-8/12 w-full mx-auto">
+      <Layout
+        style={{ backgroundColor: isDarkMode ? '#101828' : 'white' }}
+        className="md:p-6 p-0"
+      >
+        <Content className="p-2 md:p-2 lg:w-8/12 w-full mx-auto">
           <div className={`${contentClass} p-2 md:p-2 rounded-lg shadow-sm overflow-hidden`}>
             {/* Header with actions */}
             <div className={`p-4 border-b ${borderClass} flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4`}>
@@ -401,7 +403,7 @@ export default function NotificationPage() {
         </Content>
       </Layout>
 
-      <div className={`flex justify-center pb-10 ${layoutClass}`}>
+      <div className={`flex justify-center pb-10`}>
         {total > limit && (
           <Pagination
             current={currentPage}

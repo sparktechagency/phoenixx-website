@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import React, { useState } from 'react';
+import toast from 'react-hot-toast';
 
 const ForgotPasswordPage = () => {
   const [email, setEmail] = useState('');
@@ -31,36 +32,39 @@ const ForgotPasswordPage = () => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    if (validateEmail()) {
-      setIsSubmitting(true);
-      
-      try {
-        // Simulate API call
-        // await new Promise(resolve => setTimeout(resolve, 1000));
+  e.preventDefault();
 
-        const response = await forgotPassword({email : email}).unwrap();
-        if(response.success){
-          router.push(`/auth/forgot-password-otp?email=${email}`)
-        }
-        
-        // Show success message
+  if (validateEmail()) {
+    setIsSubmitting(true);
+
+    try {
+      const response = await forgotPassword({ email }).unwrap();
+
+      // Success case
+      toast.success(response.message || 'Reset link sent successfully');
+      
+      if (response.success) {
         setIsSuccess(true);
-        notification.success({
-          message: response?.message,
-          // description: 'Check your email for a password reset link',
-        });
-      } catch (err) {
-        notification.error({
-          message: 'Error',
-          description: 'Failed to send reset link. Please try again.',
-        });
-      } finally {
-        setIsSubmitting(false);
+        router.push(`/auth/forgot-password-otp?email=${email}`);
       }
+
+    } catch (err) {
+      // Extract error message from RTK error object
+      const errorMessage = err?.data?.message || err?.message || 'Failed to send reset link';
+
+      // Set frontend form error too, if needed
+      setError(errorMessage);
+
+      toast.error(errorMessage);
+      notification.error({
+        message: 'Error',
+        description: errorMessage,
+      });
+    } finally {
+      setIsSubmitting(false);
     }
-  };
+  }
+};
 
   return (
     <div className="">

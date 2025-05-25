@@ -383,7 +383,7 @@ const renderCommentMenu = (comment) => {
         {/* User Avatar */}
         <div className="mr-4 flex-shrink-0">
           {authorImage ? (
-            <Avatar src={`${baseURL}${authorImage}`} size={40} />
+            <Avatar src={getImageUrl(authorImage)} size={40} />
           ) : (
             <Avatar size={40}>{commentAuthor.userName?.charAt(0).toUpperCase() || 'U'}</Avatar>
           )}
@@ -758,7 +758,7 @@ const renderCommentMenu = (comment) => {
           <div className="flex gap-3 items-center">
             {login_user_id ? (
               currentUser.avatar ? (
-                <Avatar src={`${baseURL}${profile?.data?.profile}`} size={32} />
+               <Avatar src={getImageUrl(profile?.data?.profile)} size={32} />
               ) : (
                 <Avatar size={32}>{currentUser.name?.charAt(0).toUpperCase() || 'U'}</Avatar>
               )

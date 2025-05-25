@@ -7,11 +7,10 @@ import ChangePasswordForm from '@/components/ChangePasswordForm';
 import CloseAccountSection from '@/components/CloseAccountSection';
 import { ThemeContext } from '../ClientLayout';
 
-
 const AccountTabs = () => {
   const [activeKey, setActiveKey] = useState('1');
   const { isDarkMode } = useContext(ThemeContext);
-  const primaryColor = '#ffffff';
+  const primaryColor = isDarkMode ? '#6464FF' : '#4E4EFB'; // ✅ Dynamic color
 
   const onChange = (key) => {
     setActiveKey(key);
@@ -42,23 +41,19 @@ const AccountTabs = () => {
             marginBottom: 24,
           }}
           className="custom-account-tabs"
-          indicator={{
-            size: (origin) => origin - 16,
-            style: {
-              backgroundColor: primaryColor,
-              height: '3px',
-              borderRadius: '3px 3px 0 0',
-            },
-          }}
         />
       </div>
 
       <style jsx global>{`
+        .custom-account-tabs .ant-tabs-nav {
+          margin-bottom: 24px;
+        }
+
         .custom-account-tabs .ant-tabs-tab {
           padding: 12px 16px;
           margin: 0;
           font-weight: 500;
-          color: ${isDarkMode ? 'rgba(255, 255, 255, 0.65)' : 'rgba(0, 0, 0, 0.65)'};
+          color: ${isDarkMode ? 'rgba(255, 255, 255, 0.65)' : 'rgba(0, 0, 0, 0.85)'};
           transition: all 0.3s ease;
           border-radius: 6px 6px 0 0;
         }
@@ -70,6 +65,12 @@ const AccountTabs = () => {
         .custom-account-tabs .ant-tabs-tab.ant-tabs-tab-active .ant-tabs-tab-btn {
           color: ${primaryColor};
           font-weight: 600;
+        }
+
+        .custom-account-tabs .ant-tabs-ink-bar {
+          background: ${primaryColor} !important;
+          height: 3px !important;
+          border-radius: 3px 3px 0 0 !important;
         }
 
         .custom-account-tabs .ant-tabs-nav::before {
@@ -87,7 +88,7 @@ const AccountTabs = () => {
         }
 
         .dark .custom-account-tabs .ant-tabs-tab:hover {
-          color: #4d5bff;
+          color: #6464FF;
         }
 
         .dark .custom-account-tabs .ant-tabs-tab.ant-tabs-tab-active .ant-tabs-tab-btn {
