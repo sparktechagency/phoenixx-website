@@ -365,7 +365,7 @@ const ProfilePostCard = ({
             >
               <Image
                 // src={isDarkMode ? "/icons/message_white.png" : "/icons/message.png"}
-                src={"/icons/message.png"}
+                src={isDarkMode ? "/icons/commentdark.png" : "/icons/message.png"}
                 width={20}
                 height={20}
                 alt="message icons"
@@ -388,7 +388,7 @@ const ProfilePostCard = ({
             >
               <Image
                 // src={isDarkMode ? "/icons/share_white.png" : "/icons/share.png"}
-                src={"/icons/share.png"}
+               src={isDarkMode ? "/icons/sharedark.png" : "/icons/share.png"}
                 width={20}
                 height={20}
                 alt="share button"

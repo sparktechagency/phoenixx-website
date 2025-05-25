@@ -127,6 +127,9 @@ const CategoriesSidebar = ({ onSelectCategory, selectedCategory, selectedSubCate
     return total;
   };
 
+  console.log(categories)
+
+  
   return (
     <div className={`w-full shadow rounded-xl ${getPadding()} sm:sticky sm:top-20 ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
       <h5 className={`${getTitleSize()} font-semibold px-2 mb-4 ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>
@@ -192,7 +195,7 @@ const CategoriesSidebar = ({ onSelectCategory, selectedCategory, selectedSubCate
                         <span className={`text-lg border-[1px] rounded shadow-md p-1.5 ${isDarkMode ? 'border-gray-600' : 'border-gray-300'}`}>
                           {category?.image ? (
                             <Image
-                              src={`${baseURL}${category.image}`}
+                              src={`${baseURL}${category?.image}`}
                               height={40}
                               width={35}
                               alt={category?.name || "Category image"}

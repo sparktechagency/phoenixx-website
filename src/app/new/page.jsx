@@ -1,5 +1,4 @@
 "use client";
-
 import { useCategoriesQuery, useSubCategoriesQuery } from '@/features/Category/CategoriesApi';
 import { useCreatePostMutation, useEditPostMutation } from '@/features/post/postApi';
 import { SaveOutlined, UploadOutlined } from '@ant-design/icons';
@@ -32,7 +31,6 @@ const { Title, Text } = Typography;
 const { useBreakpoint } = Grid;
 
 const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) => {
-
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState(null);
   const [subcategory, setSubcategory] = useState(null);
@@ -41,7 +39,6 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
   const [loading, setLoading] = useState(false);
   const [formErrors, setFormErrors] = useState({});
   const [initialImages, setInitialImages] = useState([]);
-
   const editorRef = useRef(null);
   const router = useRouter();
   const screens = useBreakpoint();
@@ -72,7 +69,7 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
     }));
   }, [category, subcategoryData]);
 
-   const joditConfig = useMemo(() => ({
+  const joditConfig = useMemo(() => ({
     height: isMobile ? 300 : 400,
     placeholder: "Write your post description here...",
     theme: isDarkMode ? 'dark' : 'default',
@@ -85,13 +82,12 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
       padding: "20px",
       backgroundColor: isDarkMode ? '#1f2937' : '#fff',
       color: isDarkMode ? '#e5e7eb' : '#374151',
-      // Ensure ordered list shows numbers
       'ol': {
         listStyleType: 'decimal',
         paddingLeft: '20px',
       },
-      'ol[type="a"]': { listStyleType: 'lower-alpha' },   // lower alpha
-      'ol[type="g"]': { listStyleType: 'lower-greek' },  // lower greek
+      'ol[type="a"]': { listStyleType: 'lower-alpha' },
+      'ol[type="g"]': { listStyleType: 'lower-greek' },
     },
     toolbarAdaptive: false,
     toolbarSticky: true,
@@ -139,7 +135,6 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
         }
       `;
       document.head.appendChild(style);
-
       return () => {
         const existingStyle = document.getElementById('jodit-dark-mode-styles');
         if (existingStyle) {
@@ -160,7 +155,6 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
           setCategory(draftData.category || null);
           setSubcategory(draftData.subcategory || null);
           setDescription(draftData.description || '');
-
           if (draftData.files && draftData.files.length > 0) {
             setFileList(draftData.files.map(file => ({
               uid: file.uid || `-${Math.random().toString(36).substr(2, 9)}`,
@@ -186,13 +180,11 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
       setCategory(initialValues.category || null);
       setSubcategory(initialValues.subCategory || null);
       setDescription(initialValues.content || '');
-
       if (initialValues.images && Array.isArray(initialValues.images)) {
         const initialImagesList = initialValues.images.map((image, index) => {
           const imageUrl = image.startsWith('http')
             ? image
             : `${baseURL}${image}`;
-
           return {
             uid: `-${index}`,
             name: `image-${index}`,
@@ -202,14 +194,12 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
             path: image
           };
         });
-
         setFileList(initialImagesList);
         setInitialImages(initialImagesList);
       } else if (initialValues.image) {
         const imageUrl = initialValues.image.startsWith('http')
           ? initialValues.image
           : `${baseURL}${initialValues.image}`;
-
         const initialImage = [{
           uid: '-1',
           name: 'current-image',
@@ -218,7 +208,6 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
           thumbUrl: imageUrl,
           path: initialValues.image
         }];
-
         setFileList(initialImage);
         setInitialImages(initialImage);
       }
@@ -255,33 +244,31 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
   };
 
   const handleFileChange = ({ fileList: newFileList }) => {
-    setFileList(newFileList.slice(0, 3));
+    // Filter out any files with errors and limit to 3 files
+    const validFiles = newFileList.filter(file => {
+      // Keep existing files and new files that are not in error state
+      return file.status !== 'error';
+    }).slice(0, 3);
+    
+    setFileList(validFiles);
   };
 
   const beforeUpload = (file) => {
+    // Check if it's an image
     const isImage = file.type.startsWith('image/');
     if (!isImage) {
-      toast.error('You can only upload image files!');
-      return Upload.LIST_IGNORE;
+      toast.error('Only image files can be uploaded!');
+      return Upload.LIST_IGNORE; // This prevents the file from being added to the list
     }
 
-    return isImage || Upload.LIST_IGNORE;
-  };
-
-  const handlePreview = async (file) => {
-    if (!file.url && !file.preview) {
-      file.preview = await getBase64(file.originFileObj);
+    // Show message for large files but don't block them
+    const fileSizeInMB = file.size / 1024 / 1024;
+    if (fileSizeInMB > 500) {
+      toast.success(`Uploading large files (${fileSizeInMB.toFixed(2)} MB). Please wait...`);
     }
-    window.open(file.url || file.preview, '_blank');
-  };
 
-  const getBase64 = (file) => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = error => reject(error);
-    });
+    // Return false to prevent automatic upload but allow file to be added to list
+    return false;
   };
 
   const handleSaveDraft = () => {
@@ -298,7 +285,6 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
         url: file.url || file.thumbUrl
       }))
     };
-
     localStorage.setItem('blogPostDraft', JSON.stringify(draftData));
     toast.success('Draft saved successfully');
   };
@@ -315,23 +301,18 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
 
   const validateForm = () => {
     const errors = {};
-
     if (!title.trim()) {
       errors.title = 'Title is required';
     }
-
     if (!category) {
       errors.category = 'Category is required';
     }
-
     if (category && getSubcategories.length > 0 && !subcategory) {
       errors.subcategory = 'Subcategory is required';
     }
-
     if (!description.trim()) {
       errors.description = 'Description is required';
     }
-
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -349,7 +330,6 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
       }
       return;
     }
-
     try {
       setLoading(true);
       const formData = new FormData();
@@ -358,36 +338,26 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
       if (subcategory) formData.append('subCategory', subcategory);
       formData.append('content', description);
 
-      // Handle image uploads differently for edit vs create
       if (isEditing && postId) {
-        // For edit mode, track deleted images and new uploads
         const deletedImages = [];
-
-        // Compare initial images with current fileList to find deleted images
         initialImages.forEach(initialImage => {
           const stillExists = fileList.some(file =>
             file.path === initialImage.path ||
             file.url === initialImage.url
           );
-
           if (!stillExists) {
             deletedImages.push(initialImage.path);
           }
         });
-
-        // Add deleted images to formData if any
         if (deletedImages.length > 0) {
           formData.append('deletedImages', JSON.stringify(deletedImages));
         }
-
-        // Add new images to upload
         fileList.forEach((file) => {
           if (file.originFileObj) {
             formData.append('image', file.originFileObj);
           }
         });
       } else {
-        // For create mode, just upload all files
         fileList.forEach((file) => {
           if (file.originFileObj) {
             formData.append('image', file.originFileObj);
@@ -443,7 +413,6 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
               />
             </div>
           )}
-
           <div className={`py-4 sm:p-6 ${isDarkMode ? 'dark-editor' : ''}`}>
             {/* Title Input */}
             <div className="mb-6 sm:mb-8">
@@ -464,7 +433,6 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
                 <div className="text-red-500 mt-1 text-sm">{formErrors.title}</div>
               )}
             </div>
-
             {/* Category and Subcategory Selectors */}
             <div className="mb-6 sm:mb-8">
               <Row gutter={[16, 16]}>
@@ -513,7 +481,6 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
                 </Col>
               </Row>
             </div>
-
             {/* Content Editor */}
             <div className="mb-6 sm:mb-8">
               <Title level={5} className={`mb-2 ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>
@@ -538,7 +505,6 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
                 <div className="text-red-500 mt-1 text-sm">{formErrors.description}</div>
               )}
             </div>
-
             {/* Image Upload */}
             <div className="mb-6 sm:mb-8">
               <Title level={5} className={`mb-2 ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>Featured Images <span className="text-xs font-normal">(Maximum 3)</span></Title>
@@ -546,6 +512,7 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
                 className={`border-2 border-dashed rounded-xl hover:border-blue-400 transition-all text-center cursor-pointer ${isDarkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-300'}`}
               >
                 <Upload
+                  accept="image/*"
                   listType={isMobile ? "picture" : "picture-card"}
                   fileList={fileList}
                   onChange={handleFileChange}
@@ -573,7 +540,6 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
                 </Upload>
               </Card>
             </div>
-
             {/* Form Actions */}
             <Row justify="end" gutter={[8, 8]}>
               <Col>
@@ -618,7 +584,6 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
         </Card>
       </div>
     </div>
-
   );
 };
 

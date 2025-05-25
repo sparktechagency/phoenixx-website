@@ -101,7 +101,7 @@ export default function Navbar() {
     {
       key: 'profile-header',
       label: (
-        <Flex gap="small" align="center" className={`p-2 cursor-pointer ${isDarkMode ? 'text-black' : 'hover:bg-gray-50'}`}>
+        <Flex gap="small" align="center" className={`p-2 cursor-pointer ${isDarkMode ? 'text-black' : ''}`}>
           <Avatar
             src={getImageUrl(data?.data?.profile)}
             size={44}
@@ -163,21 +163,25 @@ export default function Navbar() {
       type: 'divider',
     },
     {
-      key: 'signout',
-      icon: <LogoutOutlined />,
-      label: 'Sign Out',
-      danger: true,
-      onClick: () => {
-        handleNavigation('/auth/login');
-        localStorage.removeItem('loginToken');
-        localStorage.removeItem('login_user_id');
-        localStorage.removeItem('rememberedCredentials');
-        localStorage.setItem('theme', 'light');
-        localStorage.removeItem('isLoggedIn');
-
-      },
-      className: isDarkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-50'
-    },
+  key: 'signout',
+  icon: <LogoutOutlined />,
+  label: 'Sign Out',
+  danger: true,
+  onClick: () => {
+    handleNavigation('/auth/login');
+    localStorage.removeItem('loginToken');
+    localStorage.removeItem('login_user_id');
+    localStorage.removeItem('rememberedCredentials');
+    localStorage.setItem('theme', 'light');
+    localStorage.removeItem('isLoggedIn');
+  },
+  style: {
+    color: '#ff4d4f', // red color
+  },
+  className: isDarkMode ? 
+    'hover:bg-gray-800 hover:text-white' : 
+    'hover:bg-gray-50 hover:text-white'
+},
   ];
 
   // Function to handle search
@@ -259,55 +263,72 @@ export default function Navbar() {
   };
 
   // Desktop search component with theme styling
-  const renderDesktopSearch = () => (
-    <div style={{
-      width: '35%',
-      paddingLeft: "100px",
-      minWidth: '200px',
-    }}>
-      <Flex
-        align="center"
+ const renderDesktopSearch = () => (
+  <div style={{
+    width: '35%',
+    paddingLeft: "100px",
+    minWidth: '200px',
+    marginLeft: '200px'
+  }}>
+    <Flex
+      align="center"
+      style={{
+        width: '100%',
+        height: '50px',
+        backgroundColor: isDarkMode ? '#1f1f1f' : '#ffffff',
+        borderRadius: '12px',
+        border: `1px solid ${isDarkMode ? '#424242' : '#D8D8D8'}`,
+        boxShadow: isDarkMode ? '0 2px 6px rgba(0, 0, 0, 0.4)' : '0 2px 6px rgba(0, 0, 0, 0.05)',
+        overflow: 'hidden',
+        transition: 'all 0.2s ease-in-out'
+      }}
+    >
+      <Input
+        value={searchQuery}
+        placeholder="Search topics..."
+        prefix={<SearchOutlined style={{ color: isDarkMode ? '#bbbbbb' : '#888888' }} />}
         style={{
-          width: '100%',
-          height: '40px',
-          backgroundColor: isDarkMode ? '#1f1f1f' : '#f3f2fa',
-          borderRadius: '10px',
-          border: `1px solid ${isDarkMode ? '#424242' : '#D8D8D8'}`,
-          overflow: 'hidden'
+          height: '100%',
+          flex: 1,
+          padding: '0 16px',
+          border: 'none',
+          outline: 'none',
+          backgroundColor: 'transparent',
+          color: isDarkMode ? 'rgba(255, 255, 255, 0.9)' : 'rgba(0, 0, 0, 0.85)',
+          fontSize: '14px'
         }}
-      >
-        <Input
-          value={searchQuery}
-          placeholder="Search topics"
-          prefix={<SearchOutlined style={searchFieldStyles.searchIcon} />}
-          style={{
-            ...searchFieldStyles.input,
-            width: '100%',
-            color: isDarkMode ? 'rgba(255, 255, 255, 0.85)' : 'inherit',
-          }}
-          onChange={handleInputChange}
-          onPressEnter={handleKeyDown}
-          allowClear={{
-            clearIcon: <CloseOutlined onClick={handleClear} />
-          }}
-        />
-        <Button
-          type="primary"
-          icon={<SearchOutlined />}
-          onClick={() => handleSearch(searchQuery)}
-          style={{
-            height: '100%',
-            width: '50px',
-            borderRadius: '0 10px 10px 0',
-            border: 'none',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}
-        />
-      </Flex>
-    </div>
-  );
+        onChange={handleInputChange}
+        onPressEnter={handleKeyDown}
+        allowClear={{
+          clearIcon: <CloseOutlined onClick={handleClear} style={{ color: isDarkMode ? '#888' : '#aaa' }} />
+        }}
+      />
+
+      <Button
+        type="primary"
+        icon={<SearchOutlined />}
+        onClick={() => handleSearch(searchQuery)}
+        style={{
+          height: '100%',
+          width: '50px',
+          borderRadius: '0 12px 12px 0',
+          border: 'none',
+          backgroundColor: isDarkMode ? '#0001FB' : '#0001FB',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          transition: 'background-color 0.2s ease',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.backgroundColor = isDarkMode ? '#0001FB' : '#0001FB';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.backgroundColor = isDarkMode ? '#0001FB' : '#0001FB';
+        }}
+      />
+    </Flex>
+  </div>
+);
 
   // Mobile search component with theme styling
   const renderMobileSearch = () => (

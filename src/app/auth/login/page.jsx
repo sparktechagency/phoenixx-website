@@ -26,8 +26,15 @@ const LoginPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [Login, { isLoading }] = useLoginMutation();
 
-  // Load saved credentials when the component mounts
+  // Load saved credentials and optionally reload once
   useEffect(() => {
+    const shouldReload = localStorage.getItem('shouldReloadAfterLogin');
+
+    if (shouldReload) {
+      localStorage.removeItem('shouldReloadAfterLogin'); // Clean up flag
+      window.location.reload(); // Only reload once
+    }
+
     localStorage.setItem("theme", "light");
 
     // Check if credentials are saved in localStorage
@@ -51,7 +58,7 @@ const LoginPage = () => {
     const { name, value, type, checked } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: type === 'checkbox' ? checked : value.trim()
     }));
 
     if (errors[name]) {
@@ -94,32 +101,29 @@ const LoginPage = () => {
 
       try {
         const response = await Login({ email: formData.username, password: formData.password }).unwrap();
-        // Save or remove credentials based on rememberMe
 
+        // Save or remove credentials based on rememberMe
         if (formData.rememberMe) {
-          // Save credentials in localStorage
           localStorage.setItem('rememberedCredentials', JSON.stringify({
             username: formData.username,
             password: formData.password
           }));
-
-
-          // Redirect back to where they came from or home
-          router.push(router.query.returnUrl || '/');
-          localStorage.setItem('rememberUser', 'true');
-
         } else {
-          // Remove any saved credentials
           localStorage.removeItem('rememberedCredentials');
           localStorage.removeItem('rememberUser');
         }
+
         localStorage.setItem('isLoggedIn', true);
         saveToken(response?.data?.accessToken);
         decodedUser(response?.data?.accessToken);
+
+        // Set reload flag before redirect
+        localStorage.setItem('shouldReloadAfterLogin', 'true');
+
         router.push("/");
       } catch (error) {
         console.error('Login error:', error);
-        toast.error(error?.data?.message);
+        toast.error(error?.data?.message || 'Something went wrong!');
       } finally {
         setIsSubmitting(false);
       }
