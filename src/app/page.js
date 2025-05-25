@@ -402,48 +402,48 @@ const HomePage = () => {
 
                 {/* Posts list */}
                 {posts.length === 0 ? (
-                  <Card className="text-center">
-                    <div className="flex flex-col items-center justify-center py-5 px-6 text-center">
-                      {/* SVG Illustration */}
-                      <div className="mb-6">
-                        <svg
-                          width="120"
-                          height="120"
-                          viewBox="0 0 120 120"
-                          fill="none"
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="text-gray-300"
-                        >
-                          {/* Background circle */}
-                          <circle cx="60" cy="60" r="50" fill="currentColor" opacity="0.1" />
+                 <Card className="text-center bg-white dark:bg-gray-800">
+  <div className="flex flex-col items-center justify-center py-5 px-6 text-center">
+    {/* SVG Illustration */}
+    <div className="mb-6">
+      <svg
+        width="120"
+        height="120"
+        viewBox="0 0 120 120"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        className={isDarkMode ? "text-gray-400" : "text-gray-300"}
+      >
+        {/* Background circle */}
+        <circle cx="60" cy="60" r="50" fill="currentColor" opacity="0.1" />
 
-                          {/* Document stack */}
-                          <rect x="35" y="45" width="40" height="50" rx="4" fill="currentColor" opacity="0.2" />
-                          <rect x="40" y="40" width="40" height="50" rx="4" fill="currentColor" opacity="0.3" />
-                          <rect x="45" y="35" width="40" height="50" rx="4" fill="currentColor" opacity="0.4" />
+        {/* Document stack */}
+        <rect x="35" y="45" width="40" height="50" rx="4" fill="currentColor" opacity="0.2" />
+        <rect x="40" y="40" width="40" height="50" rx="4" fill="currentColor" opacity="0.3" />
+        <rect x="45" y="35" width="40" height="50" rx="4" fill="currentColor" opacity="0.4" />
 
-                          {/* Search magnifier */}
-                          <circle cx="75" cy="45" r="12" stroke="currentColor" strokeWidth="3" fill="none" opacity="0.6" />
-                          <line x1="84" y1="54" x2="95" y2="65" stroke="currentColor" strokeWidth="3" opacity="0.6" />
+        {/* Search magnifier */}
+        <circle cx="75" cy="45" r="12" stroke="currentColor" strokeWidth="3" fill="none" opacity="0.6" />
+        <line x1="84" y1="54" x2="95" y2="65" stroke="currentColor" strokeWidth="3" opacity="0.6" />
 
-                          {/* Sad face on document */}
-                          <circle cx="60" cy="55" r="2" fill="currentColor" opacity="0.5" />
-                          <circle cx="70" cy="55" r="2" fill="currentColor" opacity="0.5" />
-                          <path d="M55 65 Q65 60 75 65" stroke="currentColor" strokeWidth="2" fill="none" opacity="0.5" />
-                        </svg>
-                      </div>
+        {/* Sad face on document */}
+        <circle cx="60" cy="55" r="2" fill="currentColor" opacity="0.5" />
+        <circle cx="70" cy="55" r="2" fill="currentColor" opacity="0.5" />
+        <path d="M55 65 Q65 60 75 65" stroke="currentColor" strokeWidth="2" fill="none" opacity="0.5" />
+      </svg>
+    </div>
 
-                      {/* Main Message */}
-                      <h3 className="text-lg font-medium text-gray-700 mb-2">
-                        No posts found
-                      </h3>
+    {/* Main Message */}
+    <h3 className={`text-lg font-medium mb-2 ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+      No posts found
+    </h3>
 
-                      {/* Subtitle */}
-                      <p className="text-gray-500 text-sm mb-6 max-w-sm">
-                        There are no posts to display at the moment. Check back later or try adjusting your search criteria.
-                      </p>
-                    </div>
-                  </Card>
+    {/* Subtitle */}
+    <p className={`text-sm mb-6 max-w-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+      There are no posts to display at the moment. Check back later or try adjusting your search criteria.
+    </p>
+  </div>
+</Card>
                 ) : (
                   <>
                     {/* Masonry layout for posts */}
@@ -502,48 +502,48 @@ const HomePage = () => {
               )}
 
               {posts.length === 0 ? (
-                <Card className="text-center">
-                  <div className="flex flex-col items-center justify-center py-5 px-6 text-center">
-                    {/* SVG Illustration */}
-                    <div className="mb-6">
-                      <svg
-                        width="120"
-                        height="120"
-                        viewBox="0 0 120 120"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="text-gray-300"
-                      >
-                        {/* Background circle */}
-                        <circle cx="60" cy="60" r="50" fill="currentColor" opacity="0.1" />
+                <Card className="text-center bg-white dark:bg-gray-800">
+  <div className="flex flex-col items-center justify-center py-5 px-6 text-center">
+    {/* SVG Illustration */}
+    <div className="mb-6">
+      <svg
+        width="120"
+        height="120"
+        viewBox="0 0 120 120"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        className={isDarkMode ? "text-gray-400" : "text-gray-300"}
+      >
+        {/* Background circle */}
+        <circle cx="60" cy="60" r="50" fill="currentColor" opacity="0.1" />
 
-                        {/* Document stack */}
-                        <rect x="35" y="45" width="40" height="50" rx="4" fill="currentColor" opacity="0.2" />
-                        <rect x="40" y="40" width="40" height="50" rx="4" fill="currentColor" opacity="0.3" />
-                        <rect x="45" y="35" width="40" height="50" rx="4" fill="currentColor" opacity="0.4" />
+        {/* Document stack */}
+        <rect x="35" y="45" width="40" height="50" rx="4" fill="currentColor" opacity="0.2" />
+        <rect x="40" y="40" width="40" height="50" rx="4" fill="currentColor" opacity="0.3" />
+        <rect x="45" y="35" width="40" height="50" rx="4" fill="currentColor" opacity="0.4" />
 
-                        {/* Search magnifier */}
-                        <circle cx="75" cy="45" r="12" stroke="currentColor" strokeWidth="3" fill="none" opacity="0.6" />
-                        <line x1="84" y1="54" x2="95" y2="65" stroke="currentColor" strokeWidth="3" opacity="0.6" />
+        {/* Search magnifier */}
+        <circle cx="75" cy="45" r="12" stroke="currentColor" strokeWidth="3" fill="none" opacity="0.6" />
+        <line x1="84" y1="54" x2="95" y2="65" stroke="currentColor" strokeWidth="3" opacity="0.6" />
 
-                        {/* Sad face on document */}
-                        <circle cx="60" cy="55" r="2" fill="currentColor" opacity="0.5" />
-                        <circle cx="70" cy="55" r="2" fill="currentColor" opacity="0.5" />
-                        <path d="M55 65 Q65 60 75 65" stroke="currentColor" strokeWidth="2" fill="none" opacity="0.5" />
-                      </svg>
-                    </div>
+        {/* Sad face on document */}
+        <circle cx="60" cy="55" r="2" fill="currentColor" opacity="0.5" />
+        <circle cx="70" cy="55" r="2" fill="currentColor" opacity="0.5" />
+        <path d="M55 65 Q65 60 75 65" stroke="currentColor" strokeWidth="2" fill="none" opacity="0.5" />
+      </svg>
+    </div>
 
-                    {/* Main Message */}
-                    <h3 className="text-lg font-medium text-gray-700 mb-2">
-                      No posts found
-                    </h3>
+    {/* Main Message */}
+    <h3 className={`text-lg font-medium mb-2 ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+      No posts found
+    </h3>
 
-                    {/* Subtitle */}
-                    <p className="text-gray-500 text-sm mb-6 max-w-sm">
-                      There are no posts to display at the moment. Check back later or try adjusting your search criteria.
-                    </p>
-                  </div>
-                </Card>
+    {/* Subtitle */}
+    <p className={`text-sm mb-6 max-w-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+      There are no posts to display at the moment. Check back later or try adjusting your search criteria.
+    </p>
+  </div>
+</Card>
               ) : (
                 <>
                   {/* Mobile masonry layout */}
