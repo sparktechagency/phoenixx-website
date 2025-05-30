@@ -249,7 +249,7 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
       // Keep existing files and new files that are not in error state
       return file.status !== 'error';
     }).slice(0, 3);
-    
+
     setFileList(validFiles);
   };
 
@@ -531,9 +531,10 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId }) =
                         Add Photos
                       </Button>
                     ) : (
-                      <div className={`flex flex-col items-center p-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                      <div className={`flex flex-col items-center ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                         <UploadOutlined className="text-2xl mb-2" />
-                        <Text>upload</Text>
+                        <p>Upload</p>
+                        <p>Max 500MB</p>
                       </div>
                     )
                   )}

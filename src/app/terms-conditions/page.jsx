@@ -36,7 +36,7 @@ const page = () => {
     }
 
     return (
-      <div 
+      <div
         className={`terms-conditions-content ${isDarkMode ? 'dark-content' : ''}`}
         dangerouslySetInnerHTML={{ __html: data.data.content }}
       />
@@ -268,12 +268,11 @@ const page = () => {
           background: #6b7280 !important;
         }
       `}</style>
-      
-      <CustomBanner routeName="Terms - Conditions" />
 
-      <div className={`min-h-screen transition-colors duration-300 ${
-        isDarkMode ? 'bg-gray-900 text-gray-100' : 'bg-gray-50 text-gray-900'
-      }`}>
+      <CustomBanner prevRoute="About us" routeName="Terms - Conditions" />
+
+      <div className={`min-h-screen transition-colors duration-300 ${isDarkMode ? 'bg-gray-900 text-gray-100' : 'bg-gray-50 text-gray-900'
+        }`}>
         <div className="max-w-5xl mx-auto py-8 px-6">
           {renderContent()}
         </div>

@@ -1,9 +1,10 @@
 
 import { useContext } from 'react';
 import { ThemeContext } from '../app/ClientLayout';
+import Link from 'next/link';
 
 
-const CustomBanner = ({ routeName }) => {
+const CustomBanner = ({ prevRoute, routeName }) => {
   const { isDarkMode } = useContext(ThemeContext);
 
   return (
@@ -20,7 +21,14 @@ const CustomBanner = ({ routeName }) => {
           >
             Home
           </a>
+
           <span className={isDarkMode ? 'text-gray-500' : 'text-gray-600'}>&gt;</span>
+          <Link href={"/about"}><span className={isDarkMode ? 'text-gray-300' : 'text-gray-800'}>
+            {prevRoute}
+          </span></Link>
+         {
+          prevRoute &&  <span className={isDarkMode ? 'text-gray-500' : 'text-gray-600'}>&gt;</span>
+         }
           <span className={isDarkMode ? 'text-gray-300' : 'text-gray-800'}>
             {routeName}
           </span>

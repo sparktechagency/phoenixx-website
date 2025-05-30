@@ -474,7 +474,7 @@ const ChatWindow = ({ id }) => {
             <Button
               htmlType="submit"
               type="primary"
-              icon={<IoMdSend />}
+              icon={<IoMdSend style={{ fontSize: '27px', paddingLeft: '3px' , paddingtop: '3px' }} />}
               shape="circle"
               size="large"
               style={{

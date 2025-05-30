@@ -15,6 +15,7 @@ import { useContext, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
 import { ThemeContext } from '../ClientLayout';
+import { useRouter } from 'next/navigation';
 
 
 const { Content } = Layout;
@@ -23,6 +24,7 @@ const { Content } = Layout;
 const antIcon = <LoadingOutlined style={{ fontSize: 24 }} spin />;
 
 export default function NotificationPage() {
+  const router = useRouter();
   const dispatch = useDispatch();
   const [activeTab, setActiveTab] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
@@ -35,7 +37,9 @@ export default function NotificationPage() {
     refetchOnMountOrArgChange: true
   });
 
+
   const { notifications } = useSelector((state) => state);
+  // console.log(notifications.notification[0]?.id);
 
   // Total pages from meta data
   const total = notifications?.meta?.total || 0;
@@ -122,6 +126,11 @@ export default function NotificationPage() {
     }
   };
 
+
+  const handleItemClick = (post) => {
+    router.push(`/posts/${post.postId}`);
+  }
+
   const formatNotificationTime = (dateString) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -178,6 +187,7 @@ export default function NotificationPage() {
   // Transform the notification data to match the expected format
   const transformedNotifications = apiNotifications?.map(notification => ({
     id: notification._id,
+    postId: notification.id,
     title: notification.type.charAt(0).toUpperCase() + notification.type.slice(1),
     description: notification.message,
     read: notification.read,
@@ -239,7 +249,8 @@ export default function NotificationPage() {
                 ]}
               >
                 <List.Item.Meta
-                  style={{ marginLeft: '10px' }}
+                  style={{ marginLeft: '10px', cursor: 'pointer' }}
+                  onClick={() => handleItemClick(item)}
                   avatar={
                     <Avatar
                       icon={getNotificationIcon(item.type)}

@@ -8,7 +8,6 @@ import {
   MessageOutlined,
   MoonOutlined,
   PlusOutlined,
-  QuestionCircleOutlined,
   SearchOutlined,
   SettingOutlined,
   SunOutlined,
@@ -131,13 +130,13 @@ export default function Navbar() {
       onClick: () => handleNavigation('/about'),
       className: isDarkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-50'
     },
-    {
-      key: 'help',
-      icon: <QuestionCircleOutlined />,
-      label: 'Help & Support',
-      onClick: () => handleNavigation('/help&support'),
-      className: isDarkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-50'
-    },
+    // {
+    //   key: 'help',
+    //   icon: <QuestionCircleOutlined />,
+    //   label: 'Help & Support',
+    //   onClick: () => handleNavigation('/help&support'),
+    //   className: isDarkMode ? 'hover:bg-gray-800' : 'hover:bg-gray-50'
+    // },
     {
       key: 'feedback',
       icon: <CommentOutlined />,
@@ -162,22 +161,22 @@ export default function Navbar() {
     {
       type: 'divider',
     },
-   {
-  key: 'signout',
-  icon: <LogoutOutlined />,
-  label: 'Sign Out',
-  danger: true,
-  onClick: () => {
-    navigate('/auth/login');
-    localStorage.removeItem('loginToken');
-    localStorage.removeItem('login_user_id');
-    localStorage.removeItem('rememberedCredentials');
-    localStorage.setItem('theme', 'light');
-    localStorage.removeItem('isLoggedIn');
-  },
-  style: { color: '#ff4d4f' }, // red color
-  className: 'hover:!bg-gray-100 hover:!text-red-600',
-}
+    {
+      key: 'signout',
+      icon: <LogoutOutlined />,
+      label: 'Sign Out',
+      danger: true,
+      onClick: () => {
+        router.push('/auth/login');
+        localStorage.removeItem('loginToken');
+        localStorage.removeItem('login_user_id');
+        localStorage.removeItem('rememberedCredentials');
+        localStorage.setItem('theme', 'light');
+        localStorage.removeItem('isLoggedIn');
+      },
+      style: { color: '#ff4d4f' }, // red color
+      className: 'hover:!bg-gray-100 hover:!text-red-600',
+    }
   ];
 
   // Function to handle search
