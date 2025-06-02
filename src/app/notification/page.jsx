@@ -11,11 +11,11 @@ import {
   MoreOutlined,
 } from '@ant-design/icons';
 import { Avatar, Badge, Button, Dropdown, Layout, List, Menu, Pagination, Spin, Tabs } from 'antd';
+import { useRouter } from 'next/navigation';
 import { useContext, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
 import { ThemeContext } from '../ClientLayout';
-import { useRouter } from 'next/navigation';
 
 
 const { Content } = Layout;
@@ -39,7 +39,7 @@ export default function NotificationPage() {
 
 
   const { notifications } = useSelector((state) => state);
-  // console.log(notifications.notification[0]?.id);
+  console.log(notifications.notification);
 
   // Total pages from meta data
   const total = notifications?.meta?.total || 0;
@@ -125,7 +125,7 @@ export default function NotificationPage() {
         return <BellOutlined />;
     }
   };
-
+  
 
   const handleItemClick = (post) => {
     router.push(`/posts/${post.postId}`);
@@ -187,7 +187,7 @@ export default function NotificationPage() {
   // Transform the notification data to match the expected format
   const transformedNotifications = apiNotifications?.map(notification => ({
     id: notification._id,
-    postId: notification.id,
+    postId: notification.postId,
     title: notification.type.charAt(0).toUpperCase() + notification.type.slice(1),
     description: notification.message,
     read: notification.read,
