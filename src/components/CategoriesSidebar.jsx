@@ -36,20 +36,8 @@ const CategoriesSidebar = ({ onSelectCategory, selectedCategory, selectedSubCate
 
   // Auto-expand the category when a subcategory is selected
   useEffect(() => {
-    if (selectedCategory && selectedSubCategory) {
-      // Ensure the parent category is expanded when a subcategory is selected
-      if (!expandedKeys.includes(selectedCategory)) {
-        setExpandedKeys(prev => [...prev, selectedCategory]);
-      }
-    }
-  }, [selectedCategory, selectedSubCategory, expandedKeys]);
-
-  // Optional: Collapse categories when "All Posts" is selected
-  useEffect(() => {
-    if (!selectedCategory && !selectedSubCategory) {
-      // If nothing is selected (All Posts view), you might want to collapse all categories
-      // Uncomment the line below if you want this behavior
-      // setExpandedKeys([]);
+    if (selectedSubCategory && selectedCategory) {
+      setExpandedKeys(prev => [...prev, selectedCategory]);
     }
   }, [selectedCategory, selectedSubCategory]);
 
@@ -84,41 +72,34 @@ const CategoriesSidebar = ({ onSelectCategory, selectedCategory, selectedSubCate
   };
 
   const handleCategoryClick = (categoryId) => {
-    // The first click should only expand/collapse the category without selecting it
-    const isCurrentlySelected = selectedCategory === categoryId;
+    const category = categories.find(item => item.category._id === categoryId);
+    const hasSubcategories = category?.subcategories?.length > 0;
+    const isExpanded = expandedKeys.includes(categoryId);
 
-    if (isCurrentlySelected) {
-      // If already selected, just toggle expansion
-      toggleExpand(categoryId);
-    } else {
-      // First click - just toggle expansion without selecting
+    if (hasSubcategories) {
       toggleExpand(categoryId);
 
-      // If this category has no subcategories or is already expanded, also select it
-      const category = categories.find(item => item.category._id === categoryId);
-      const hasSubcategories = category?.subcategories?.length > 0;
-      const isExpanded = expandedKeys.includes(categoryId);
-
-      if (!hasSubcategories || isExpanded) {
+      // Only select the category if it's already expanded (meaning user clicked it again to select)
+      if (isExpanded && (!selectedSubCategory || selectedCategory !== categoryId)) {
         onSelectCategory(categoryId, "");
       }
+    } else {
+      // For categories without subcategories, select immediately
+      onSelectCategory(categoryId, "");
     }
   };
 
   const handleSubcategoryClick = (categoryId, subcategoryId, event) => {
-    // Prevent the click from bubbling up to the parent category
     event.stopPropagation();
-
     // Select both category and subcategory
     onSelectCategory(categoryId, subcategoryId);
   };
 
   const handleShowAllPosts = () => {
-    onSelectCategory("", "");  // Clear both category and subcategory selection
-    setExpandedKeys([]);       // Collapse all categories
+    onSelectCategory("", "");
+    setExpandedKeys([]);
   };
 
-  // Calculate total posts in all categories
   const getTotalPosts = () => {
     let total = 0;
     categories.forEach(item => {
@@ -127,9 +108,6 @@ const CategoriesSidebar = ({ onSelectCategory, selectedCategory, selectedSubCate
     return total;
   };
 
-  console.log(categories)
-
-  
   return (
     <div className={`w-full shadow rounded-xl ${getPadding()} sm:sticky sm:top-20 ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
       <h5 className={`${getTitleSize()} font-semibold px-2 mb-4 ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>

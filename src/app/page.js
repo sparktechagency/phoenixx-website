@@ -6,7 +6,7 @@ import FeedNavigation from '@/components/FeedNavigation';
 import PostCard from '@/components/PostCard';
 import { useGetPostQuery, useLikePostMutation } from '@/features/post/postApi';
 import { LeftOutlined, RightOutlined } from '@ant-design/icons';
-import { Button, Card, Pagination } from 'antd';
+import { Button, Card, Pagination, Spin } from 'antd';
 import { LayoutGroup, motion } from 'framer-motion';
 import moment from 'moment';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
@@ -14,7 +14,6 @@ import { useContext, useEffect, useState } from 'react';
 import { ThemeContext } from './ClientLayout';
 
 const HomePage = () => {
-
   // Force rerender when navigating back to this page
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -27,6 +26,7 @@ const HomePage = () => {
   const [selectedSubCategory, setSelectedSubCategory] = useState(null);
   const [sortOrder, setSortOrder] = useState("newest");
   const [currentUser, setCurrentUser] = useState({ id: null });
+  const [isFeedLoading, setIsFeedLoading] = useState(false);
 
   const { isDarkMode } = useContext(ThemeContext);
 
@@ -63,7 +63,7 @@ const HomePage = () => {
   };
 
   // API calls
-  const { data, isLoading, error } = useGetPostQuery(queryParams);
+  const { data, isLoading, error, refetch } = useGetPostQuery(queryParams);
   const [likePost] = useLikePostMutation();
 
   // Extract pagination metadata from API response
@@ -88,15 +88,39 @@ const HomePage = () => {
     }
   };
 
-  const handleCategorySelect = (categoryId, subCategoryId = null) => {
-    setSelectedCategory(categoryId);
-    setSelectedSubCategory(subCategoryId);
-    updateUrlParams({
-      category: categoryId || undefined,
-      subcategory: subCategoryId || undefined,
-      page: 1
-    });
-  };
+const handleCategorySelect = async (categoryId, subCategoryId = null) => {
+  setIsFeedLoading(true);
+  
+  // Update state
+  setSelectedCategory(categoryId);
+  setSelectedSubCategory(subCategoryId);
+  
+  const newParams = new URLSearchParams();
+  
+  // Always include the category ID if we have one
+  if (categoryId) newParams.set('category', categoryId);
+  
+  // Only include subcategory if one was specifically selected
+  if (subCategoryId) {
+    newParams.set('subcategory', subCategoryId);
+  } else {
+    // If no subcategory selected, ensure we remove any existing subcategory param
+    newParams.delete('subcategory');
+  }
+  
+  // Reset to first page when changing filters
+  newParams.set('page', '1');
+  
+  // Update URL
+  window.history.replaceState(null, '', `${pathname}?${newParams.toString()}`);
+  
+  // Refetch data with new params
+  await refetch();
+  setIsFeedLoading(false);
+};
+
+
+
 
   const handleSortChange = (sortOption) => {
     setSortOrder(sortOption);
@@ -187,16 +211,16 @@ const HomePage = () => {
     }
   }
 
-  const getCategoryName = () => {
-    if (selectedSubCategory) {
-      const post = posts.find(p => p.subcategory?._id === selectedSubCategory);
-      return post?.subcategory?.name || "Selected Subcategory";
-    } else if (selectedCategory) {
-      const post = posts.find(p => p.category?._id === selectedCategory);
-      return post?.category?.name || "Selected Category";
-    }
-    return "All Posts";
-  };
+const getCategoryName = () => {
+  if (selectedSubCategory) {
+    const post = posts.find(p => p.subCategory?._id === selectedSubCategory);
+    return post?.subCategory?.name || "Selected Subcategory";
+  } else if (selectedCategory) {
+    const post = posts.find(p => p.category?._id === selectedCategory);
+    return post?.category?.name || "Selected Category";
+  }
+  return "All Posts";
+};
 
   // Loading state
   if (isLoading) {
@@ -357,7 +381,7 @@ const HomePage = () => {
   return (
     <div key={routeKey} className={`${isDarkMode ? 'dark-mode' : 'light-mode'}`}>
       <Banner />
-      <main className="container mx-auto  px-4 py-6">
+      <main className="container mx-auto px-4 py-6">
         <LayoutGroup>
           {isDesktop ? (
             <motion.div layout className="flex gap-5">
@@ -401,49 +425,53 @@ const HomePage = () => {
                 )}
 
                 {/* Posts list */}
-                {posts.length === 0 ? (
-                 <Card className="text-center bg-white dark:bg-gray-800">
-  <div className="flex flex-col items-center justify-center py-5 px-6 text-center">
-    {/* SVG Illustration */}
-    <div className="mb-6">
-      <svg
-        width="120"
-        height="120"
-        viewBox="0 0 120 120"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        className={isDarkMode ? "text-gray-400" : "text-gray-300"}
-      >
-        {/* Background circle */}
-        <circle cx="60" cy="60" r="50" fill="currentColor" opacity="0.1" />
+                {isFeedLoading ? (
+                  <div className="flex justify-center items-center h-64">
+                    <Spin size="default" />
+                  </div>
+                ) : posts.length === 0 ? (
+                  <Card className="text-center bg-white dark:bg-gray-800">
+                    <div className="flex flex-col items-center justify-center py-5 px-6 text-center">
+                      {/* SVG Illustration */}
+                      <div className="mb-6">
+                        <svg
+                          width="120"
+                          height="120"
+                          viewBox="0 0 120 120"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                          className={isDarkMode ? "text-gray-400" : "text-gray-300"}
+                        >
+                          {/* Background circle */}
+                          <circle cx="60" cy="60" r="50" fill="currentColor" opacity="0.1" />
 
-        {/* Document stack */}
-        <rect x="35" y="45" width="40" height="50" rx="4" fill="currentColor" opacity="0.2" />
-        <rect x="40" y="40" width="40" height="50" rx="4" fill="currentColor" opacity="0.3" />
-        <rect x="45" y="35" width="40" height="50" rx="4" fill="currentColor" opacity="0.4" />
+                          {/* Document stack */}
+                          <rect x="35" y="45" width="40" height="50" rx="4" fill="currentColor" opacity="0.2" />
+                          <rect x="40" y="40" width="40" height="50" rx="4" fill="currentColor" opacity="0.3" />
+                          <rect x="45" y="35" width="40" height="50" rx="4" fill="currentColor" opacity="0.4" />
 
-        {/* Search magnifier */}
-        <circle cx="75" cy="45" r="12" stroke="currentColor" strokeWidth="3" fill="none" opacity="0.6" />
-        <line x1="84" y1="54" x2="95" y2="65" stroke="currentColor" strokeWidth="3" opacity="0.6" />
+                          {/* Search magnifier */}
+                          <circle cx="75" cy="45" r="12" stroke="currentColor" strokeWidth="3" fill="none" opacity="0.6" />
+                          <line x1="84" y1="54" x2="95" y2="65" stroke="currentColor" strokeWidth="3" opacity="0.6" />
 
-        {/* Sad face on document */}
-        <circle cx="60" cy="55" r="2" fill="currentColor" opacity="0.5" />
-        <circle cx="70" cy="55" r="2" fill="currentColor" opacity="0.5" />
-        <path d="M55 65 Q65 60 75 65" stroke="currentColor" strokeWidth="2" fill="none" opacity="0.5" />
-      </svg>
-    </div>
+                          {/* Sad face on document */}
+                          <circle cx="60" cy="55" r="2" fill="currentColor" opacity="0.5" />
+                          <circle cx="70" cy="55" r="2" fill="currentColor" opacity="0.5" />
+                          <path d="M55 65 Q65 60 75 65" stroke="currentColor" strokeWidth="2" fill="none" opacity="0.5" />
+                        </svg>
+                      </div>
 
-    {/* Main Message */}
-    <h3 className={`text-lg font-medium mb-2 ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
-      No posts found
-    </h3>
+                      {/* Main Message */}
+                      <h3 className={`text-lg font-medium mb-2 ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                        No posts found
+                      </h3>
 
-    {/* Subtitle */}
-    <p className={`text-sm mb-6 max-w-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-      There are no posts to display at the moment. Check back later or try adjusting your search criteria.
-    </p>
-  </div>
-</Card>
+                      {/* Subtitle */}
+                      <p className={`text-sm mb-6 max-w-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                        There are no posts to display at the moment. Check back later or try adjusting your search criteria.
+                      </p>
+                    </div>
+                  </Card>
                 ) : (
                   <>
                     {/* Masonry layout for posts */}
@@ -501,49 +529,53 @@ const HomePage = () => {
                 </Card>
               )}
 
-              {posts.length === 0 ? (
+              {isFeedLoading ? (
+                <div className="flex justify-center items-center h-64">
+                  <Spin size="default" />
+                </div>
+              ) : posts.length === 0 ? (
                 <Card className="text-center bg-white dark:bg-gray-800">
-  <div className="flex flex-col items-center justify-center py-5 px-6 text-center">
-    {/* SVG Illustration */}
-    <div className="mb-6">
-      <svg
-        width="120"
-        height="120"
-        viewBox="0 0 120 120"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        className={isDarkMode ? "text-gray-400" : "text-gray-300"}
-      >
-        {/* Background circle */}
-        <circle cx="60" cy="60" r="50" fill="currentColor" opacity="0.1" />
+                  <div className="flex flex-col items-center justify-center py-5 px-6 text-center">
+                    {/* SVG Illustration */}
+                    <div className="mb-6">
+                      <svg
+                        width="120"
+                        height="120"
+                        viewBox="0 0 120 120"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                        className={isDarkMode ? "text-gray-400" : "text-gray-300"}
+                      >
+                        {/* Background circle */}
+                        <circle cx="60" cy="60" r="50" fill="currentColor" opacity="0.1" />
 
-        {/* Document stack */}
-        <rect x="35" y="45" width="40" height="50" rx="4" fill="currentColor" opacity="0.2" />
-        <rect x="40" y="40" width="40" height="50" rx="4" fill="currentColor" opacity="0.3" />
-        <rect x="45" y="35" width="40" height="50" rx="4" fill="currentColor" opacity="0.4" />
+                        {/* Document stack */}
+                        <rect x="35" y="45" width="40" height="50" rx="4" fill="currentColor" opacity="0.2" />
+                        <rect x="40" y="40" width="40" height="50" rx="4" fill="currentColor" opacity="0.3" />
+                        <rect x="45" y="35" width="40" height="50" rx="4" fill="currentColor" opacity="0.4" />
 
-        {/* Search magnifier */}
-        <circle cx="75" cy="45" r="12" stroke="currentColor" strokeWidth="3" fill="none" opacity="0.6" />
-        <line x1="84" y1="54" x2="95" y2="65" stroke="currentColor" strokeWidth="3" opacity="0.6" />
+                        {/* Search magnifier */}
+                        <circle cx="75" cy="45" r="12" stroke="currentColor" strokeWidth="3" fill="none" opacity="0.6" />
+                        <line x1="84" y1="54" x2="95" y2="65" stroke="currentColor" strokeWidth="3" opacity="0.6" />
 
-        {/* Sad face on document */}
-        <circle cx="60" cy="55" r="2" fill="currentColor" opacity="0.5" />
-        <circle cx="70" cy="55" r="2" fill="currentColor" opacity="0.5" />
-        <path d="M55 65 Q65 60 75 65" stroke="currentColor" strokeWidth="2" fill="none" opacity="0.5" />
-      </svg>
-    </div>
+                        {/* Sad face on document */}
+                        <circle cx="60" cy="55" r="2" fill="currentColor" opacity="0.5" />
+                        <circle cx="70" cy="55" r="2" fill="currentColor" opacity="0.5" />
+                        <path d="M55 65 Q65 60 75 65" stroke="currentColor" strokeWidth="2" fill="none" opacity="0.5" />
+                      </svg>
+                    </div>
 
-    {/* Main Message */}
-    <h3 className={`text-lg font-medium mb-2 ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
-      No posts found
-    </h3>
+                    {/* Main Message */}
+                    <h3 className={`text-lg font-medium mb-2 ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
+                      No posts found
+                    </h3>
 
-    {/* Subtitle */}
-    <p className={`text-sm mb-6 max-w-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-      There are no posts to display at the moment. Check back later or try adjusting your search criteria.
-    </p>
-  </div>
-</Card>
+                    {/* Subtitle */}
+                    <p className={`text-sm mb-6 max-w-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                      There are no posts to display at the moment. Check back later or try adjusting your search criteria.
+                    </p>
+                  </div>
+                </Card>
               ) : (
                 <>
                   {/* Mobile masonry layout */}

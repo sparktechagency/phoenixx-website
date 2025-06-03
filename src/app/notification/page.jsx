@@ -29,7 +29,7 @@ export default function NotificationPage() {
     refetchOnMountOrArgChange: true
   });
   const { notifications } = useSelector((state) => state);
-  console.log(notifications.notification);
+
   // Total pages from meta data
   const total = notifications?.meta?.total || 0;
   const limit = notifications?.meta?.limit || 10;
@@ -45,18 +45,7 @@ export default function NotificationPage() {
   const [deleteAll, { isLoading: deleteAllLoading }] = useDeleteAllMutation();
   // Track which notification is being processed
   const [processingNotificationId, setProcessingNotificationId] = useState(null);
-  const handleMarkAsRead = async (id) => {
-    try {
-      setProcessingNotificationId(id);
-      await markSingleAsRead(id).unwrap();
-      toast.success("Marked notification as read");
-    } catch (error) {
-      console.error('Failed to mark as read:', error);
-      toast.error("Failed to mark notification as read");
-    } finally {
-      setProcessingNotificationId(null);
-    }
-  };
+
   const handleDeleteNotification = async (id) => {
     try {
       setProcessingNotificationId(id);
@@ -69,15 +58,7 @@ export default function NotificationPage() {
       setProcessingNotificationId(null);
     }
   };
-  const handleMarkAllAsRead = async () => {
-    try {
-      await markAllAsRead().unwrap();
-      toast.success("Marked all notifications as read");
-    } catch (error) {
-      console.error('Failed to mark all as read:', error);
-      toast.error("Failed to mark all notifications as read");
-    }
-  };
+
   const handleClearAll = async () => {
     try {
       await deleteAll().unwrap();
@@ -106,18 +87,20 @@ export default function NotificationPage() {
     }
   };
   const handleItemClick = async (notification) => {
-    console.log('Notification clicked:', notification);
     // Mark as read if not already read
     if (!notification.read) {
       try {
         await markSingleAsRead(notification.id).unwrap();
         toast.success("Notification marked as read");
+        router.push(`/posts/${notification.postId}`);
+
       } catch (error) {
         console.error('Failed to mark as read:', error);
         toast.error("Failed to mark notification as read");
       }
     }
-    // 🔥 Removed redirection logic here — no more routing
+
+
   };
   const formatNotificationTime = (dateString) => {
     const date = new Date(dateString);
@@ -142,17 +125,7 @@ export default function NotificationPage() {
     <Menu
       className={isDarkMode ? "bg-gray-800 text-gray-200" : ""}
     >
-      {/* {!read && (
-        <Menu.Item
-          key="mark-read"
-          icon={<CheckOutlined />}
-          onClick={() => handleMarkAsRead(id)}
-          disabled={processingNotificationId === id}
-          className={isDarkMode ? "hover:bg-gray-700" : ""}
-        >
-          Mark as read
-        </Menu.Item>
-      )} */}
+
       <Menu.Item
         key="delete"
         icon={<DeleteOutlined />}
@@ -167,12 +140,12 @@ export default function NotificationPage() {
   );
   // Get API notifications
   const apiNotifications = notifications?.notification || [];
-  console.log(apiNotifications);
   // Transform the notification data to match the expected format
+  // Replace the transformedNotifications mapping with:
   const transformedNotifications = apiNotifications?.map(notification => ({
     id: notification._id,
     postId: notification.postId,
-    commentId: notification.commentId, // Add commentId for comment notifications
+    commentId: notification.commentId,
     title: notification.type.charAt(0).toUpperCase() + notification.type.slice(1),
     description: notification.message,
     read: notification.read,
@@ -205,17 +178,6 @@ export default function NotificationPage() {
                 )}
               </div>
               <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-                {/* <Button
-                  icon={allmarkLoading ? <LoadingOutlined /> : <CheckOutlined />}
-                  onClick={handleMarkAllAsRead}
-                  className={`${isDarkMode ? "text-gray-300 bg-gray-700 border-gray-600 hover:bg-gray-600" : "text-gray-600"} flex-1 sm:flex-none`}
-                  size="small"
-                  disabled={unreadCount === 0 || allmarkLoading}
-                  loading={allmarkLoading}
-                >
-                  <span className="hidden sm:inline">Mark all as read</span>
-                  <span className="sm:hidden">Mark all</span>
-                </Button> */}
                 <Button
                   icon={deleteAllLoading ? <LoadingOutlined /> : <DeleteOutlined />}
                   onClick={handleClearAll}

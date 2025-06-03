@@ -45,6 +45,8 @@ const SocketComponent = () => {
       const formattedNotification = {
         _id: notification._id || notification.id || Date.now().toString(),
         message: notification.message || notification.content || '',
+        postId: notification.postId || '',
+        commentId: notification.commentId || '',
         type: notification.type || 'info',
         read: false,
         createdAt: notification.createdAt || new Date().toISOString()
