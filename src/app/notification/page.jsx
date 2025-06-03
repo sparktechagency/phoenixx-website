@@ -1,70 +1,50 @@
 "use client";
-
 import { useDeleteAllMutation, useDeleteSingleMutation, useGetAllNotificationQuery, useMarkAllAsReadMutation, useMarkSingleReadMutation } from '@/features/notification/noticationApi';
 import {
   BellOutlined,
-  CheckOutlined,
   DeleteOutlined,
   InfoCircleOutlined,
   LoadingOutlined,
   MessageOutlined,
-  MoreOutlined,
+  MoreOutlined
 } from '@ant-design/icons';
-import { Avatar, Badge, Button, Dropdown, Layout, List, Menu, Pagination, Spin, Tabs } from 'antd';
+import { Avatar, Badge, Button, Dropdown, Layout, List, Menu, Pagination, Spin } from 'antd';
 import { useRouter } from 'next/navigation';
-import { useContext, useEffect, useState } from 'react';
+import { useContext, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
 import { ThemeContext } from '../ClientLayout';
-
-
 const { Content } = Layout;
-
 // Custom loading icon
 const antIcon = <LoadingOutlined style={{ fontSize: 24 }} spin />;
-
 export default function NotificationPage() {
   const router = useRouter();
   const dispatch = useDispatch();
-  const [activeTab, setActiveTab] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const { isDarkMode } = useContext(ThemeContext);
-
   // Fetch notifications data with pagination
   const { isLoading: allNotificationLoading, refetch } = useGetAllNotificationQuery({
     page: currentPage
   }, {
     refetchOnMountOrArgChange: true
   });
-
-
   const { notifications } = useSelector((state) => state);
   console.log(notifications.notification);
-
   // Total pages from meta data
   const total = notifications?.meta?.total || 0;
   const limit = notifications?.meta?.limit || 10;
-
-  // Reset to page 1 when changing tabs
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [activeTab]);
-
   // Handle page change
   const handlePageChange = (page) => {
     setCurrentPage(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
-
   // API mutations
   const [markSingleAsRead, { isLoading: markReadLoading }] = useMarkSingleReadMutation();
   const [markAllAsRead, { isLoading: allmarkLoading }] = useMarkAllAsReadMutation();
   const [deleteSingle, { isLoading: singleDeleteLoading }] = useDeleteSingleMutation();
   const [deleteAll, { isLoading: deleteAllLoading }] = useDeleteAllMutation();
-
   // Track which notification is being processed
   const [processingNotificationId, setProcessingNotificationId] = useState(null);
-
   const handleMarkAsRead = async (id) => {
     try {
       setProcessingNotificationId(id);
@@ -77,7 +57,6 @@ export default function NotificationPage() {
       setProcessingNotificationId(null);
     }
   };
-
   const handleDeleteNotification = async (id) => {
     try {
       setProcessingNotificationId(id);
@@ -90,7 +69,6 @@ export default function NotificationPage() {
       setProcessingNotificationId(null);
     }
   };
-
   const handleMarkAllAsRead = async () => {
     try {
       await markAllAsRead().unwrap();
@@ -100,7 +78,6 @@ export default function NotificationPage() {
       toast.error("Failed to mark all notifications as read");
     }
   };
-
   const handleClearAll = async () => {
     try {
       await deleteAll().unwrap();
@@ -110,7 +87,6 @@ export default function NotificationPage() {
       toast.error("Failed to clear all notifications");
     }
   };
-
   const getNotificationIcon = (type) => {
     switch (type) {
       case 'message':
@@ -121,22 +97,32 @@ export default function NotificationPage() {
         return <BellOutlined className={isDarkMode ? "text-red-400" : "text-red-500"} />;
       case 'info':
         return <InfoCircleOutlined className={isDarkMode ? "text-blue-400" : "text-blue-500"} />;
+      case 'comment':
+        return <MessageOutlined className={isDarkMode ? "text-purple-400" : "text-purple-500"} />;
+      case 'post':
+        return <BellOutlined className={isDarkMode ? "text-blue-400" : "text-blue-500"} />;
       default:
         return <BellOutlined />;
     }
   };
-  
-
-  const handleItemClick = (post) => {
-    router.push(`/posts/${post.postId}`);
-  }
-
+  const handleItemClick = async (notification) => {
+    console.log('Notification clicked:', notification);
+    // Mark as read if not already read
+    if (!notification.read) {
+      try {
+        await markSingleAsRead(notification.id).unwrap();
+        toast.success("Notification marked as read");
+      } catch (error) {
+        console.error('Failed to mark as read:', error);
+        toast.error("Failed to mark notification as read");
+      }
+    }
+    // 🔥 Removed redirection logic here — no more routing
+  };
   const formatNotificationTime = (dateString) => {
     const date = new Date(dateString);
     const now = new Date();
-
     const diffInSeconds = Math.floor((now - date) / 1000);
-
     if (diffInSeconds < 60) {
       return 'Just now';
     } else if (diffInSeconds < 3600) {
@@ -152,12 +138,11 @@ export default function NotificationPage() {
       return date.toLocaleDateString();
     }
   };
-
   const menu = (id, read) => (
     <Menu
       className={isDarkMode ? "bg-gray-800 text-gray-200" : ""}
     >
-      {!read && (
+      {/* {!read && (
         <Menu.Item
           key="mark-read"
           icon={<CheckOutlined />}
@@ -167,7 +152,7 @@ export default function NotificationPage() {
         >
           Mark as read
         </Menu.Item>
-      )}
+      )} */}
       <Menu.Item
         key="delete"
         icon={<DeleteOutlined />}
@@ -180,27 +165,21 @@ export default function NotificationPage() {
       </Menu.Item>
     </Menu>
   );
-
   // Get API notifications
   const apiNotifications = notifications?.notification || [];
-
+  console.log(apiNotifications);
   // Transform the notification data to match the expected format
   const transformedNotifications = apiNotifications?.map(notification => ({
     id: notification._id,
     postId: notification.postId,
+    commentId: notification.commentId, // Add commentId for comment notifications
     title: notification.type.charAt(0).toUpperCase() + notification.type.slice(1),
     description: notification.message,
     read: notification.read,
     type: notification.type,
     time: formatNotificationTime(notification.createdAt)
   })) || [];
-
-  const filteredNotifications = activeTab === 'unread'
-    ? transformedNotifications.filter(item => !item.read)
-    : transformedNotifications;
-
   const unreadCount = transformedNotifications.filter(item => !item.read).length;
-
   // Define dynamic classes based on dark mode
   const contentClass = isDarkMode ? "bg-gray-800 text-gray-200" : "bg-white";
   const borderClass = isDarkMode ? "border-gray-700" : "border-gray-200";
@@ -209,145 +188,6 @@ export default function NotificationPage() {
   const textMutedClass = isDarkMode ? "text-gray-400" : "text-gray-500";
   const itemHoverBgClass = isDarkMode ? "hover:bg-gray-700" : "hover:bg-gray-50";
   const unreadBgClass = isDarkMode ? "bg-gray-700" : "bg-blue-50";
-
-  const tabItems = [
-    {
-      key: 'all',
-      label: (
-        <span className="flex items-center gap-1">
-          All
-          <Badge
-            count={unreadCount}
-            className="ml-1"
-            size="small"
-          />
-        </span>
-      ),
-      children: (
-        <>
-          <List
-            itemLayout="horizontal"
-            dataSource={filteredNotifications}
-            renderItem={(item) => (
-              <List.Item
-                className={`px-4  py-3 ${itemHoverBgClass} transition-colors ${!item.read ? unreadBgClass : ''}`}
-                actions={[
-                  <Dropdown
-                    key="dropdown"
-                    overlay={menu(item.id, item.read)}
-                    trigger={['click']}
-                    placement="bottomRight"
-                  >
-                    <Button
-                      type="text"
-                      icon={processingNotificationId === item.id ? <LoadingOutlined /> : <MoreOutlined />}
-                      size="small"
-                      className={`opacity-70 hover:opacity-100 ${isDarkMode ? "text-gray-300" : ""}`}
-                      disabled={processingNotificationId === item.id}
-                    />
-                  </Dropdown>
-                ]}
-              >
-                <List.Item.Meta
-                  style={{ marginLeft: '10px', cursor: 'pointer' }}
-                  onClick={() => handleItemClick(item)}
-                  avatar={
-                    <Avatar
-                      icon={getNotificationIcon(item.type)}
-                      size="default"
-                      className="flex items-center justify-center"
-                    />
-                  }
-                  title={
-                    <div className="flex flex-col sm:flex-row sm:justify-between">
-                      <span className={!item.read ? 'font-semibold' : ''}>
-                        {item.title}
-                      </span>
-                      <span className={`${textMutedClass} text-xs sm:text-sm  sm:mt-0`}>
-                        {item.time}
-                      </span>
-                    </div>
-                  }
-                  description={
-                    <span className={`${textClass} text-sm`}>
-                      {item.description}
-                    </span>
-                  }
-                />
-              </List.Item>
-            )}
-          />
-        </>
-      )
-    },
-    {
-      key: 'unread',
-      label: (
-        <span className="flex items-center gap-1">
-          Unread
-          <Badge
-            count={unreadCount}
-            className="ml-1"
-            size="small"
-          />
-        </span>
-      ),
-      children: (
-        <>
-          <List
-            itemLayout="horizontal"
-            dataSource={filteredNotifications}
-            renderItem={(item) => (
-              <List.Item
-                className={`px-4 py-3 ${itemHoverBgClass} transition-colors ${unreadBgClass}`}
-                actions={[
-                  <Dropdown
-                    key="dropdown"
-                    overlay={menu(item.id, item.read)}
-                    trigger={['click']}
-                    placement="bottomRight"
-                  >
-                    <Button
-                      type="text"
-                      icon={processingNotificationId === item.id ? <LoadingOutlined /> : <MoreOutlined />}
-                      size="small"
-                      className={`opacity-70 hover:opacity-100 ${isDarkMode ? "text-gray-300" : ""}`}
-                      disabled={processingNotificationId === item.id}
-                    />
-                  </Dropdown>
-                ]}
-              >
-                <List.Item.Meta
-                  style={{ marginLeft: '10px' }}
-                  avatar={
-                    <Avatar
-                      icon={getNotificationIcon(item.type)}
-                      size="default"
-                      className="flex items-center justify-center"
-                    />
-                  }
-                  title={
-                    <div className="flex flex-col sm:flex-row sm:justify-between">
-                      <span className="font-semibold">{item.title}</span>
-                      <span className={`${textMutedClass} text-xs sm:text-sm mt-1 sm:mt-0`}>
-                        {item.time}
-                      </span>
-                    </div>
-                  }
-                  description={
-                    <span className={`${textClass} text-sm`}>
-                      {item.description}
-                    </span>
-                  }
-                />
-              </List.Item>
-            )}
-          />
-        </>
-      )
-    }
-  ];
-
   return (
     <>
       <Layout
@@ -358,9 +198,14 @@ export default function NotificationPage() {
           <div className={`${contentClass} p-2 md:p-2 rounded-lg shadow-sm overflow-hidden`}>
             {/* Header with actions */}
             <div className={`p-4 border-b ${borderClass} flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4`}>
-              <h1 className={`text-lg sm:text-xl font-semibold ${textHeaderClass}`}>Notifications</h1>
+              <div className="flex items-center gap-2">
+                <h1 className={`text-lg sm:text-xl font-semibold ${textHeaderClass}`}>Notifications</h1>
+                {unreadCount > 0 && (
+                  <Badge count={unreadCount} className="ml-1" />
+                )}
+              </div>
               <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-                <Button
+                {/* <Button
                   icon={allmarkLoading ? <LoadingOutlined /> : <CheckOutlined />}
                   onClick={handleMarkAllAsRead}
                   className={`${isDarkMode ? "text-gray-300 bg-gray-700 border-gray-600 hover:bg-gray-600" : "text-gray-600"} flex-1 sm:flex-none`}
@@ -370,7 +215,7 @@ export default function NotificationPage() {
                 >
                   <span className="hidden sm:inline">Mark all as read</span>
                   <span className="sm:hidden">Mark all</span>
-                </Button>
+                </Button> */}
                 <Button
                   icon={deleteAllLoading ? <LoadingOutlined /> : <DeleteOutlined />}
                   onClick={handleClearAll}
@@ -385,17 +230,6 @@ export default function NotificationPage() {
                 </Button>
               </div>
             </div>
-
-            {/* Tabs using the items prop instead of TabPane children */}
-            <Tabs
-              defaultActiveKey="all"
-              className={`px-4 ${isDarkMode ? "ant-tabs-dark" : ""}`}
-              tabBarStyle={{ marginBottom: 0 }}
-              size="small"
-              onChange={(key) => setActiveTab(key)}
-              items={tabItems}
-            />
-
             {/* Loading state */}
             {allNotificationLoading && (
               <div className="p-8 text-center">
@@ -403,17 +237,72 @@ export default function NotificationPage() {
                 <p className={`mt-2 ${textMutedClass}`}>Loading notifications...</p>
               </div>
             )}
-
             {/* Empty state */}
-            {!allNotificationLoading && filteredNotifications.length === 0 && (
+            {!allNotificationLoading && transformedNotifications.length === 0 && (
               <div className="p-8 text-center">
                 <p className={`text-lg pl-2 ${textMutedClass}`}>No notifications</p>
               </div>
             )}
+            {/* Notifications List */}
+            {!allNotificationLoading && transformedNotifications.length > 0 && (
+              <List
+                itemLayout="horizontal"
+                dataSource={transformedNotifications}
+                renderItem={(item) => (
+                  <List.Item
+                    className={`px-4 py-3 ${itemHoverBgClass} transition-colors cursor-pointer ${!item.read ? unreadBgClass : ''}`}
+                    actions={[
+                      <Dropdown
+                        key="dropdown"
+                        overlay={menu(item.id, item.read)}
+                        trigger={['click']}
+                        placement="bottomRight"
+                        onClick={(e) => e.stopPropagation()} // Prevent triggering item click
+                      >
+                        <Button
+                          type="text"
+                          icon={processingNotificationId === item.id ? <LoadingOutlined /> : <MoreOutlined />}
+                          size="small"
+                          className={`opacity-70 hover:opacity-100 ${isDarkMode ? "text-gray-300" : ""}`}
+                          disabled={processingNotificationId === item.id}
+                          onClick={(e) => e.stopPropagation()} // Prevent triggering item click
+                        />
+                      </Dropdown>
+                    ]}
+                    onClick={() => handleItemClick(item)}
+                  >
+                    <List.Item.Meta
+                      style={{ marginLeft: '10px' }}
+                      avatar={
+                        <Avatar
+                          icon={getNotificationIcon(item.type)}
+                          size="default"
+                          className="flex items-center justify-center"
+                        />
+                      }
+                      title={
+                        <div className="flex flex-col sm:flex-row sm:justify-between">
+                          <span className={!item.read ? 'font-semibold' : ''}>
+                            {item.title}
+                          </span>
+                          <span className={`${textMutedClass} text-xs sm:text-sm sm:mt-0`}>
+                            {item.time}
+                          </span>
+                        </div>
+                      }
+                      description={
+                        <span className={`${textClass} text-sm`}>
+                          {item.description}
+                        </span>
+                      }
+                    />
+                  </List.Item>
+                )}
+              />
+            )}
           </div>
         </Content>
       </Layout>
-
       <div className={`flex justify-center pb-10`}>
         {total > limit && (
           <Pagination
@@ -425,19 +314,9 @@ export default function NotificationPage() {
           />
         )}
       </div>
-
       {/* Add this CSS to style ant-design components in dark mode */}
       {isDarkMode && (
         <style jsx global>{`
-          .ant-tabs-dark .ant-tabs-nav {
-            color: #e5e7eb;
-          }
-          .ant-tabs-dark .ant-tabs-tab.ant-tabs-tab-active .ant-tabs-tab-btn {
-            color: #60a5fa;
-          }
-          .ant-tabs-dark .ant-tabs-ink-bar {
-            background: #60a5fa;
-          }
           .pagination-dark .ant-pagination-item a {
             color: #e5e7eb;
           }

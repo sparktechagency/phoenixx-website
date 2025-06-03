@@ -34,6 +34,8 @@ const ChatWindow = ({ id }) => {
   const emojiPickerRef = useRef(null);
   const emojiButtonRef = useRef(null);
   const reactionPickerRef = useRef(null);
+  const [isNearBottom, setIsNearBottom] = useState(true);
+  const messagesContainerRef = useRef(null);
 
   const users = chatList?.data?.find(chat => chat?.participants?.map(item => item === id));
 
@@ -79,13 +81,35 @@ const ChatWindow = ({ id }) => {
     };
   }, [showEmojiPicker, showReactionPicker]);
 
-  // Scroll to bottom when messages change
+  // Check scroll position
+  const handleScroll = () => {
+    if (messagesContainerRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
+      const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+      setIsNearBottom(distanceFromBottom < 100);
+    }
+  };
+
+  // Set up scroll listener
   useEffect(() => {
-    scrollToBottom();
+    const container = messagesContainerRef.current;
+    if (container) {
+      container.addEventListener('scroll', handleScroll);
+      return () => {
+        container.removeEventListener('scroll', handleScroll);
+      };
+    }
+  }, []);
+
+  // Scroll to bottom when messages change only if we're near the bottom
+  useEffect(() => {
+    if (isNearBottom) {
+      scrollToBottom();
+    }
   }, [messages]);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
   };
 
   const handleCreateNewMessage = async (values) => {
@@ -110,6 +134,8 @@ const ChatWindow = ({ id }) => {
       setShowEmojiPicker(false);
       // Refetch messages to get updated list
       refetchMessages();
+      // Scroll to bottom after sending a new message
+      setTimeout(scrollToBottom, 100);
     } catch (error) {
       console.error(error);
     }
@@ -228,7 +254,10 @@ const ChatWindow = ({ id }) => {
       </div>
 
       {/* Message container */}
-      <div className={`flex-1 p-4 overflow-y-auto message-container ${isDarkMode ? 'bg-gray-800' : 'bg-[#f9f9f9]'}`}>
+      <div 
+        ref={messagesContainerRef}
+        className={`flex-1 p-4 overflow-y-auto message-container ${isDarkMode ? 'bg-gray-800' : 'bg-[#f9f9f9]'}`}
+      >
         <style jsx global>{`
           .message-container::-webkit-scrollbar {
             width: 6px;
