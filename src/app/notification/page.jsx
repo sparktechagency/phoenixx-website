@@ -88,6 +88,7 @@ export default function NotificationPage() {
   };
   const handleItemClick = async (notification) => {
     // Mark as read if not already read
+    router.push(`/posts/${notification.postId}`);
     if (!notification.read) {
       try {
         await markSingleAsRead(notification.id).unwrap();
@@ -99,6 +100,8 @@ export default function NotificationPage() {
         toast.error("Failed to mark notification as read");
       }
     }
+
+
 
 
   };
