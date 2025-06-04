@@ -36,7 +36,6 @@ const HomePage = () => {
     typeof window !== 'undefined' ? window.innerWidth : 1024
   );
   const [currentUser, setCurrentUser] = useState({ id: null });
-  const [isFeedLoading, setIsFeedLoading] = useState(false);
   const [isScrolling, setIsScrolling] = useState(false);
 
   // Initialize user from localStorage
@@ -196,23 +195,29 @@ const HomePage = () => {
     }
   }, [likePost]);
 
-  const handleCategorySelect = useCallback(async (categoryId, subCategoryId = null) => {
-    setIsFeedLoading(true);
-    const newParams = new URLSearchParams();
+  // Fixed category selection handler
+  const handleCategorySelect = useCallback((categoryId, subCategoryId = null) => {
+    const newParams = new URLSearchParams(searchParams.toString());
+
+    // Clear existing category/subcategory params
+    newParams.delete('category');
+    newParams.delete('subcategory');
+
+    // Set new params
     if (categoryId) newParams.set('category', categoryId);
     if (subCategoryId) newParams.set('subcategory', subCategoryId);
     newParams.set('page', '1');
-    window.history.replaceState(null, '', `${pathname}?${newParams.toString()}`);
-    await refetch();
-    setIsFeedLoading(false);
-  }, [pathname, refetch]);
+
+    // Use router.push instead of replaceState to maintain smooth navigation
+    router.push(`${pathname}?${newParams.toString()}`, { scroll: false });
+  }, [searchParams, router, pathname]);
 
   const updateUrlParams = useCallback((params) => {
     const newParams = new URLSearchParams(searchParams.toString());
     Object.entries(params).forEach(([key, value]) => {
       value ? newParams.set(key, value) : newParams.delete(key);
     });
-    router.push(`${pathname}?${newParams.toString()}`);
+    router.push(`${pathname}?${newParams.toString()}`, { scroll: false });
   }, [searchParams, router, pathname]);
 
   const handleSortChange = useCallback((sortOption) => {
@@ -221,11 +226,16 @@ const HomePage = () => {
 
   const handlePageChange = useCallback((page) => {
     updateUrlParams({ page });
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Smooth scroll to top only for pagination
+    if (postsContainerRef.current) {
+      postsContainerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   }, [updateUrlParams]);
 
   const clearAllFilters = useCallback(() => {
-    router.push(pathname);
+    router.push(pathname, { scroll: false });
   }, [router, pathname]);
 
   // Component definitions
@@ -330,7 +340,7 @@ const HomePage = () => {
         WebkitOverflowScrolling: 'touch',
       }}
     >
-      {postColumns.map((column, columnIndex) => (
+      {isLoading ? <div className='flex justify-center h-[300px]'><Spin size='default' /></div> : postColumns.map((column, columnIndex) => (
         <div key={columnIndex} className="flex-1 flex flex-col gap-4">
           {column.map((post) => (
             <PostCard
@@ -405,7 +415,8 @@ const HomePage = () => {
 
               <FilterIndicator />
 
-              {isFeedLoading ? (
+              {/* Loading state for category changes */}
+              {isLoading ? (
                 <div className="flex justify-center items-center h-[400px]">
                   <Spin size="default" />
                 </div>
@@ -431,8 +442,8 @@ const HomePage = () => {
 
             <FilterIndicator />
 
-            {isFeedLoading ? (
-              <div className="flex justify-center items-center h-64  ">
+            {isLoading ? (
+              <div className="flex justify-center items-center h-64">
                 <Spin size="default" />
               </div>
             ) : posts.length === 0 ? (

@@ -2,11 +2,14 @@
 
 import { useCategoriesQuery } from '@/features/Category/CategoriesApi';
 import { DownOutlined, UnorderedListOutlined } from '@ant-design/icons';
-import { Spin } from 'antd';
+import { Avatar, Button, Card, Collapse, Spin, Typography } from 'antd';
 import Image from 'next/image';
-import React, { useContext, useEffect, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { baseURL } from '../../utils/BaseURL';
 import { ThemeContext } from '../app/ClientLayout';
+
+const { Title, Text } = Typography;
+const { Panel } = Collapse;
 
 const CategoriesSidebar = ({ onSelectCategory, selectedCategory, selectedSubCategory }) => {
   const [expandedKeys, setExpandedKeys] = useState([]);
@@ -40,18 +43,8 @@ const CategoriesSidebar = ({ onSelectCategory, selectedCategory, selectedSubCate
 
   const isMobile = windowSize.width < 640;
   const isTablet = windowSize.width >= 640 && windowSize.width < 1024;
-  const isDesktop = windowSize.width >= 1024;
 
-  const getPadding = () => isMobile ? 'p-2' : isTablet ? 'p-3' : 'p-4';
-  const getTitleSize = () => isMobile ? 'text-md' : isTablet ? 'text-lg' : 'text-xl';
-  const getItemTextSize = () => isMobile ? 'text-sm' : isTablet ? 'text-base' : 'text-medium';
-
-  const toggleExpand = (key) => {
-    setExpandedKeys(prev => prev.includes(key)
-      ? prev.filter(k => k !== key)
-      : [...prev, key]
-    );
-  };
+  const getTotalPosts = () => categories.reduce((total, item) => total + (item.category.postCount || 0), 0);
 
   const handleCategoryClick = (categoryId) => {
     const category = categories.find(item => item.category._id === categoryId);
@@ -64,6 +57,13 @@ const CategoriesSidebar = ({ onSelectCategory, selectedCategory, selectedSubCate
     if (hasSubcategories) {
       toggleExpand(categoryId);
     }
+  };
+
+  const toggleExpand = (key) => {
+    setExpandedKeys(prev => prev.includes(key)
+      ? prev.filter(k => k !== key)
+      : [...prev, key]
+    );
   };
 
   const handleExpandClick = (categoryId, event) => {
@@ -80,70 +80,210 @@ const CategoriesSidebar = ({ onSelectCategory, selectedCategory, selectedSubCate
     onSelectCategory("", "");
   };
 
-  const getTotalPosts = () => categories.reduce((total, item) => total + (item.category.postCount || 0), 0);
+  // Custom styles for dark mode
+  const cardStyle = {
+    backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
+    borderColor: isDarkMode ? '#374151' : '#d1d5db',
+  };
+
+  const titleStyle = {
+    color: isDarkMode ? '#e5e7eb' : '#1f2937',
+    marginBottom: 16,
+  };
+
+  const getButtonType = (isSelected) => {
+    if (isSelected) {
+      return 'primary';
+    }
+    return 'text';
+  };
+
+  const getButtonStyle = (isSelected) => ({
+    width: '100%',
+    height: 'auto',
+    padding: isMobile ? '8px 12px' : '12px 16px',
+    marginBottom: 4,
+    display: 'flex',
+    justifyContent: 'flex-start',
+    alignItems: 'center',
+    textAlign: 'left',
+    backgroundColor: isSelected
+      ? (isDarkMode ? '#1d4ed8' : '#3b82f6')
+      : (isDarkMode ? 'transparent' : 'transparent'),
+    borderColor: isSelected
+      ? (isDarkMode ? '#1d4ed8' : '#3b82f6')
+      : 'transparent',
+    color: isSelected
+      ? '#ffffff'
+      : (isDarkMode ? '#e5e7eb' : '#374151'),
+    borderLeft: isSelected ? `4px solid ${isDarkMode ? '#60a5fa' : '#3b82f6'}` : 'none',
+  });
+
+  const renderCategoryAvatar = (category, isSelected) => {
+    if (category?.image) {
+      return (
+        <Avatar
+        shape='square'
+          size={isMobile ? 32 : 40}
+          src={
+            <Image
+              src={`${baseURL}${category.image}`}
+              alt={category?.name || "Category image"}
+              width={isMobile ? 32 : 40}
+              height={isMobile ? 32 : 40}
+              style={{ objectFit: 'contain' }}
+            />
+          }
+          style={{
+            border: `1px solid ${isDarkMode
+              ? (isSelected ? '#60a5fa' : '#4b5563')
+              : (isSelected ? '#3b82f6' : '#d1d5db')
+              }`,
+            backgroundColor: isDarkMode ? '#374151' : '#f3f4f6',
+          }}
+        />
+      );
+    }
+
+    return (
+      <Avatar
+      shape='square'
+        size={isMobile ? 32 : 40}
+        icon={<UnorderedListOutlined />}
+        style={{
+          border: `1px solid ${isDarkMode
+            ? (isSelected ? '#60a5fa' : '#4b5563')
+            : (isSelected ? '#3b82f6' : '#d1d5db')
+            }`,
+          backgroundColor: isDarkMode ? '#374151' : '#f3f4f6',
+          color: isDarkMode ? '#e5e7eb' : '#374151',
+        }}
+      />
+    );
+  };
+
+  const renderSubcategoryAvatar = (subcategory, isSelected) => {
+    if (subcategory?.image) {
+      return (
+        <Avatar
+          shape='square'
+          size={28}
+          src={
+            <Image
+              src={`${baseURL}${subcategory.image}`}
+              alt={subcategory?.name || "Subcategory image"}
+              width={28}
+              height={28}
+              style={{ objectFit: 'contain' }}
+            />
+          }
+          style={{
+            border: `1px solid ${isDarkMode
+              ? (isSelected ? '#60a5fa' : '#4b5563')
+              : (isSelected ? '#3b82f6' : '#d1d5db')
+              }`,
+            backgroundColor: isDarkMode ? '#374151' : '#f3f4f6',
+          }}
+        />
+      );
+    }
+
+    return (
+      <Avatar
+      shape='square'
+        size={28}
+        style={{
+          border: `1px solid ${isDarkMode
+            ? (isSelected ? '#60a5fa' : '#4b5563')
+            : (isSelected ? '#3b82f6' : '#d1d5db')
+            }`,
+          backgroundColor: isDarkMode ? '#374151' : '#f3f4f6',
+          color: isDarkMode ? '#e5e7eb' : '#374151',
+          fontSize: '12px',
+        }}
+      >
+        {subcategory.name?.charAt(0)}
+      </Avatar>
+    );
+  };
 
   return (
-    <div className={`w-full shadow rounded-xl ${getPadding()} sm:sticky sm:top-20 ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
-      <h5 className={`${getTitleSize()} font-semibold px-2 mb-4 ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>
+    <Card
+      style={{
+        ...cardStyle,
+        position: isMobile ? 'static' : 'sticky',
+        top: isMobile ? 'auto' : 80,
+        width: '100%',
+      }}
+      bodyStyle={{
+        padding: isMobile ? '16px' : '24px',
+      }}
+    >
+      <Title
+        level={isMobile ? 4 : 3}
+        style={titleStyle}
+      >
         Categories
-      </h5>
+      </Title>
 
       {categoryLoading ? (
-        <div className='flex justify-center'>
-          <Spin className={isDarkMode ? 'text-white' : ''} />
+        <div style={{ textAlign: 'center', padding: '20px 0' }}>
+          <Spin size="large" />
         </div>
       ) : (
         <>
           {/* All Posts Button */}
-          <div
-            className={`group ${isMobile ? 'py-2' : 'py-3'} px-2 cursor-pointer rounded-md mb-3 transition-all duration-200 ${!selectedCategory && !selectedSubCategory
-              ? isDarkMode
-                ? 'bg-gray-700 border-l-4 border-blue-400'
-                : 'bg-blue-50 border-l-4 border-blue-500'
-              : isDarkMode
-                ? 'hover:bg-gray-700'
-                : 'hover:bg-gray-50'
-              }`}
+          <Button
+            type={getButtonType(!selectedCategory && !selectedSubCategory)}
+            style={getButtonStyle(!selectedCategory && !selectedSubCategory)}
             onClick={handleShowAllPosts}
           >
-            <div className="flex items-center gap-3">
-              <span className={`text-lg border-[1px] rounded shadow-md px-3 py-[6px] transition-colors duration-200 ${isDarkMode
-                ? !selectedCategory && !selectedSubCategory
-                  ? 'border-blue-400 text-blue-300'
-                  : 'border-gray-600 text-gray-300 group-hover:border-gray-500'
-                : !selectedCategory && !selectedSubCategory
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-gray-300 text-gray-600 group-hover:border-gray-400'
-                }`}>
-                <UnorderedListOutlined />
-              </span>
-              <div className='flex flex-col gap-1'>
-                <span className={`font-medium ${getItemTextSize()} ${isDarkMode
-                  ? !selectedCategory && !selectedSubCategory
-                    ? 'text-blue-300'
-                    : 'text-gray-300'
-                  : !selectedCategory && !selectedSubCategory
-                    ? 'text-blue-600'
-                    : 'text-gray-800'
-                  }`}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%' }}>
+              <Avatar
+              shape='square'
+                size={isMobile ? 32 : 40}
+                icon={<UnorderedListOutlined />}
+                style={{
+                  border: `1px solid ${isDarkMode
+                    ? (!selectedCategory && !selectedSubCategory ? '#60a5fa' : '#4b5563')
+                    : (!selectedCategory && !selectedSubCategory ? '#3b82f6' : '#d1d5db')
+                    }`,
+                  backgroundColor: !selectedCategory && !selectedSubCategory
+                    ? (isDarkMode ? '#1d4ed8' : '#3b82f6')
+                    : (isDarkMode ? '#374151' : '#f3f4f6'),
+                  color: !selectedCategory && !selectedSubCategory
+                    ? '#ffffff'
+                    : (isDarkMode ? '#e5e7eb' : '#374151'),
+                }}
+              />
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', flex: 1 }}>
+                <Text
+                  strong
+                  style={{
+                    color: !selectedCategory && !selectedSubCategory
+                      ? '#ffffff'
+                      : (isDarkMode ? '#e5e7eb' : '#374151'),
+                    fontSize: isMobile ? '14px' : '16px',
+                  }}
+                >
                   All Posts
-                </span>
-                <span className={`text-xs ${isDarkMode
-                  ? !selectedCategory && !selectedSubCategory
-                    ? 'text-blue-300/80'
-                    : 'text-gray-400'
-                  : !selectedCategory && !selectedSubCategory
-                    ? 'text-blue-600/80'
-                    : 'text-gray-500'
-                  }`}>
+                </Text>
+                <Text
+                  style={{
+                    color: !selectedCategory && !selectedSubCategory
+                      ? 'rgba(255, 255, 255, 0.8)'
+                      : (isDarkMode ? '#9ca3af' : '#6b7280'),
+                    fontSize: '12px',
+                  }}
+                >
                   {getTotalPosts()} Posts
-                </span>
+                </Text>
               </div>
             </div>
-          </div>
+          </Button>
 
           {/* Categories List */}
-          <ul className="list-none p-0 m-0 space-y-1">
+          <div style={{ marginTop: 16 }}>
             {categories.map((item) => {
               const category = item.category;
               const subcategories = item.subcategories || [];
@@ -153,174 +293,132 @@ const CategoriesSidebar = ({ onSelectCategory, selectedCategory, selectedSubCate
               const isExpanded = expandedKeys.includes(key);
 
               return (
-                <React.Fragment key={key}>
-                  {/* Category Item */}
-                  <li
-                    className={`group ${isMobile ? 'py-2' : 'py-3'} px-2 cursor-pointer rounded-md transition-all duration-200 ${isSelected
-                      ? isDarkMode
-                        ? 'bg-gray-700 border-l-4 border-blue-400'
-                        : 'bg-blue-50 border-l-4 border-blue-500'
-                      : isDarkMode
-                        ? 'hover:bg-gray-700'
-                        : 'hover:bg-gray-50'
-                      }`}
+                <div key={key} style={{ marginBottom: 4 }}>
+                  {/* Category Button */}
+                  <Button
+                    type={getButtonType(isSelected)}
+                    style={getButtonStyle(isSelected)}
                     onClick={() => handleCategoryClick(category._id)}
                   >
-                    <div className="flex justify-between items-center w-full">
-                      <div className="flex items-center gap-3 flex-1">
-                        <span className={`text-lg border-[1px] rounded shadow-md p-1.5 transition-colors duration-200 ${isDarkMode
-                          ? isSelected
-                            ? 'border-blue-400'
-                            : 'border-gray-600 group-hover:border-gray-500'
-                          : isSelected
-                            ? 'border-blue-500'
-                            : 'border-gray-300 group-hover:border-gray-400'
-                          }`}>
-                          {category?.image ? (
-                            <Image
-  src={`${baseURL}${category?.image}`}
-  height={40}
-  width={35}
-  alt={category?.name || "Category image"}
-  className={`object-contain ${isDarkMode ? 'filter brightness-90 invert-[0.1]' : ''}`}
-/>
-                          ) : (
-                            <div className={`h-10 w-8 flex items-center justify-center ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'
-                              }`}>
-                              <UnorderedListOutlined className={isDarkMode ? 'text-gray-300' : 'text-gray-600'} />
-                            </div>
-                          )}
-                        </span>
-                        <div className='flex flex-col gap-1 flex-1'>
-                          <span className={`font-medium ${getItemTextSize()} ${isDarkMode
-                            ? isSelected
-                              ? 'text-blue-300'
-                              : 'text-gray-300'
-                            : isSelected
-                              ? 'text-blue-600'
-                              : 'text-gray-800'
-                            }`}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1 }}>
+                        {renderCategoryAvatar(category, isSelected)}
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', flex: 1 }}>
+                          <Text
+                            strong
+                            style={{
+                              color: isSelected
+                                ? '#ffffff'
+                                : (isDarkMode ? '#e5e7eb' : '#374151'),
+                              fontSize: isMobile ? '14px' : '16px',
+                            }}
+                          >
                             {category.name}
-                          </span>
-                          <span className={`text-xs ${isDarkMode
-                            ? isSelected
-                              ? 'text-blue-300/80'
-                              : 'text-gray-400'
-                            : isSelected
-                              ? 'text-blue-600/80'
-                              : 'text-gray-500'
-                            }`}>
+                          </Text>
+                          <Text
+                            style={{
+                              color: isSelected
+                                ? 'rgba(255, 255, 255, 0.8)'
+                                : (isDarkMode ? '#9ca3af' : '#6b7280'),
+                              fontSize: '12px',
+                            }}
+                          >
                             {category.postCount || 0} Posts
-
-                          </span>
+                          </Text>
                         </div>
                       </div>
                       {hasSubcategories && (
-                        <div
-                          className={`p-2 -mr-2 rounded transition-all duration-200 ${isDarkMode
-                            ? 'hover:bg-gray-600 hover:bg-opacity-40'
-                            : 'hover:bg-gray-200 hover:bg-opacity-60'
-                            }`}
+                        <Button
+                          type="text"
+                          size="small"
+                          icon={
+                            <DownOutlined
+                              style={{
+                                transform: isExpanded ? 'rotate(0deg)' : 'rotate(-90deg)',
+                                transition: 'transform 0.2s',
+                                color: isSelected
+                                  ? '#ffffff'
+                                  : (isDarkMode ? '#9ca3af' : '#6b7280'),
+                              }}
+                            />
+                          }
                           onClick={(e) => handleExpandClick(category._id, e)}
-                        >
-                          <span className={`block transition-transform duration-200 ${isExpanded ? 'rotate-0' : '-rotate-90'
-                            }`}>
-                            <DownOutlined className={`text-xs ${isDarkMode
-                              ? isSelected
-                                ? 'text-blue-300'
-                                : 'text-gray-400'
-                              : isSelected
-                                ? 'text-blue-600'
-                                : 'text-gray-400'
-                              }`} />
-                          </span>
-                        </div>
+                          style={{
+                            border: 'none',
+                            boxShadow: 'none',
+                            backgroundColor: 'transparent',
+                          }}
+                        />
                       )}
                     </div>
-                  </li>
+                  </Button>
 
                   {/* Subcategories */}
                   {hasSubcategories && (
-                    <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isExpanded ? 'max-h-[1000px] opacity-100' : 'max-h-0 opacity-0'
-                      }`}>
-                      <ul className="pl-8 list-none space-y-1 mt-1 mb-2">
+                    <div
+                      style={{
+                        overflow: 'hidden',
+                        maxHeight: isExpanded ? '1000px' : '0px',
+                        opacity: isExpanded ? 1 : 0,
+                        transition: 'all 0.3s ease-in-out',
+                        paddingLeft: 32,
+                      }}
+                    >
+                      <div style={{ paddingTop: 4, paddingBottom: 8 }}>
                         {subcategories.map((subcategory) => {
                           const isSubSelected = selectedSubCategory === subcategory._id && selectedCategory === category._id;
+
                           return (
-                            <li
+                            <Button
                               key={subcategory._id}
-                              className={`py-2 px-2 text-sm rounded-md transition-all duration-200 ${isSubSelected
-                                ? isDarkMode
-                                  ? 'bg-gray-700 border-l-4 border-blue-400'
-                                  : 'bg-blue-50 border-l-4 border-blue-500'
-                                : isDarkMode
-                                  ? 'hover:bg-gray-700'
-                                  : 'hover:bg-gray-50'
-                                }`}
+                              type={getButtonType(isSubSelected)}
+                              style={{
+                                ...getButtonStyle(isSubSelected),
+                                height: 'auto',
+                                padding: '8px 12px',
+                                fontSize: '14px',
+                              }}
                               onClick={(e) => handleSubcategoryClick(category._id, subcategory._id, e)}
                             >
-                              <div className="flex justify-between">
-                                <div className="flex items-center gap-3 cursor-pointer">
-                                  <span className={`text-lg border-[1px] rounded shadow-md p-1.5 transition-colors duration-200 ${isDarkMode
-                                    ? isSubSelected
-                                      ? 'border-blue-400'
-                                      : 'border-gray-600'
-                                    : isSubSelected
-                                      ? 'border-blue-500'
-                                      : 'border-gray-300'
-                                    }`}>
-                                    {subcategory?.image ? (
-                                      <Image
-                                        src={`${baseURL}${subcategory.image}`}
-                                        height={28}
-                                        width={28}
-                                        alt={subcategory?.name || "Subcategory image"}
-                                        className="object-contain"
-                                      />
-                                    ) : (
-                                      <div className={`h-7 w-7 flex items-center justify-center text-xs ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'
-                                        }`}>
-                                        {subcategory.name?.charAt(0)}
-                                      </div>
-                                    )}
-                                  </span>
-                                  <div className='flex flex-col gap-1'>
-                                    <span className={`font-medium ${getItemTextSize()} ${isDarkMode
-                                      ? isSubSelected
-                                        ? 'text-blue-300'
-                                        : 'text-gray-300'
-                                      : isSubSelected
-                                        ? 'text-blue-600'
-                                        : 'text-gray-800'
-                                      }`}>
-                                      {subcategory.name}
-                                    </span>
-                                    <span className={`text-xs ${isDarkMode
-                                      ? isSubSelected
-                                        ? 'text-blue-300/80'
-                                        : 'text-gray-400'
-                                      : isSubSelected
-                                        ? 'text-blue-600/80'
-                                        : 'text-gray-500'
-                                      }`}>
-                                      {subcategory.postCount || 0} Posts
-                                    </span>
-                                  </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%' }}>
+                                {renderSubcategoryAvatar(subcategory, isSubSelected)}
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', flex: 1 }}>
+                                  <Text
+                                    strong
+                                    style={{
+                                      color: isSubSelected
+                                        ? '#ffffff'
+                                        : (isDarkMode ? '#e5e7eb' : '#374151'),
+                                      fontSize: '14px',
+                                    }}
+                                  >
+                                    {subcategory.name}
+                                  </Text>
+                                  <Text
+                                    style={{
+                                      color: isSubSelected
+                                        ? 'rgba(255, 255, 255, 0.8)'
+                                        : (isDarkMode ? '#9ca3af' : '#6b7280'),
+                                      fontSize: '12px',
+                                    }}
+                                  >
+                                    {subcategory.postCount || 0} Posts
+                                  </Text>
                                 </div>
                               </div>
-                            </li>
+                            </Button>
                           );
                         })}
-                      </ul>
+                      </div>
                     </div>
                   )}
-                </React.Fragment>
+                </div>
               );
             })}
-          </ul>
+          </div>
         </>
       )}
-    </div>
+    </Card>
   );
 };
 
