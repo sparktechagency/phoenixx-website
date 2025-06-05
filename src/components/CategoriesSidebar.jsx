@@ -20,6 +20,7 @@ const CategoriesSidebar = ({ onSelectCategory, selectedCategory, selectedSubCate
 
   const { data: categoryData, isLoading: categoryLoading } = useCategoriesQuery();
   const categories = categoryData?.data?.result || [];
+  console.log(categories)
   const { isDarkMode } = useContext(ThemeContext);
 
   useEffect(() => {
@@ -101,7 +102,7 @@ const CategoriesSidebar = ({ onSelectCategory, selectedCategory, selectedSubCate
   const getButtonStyle = (isSelected) => ({
     width: '100%',
     height: 'auto',
-    padding: isMobile ? '8px 12px' : '12px 16px',
+    padding: isMobile ? '8px 12px' : '8px 16px',
     marginBottom: 4,
     display: 'flex',
     justifyContent: 'flex-start',
@@ -120,14 +121,16 @@ const CategoriesSidebar = ({ onSelectCategory, selectedCategory, selectedSubCate
   });
 
   const renderCategoryAvatar = (category, isSelected) => {
-    if (category?.image) {
+    const imageUrl = isDarkMode && category.darkImage ? category.darkImage : category.image;
+
+    if (imageUrl) {
       return (
         <Avatar
-        shape='square'
+          shape='square'
           size={isMobile ? 32 : 40}
           src={
             <Image
-              src={`${baseURL}${category.image}`}
+              src={`${baseURL}${imageUrl}`}
               alt={category?.name || "Category image"}
               width={isMobile ? 32 : 40}
               height={isMobile ? 32 : 40}
@@ -147,7 +150,7 @@ const CategoriesSidebar = ({ onSelectCategory, selectedCategory, selectedSubCate
 
     return (
       <Avatar
-      shape='square'
+        shape='square'
         size={isMobile ? 32 : 40}
         icon={<UnorderedListOutlined />}
         style={{
@@ -163,14 +166,16 @@ const CategoriesSidebar = ({ onSelectCategory, selectedCategory, selectedSubCate
   };
 
   const renderSubcategoryAvatar = (subcategory, isSelected) => {
-    if (subcategory?.image) {
+    const imageUrl = isDarkMode && subcategory.darkImage ? subcategory.darkImage : subcategory.image;
+
+    if (imageUrl) {
       return (
         <Avatar
           shape='square'
           size={28}
           src={
             <Image
-              src={`${baseURL}${subcategory.image}`}
+              src={`${baseURL}${imageUrl}`}
               alt={subcategory?.name || "Subcategory image"}
               width={28}
               height={28}
@@ -190,7 +195,7 @@ const CategoriesSidebar = ({ onSelectCategory, selectedCategory, selectedSubCate
 
     return (
       <Avatar
-      shape='square'
+        shape='square'
         size={28}
         style={{
           border: `1px solid ${isDarkMode
@@ -214,10 +219,9 @@ const CategoriesSidebar = ({ onSelectCategory, selectedCategory, selectedSubCate
         position: isMobile ? 'static' : 'sticky',
         top: isMobile ? 'auto' : 80,
         width: '100%',
+        padding: 0,
       }}
-      bodyStyle={{
-        padding: isMobile ? '16px' : '24px',
-      }}
+
     >
       <Title
         level={isMobile ? 4 : 3}
@@ -228,7 +232,7 @@ const CategoriesSidebar = ({ onSelectCategory, selectedCategory, selectedSubCate
 
       {categoryLoading ? (
         <div style={{ textAlign: 'center', padding: '20px 0' }}>
-          <Spin size="large" />
+          <Spin size="small" />
         </div>
       ) : (
         <>
@@ -240,7 +244,7 @@ const CategoriesSidebar = ({ onSelectCategory, selectedCategory, selectedSubCate
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%' }}>
               <Avatar
-              shape='square'
+                shape='square'
                 size={isMobile ? 32 : 40}
                 icon={<UnorderedListOutlined />}
                 style={{
