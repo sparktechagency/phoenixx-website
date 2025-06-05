@@ -1,11 +1,9 @@
 import { useDeleteAccountMutation } from '@/features/profile/profileApi';
 import { Button, Input, Modal } from 'antd';
 import { useRouter } from 'next/navigation';
-import { useState, useContext } from 'react';
+import { useContext, useState } from 'react';
 import toast from 'react-hot-toast';
 import { ThemeContext } from '../app/ClientLayout';
-
-
 
 const CloseAccountSection = () => {
   const [password, setPassword] = useState('');
@@ -23,6 +21,11 @@ const CloseAccountSection = () => {
   };
 
   const handleAccountDeletion = async () => {
+    if (!password) {
+      toast.error('Please enter your password');
+      return;
+    }
+
     try {
       await deleteAccount({ password: password }).unwrap();
       toast.success("Your Account deleted successfully")
@@ -57,13 +60,14 @@ const CloseAccountSection = () => {
         okText="Delete Account"
         cancelText="Cancel"
         okButtonProps={{ danger: true }}
-        className={isDarkMode ? 'dark-modal' : ''} // Add this if you have custom dark mode modal styles
+        className={isDarkMode ? 'dark-modal' : ''}
       >
         <Input.Password
           placeholder="Enter your password"
           value={password}
           onChange={handlePasswordChange}
           className={isDarkMode ? 'bg-gray-700 text-white border-gray-600' : ''}
+          required
         />
       </Modal>
     </div>
