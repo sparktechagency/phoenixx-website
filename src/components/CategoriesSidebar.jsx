@@ -20,7 +20,8 @@ const CategoriesSidebar = ({ onSelectCategory, selectedCategory, selectedSubCate
 
   const { data: categoryData, isLoading: categoryLoading } = useCategoriesQuery();
   const categories = categoryData?.data?.result || [];
-  console.log(categories)
+  const reversedCategories = [...categories].reverse(); // Reverse the categories array
+  console.log(reversedCategories)
   const { isDarkMode } = useContext(ThemeContext);
 
   useEffect(() => {
@@ -45,10 +46,10 @@ const CategoriesSidebar = ({ onSelectCategory, selectedCategory, selectedSubCate
   const isMobile = windowSize.width < 640;
   const isTablet = windowSize.width >= 640 && windowSize.width < 1024;
 
-  const getTotalPosts = () => categories.reduce((total, item) => total + (item.category.postCount || 0), 0);
+  const getTotalPosts = () => reversedCategories.reduce((total, item) => total + (item.category.postCount || 0), 0);
 
   const handleCategoryClick = (categoryId) => {
-    const category = categories.find(item => item.category._id === categoryId);
+    const category = reversedCategories.find(item => item.category._id === categoryId);
     const hasSubcategories = category?.subcategories?.length > 0;
 
     // Always select the category first to show its posts
@@ -288,7 +289,7 @@ const CategoriesSidebar = ({ onSelectCategory, selectedCategory, selectedSubCate
 
           {/* Categories List */}
           <div style={{ marginTop: 16 }}>
-            {categories.map((item) => {
+            {reversedCategories.map((item) => {
               const category = item.category;
               const subcategories = item.subcategories || [];
               const hasSubcategories = subcategories.length > 0;
