@@ -11,6 +11,8 @@ import moment from 'moment';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { ThemeContext } from './ClientLayout';
+import { LoadingSkeleton } from '../components/LoadingSkeleton';
+import { NotFound } from '../components/NotFound';
 
 const HomePage = () => {
   // Hooks and context
@@ -238,97 +240,9 @@ const HomePage = () => {
     router.push(pathname, { scroll: false });
   }, [router, pathname]);
 
-  // Component definitions
-  const LoadingSkeleton = () => (
-    <div className={`${isDarkMode ? 'dark-mode' : 'light-mode'}`}>
-      <div className="h-64 bg-gray-200 dark:bg-gray-700"></div>
-      <main className="container mx-auto px-4 py-6">
-        <div className="flex gap-5">
-          <div className="hidden lg:block w-3/12 pr-6 sticky top-20 self-start">
-            <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-4">
-              <div className="h-6 w-3/4 bg-gray-300 dark:bg-gray-600 rounded mb-4"></div>
-              {[...Array(5)].map((_, i) => (
-                <div key={i} className="mb-3">
-                  <div className="h-4 w-full bg-gray-300 dark:bg-gray-600 rounded mb-2"></div>
-                  <div className="h-4 w-5/6 bg-gray-300 dark:bg-gray-600 rounded"></div>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="w-full lg:w-6/12">
-            <div className="flex justify-between items-center mb-6">
-              <div className="h-8 w-24 bg-gray-200 dark:bg-gray-700 rounded"></div>
-              <div className="flex gap-2">
-                {[...Array(3)].map((_, i) => (
-                  <div key={i} className="h-8 w-8 bg-gray-200 dark:bg-gray-700 rounded-full"></div>
-                ))}
-              </div>
-            </div>
-            <div className="grid grid-cols-1 gap-6">
-              {[...Array(5)].map((_, i) => (
-                <div key={i} className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
-                  <div className="flex items-center mb-4">
-                    <div className="h-10 w-10 bg-gray-300 dark:bg-gray-600 rounded-full mr-3"></div>
-                    <div>
-                      <div className="h-4 w-24 bg-gray-300 dark:bg-gray-600 rounded mb-2"></div>
-                      <div className="h-3 w-16 bg-gray-200 dark:bg-gray-700 rounded"></div>
-                    </div>
-                  </div>
-                  <div className="mb-4">
-                    <div className="h-5 w-full bg-gray-300 dark:bg-gray-600 rounded mb-3"></div>
-                    <div className="h-4 w-5/6 bg-gray-300 dark:bg-gray-600 rounded mb-2"></div>
-                    <div className="h-4 w-2/3 bg-gray-300 dark:bg-gray-600 rounded"></div>
-                  </div>
-                  <div className="h-48 bg-gray-200 dark:bg-gray-700 rounded-lg mb-4"></div>
-                  <div className="flex justify-between">
-                    <div className="h-6 w-16 bg-gray-200 dark:bg-gray-700 rounded"></div>
-                    <div className="flex gap-4">
-                      {[...Array(3)].map((_, i) => (
-                        <div key={i} className="h-6 w-6 bg-gray-200 dark:bg-gray-700 rounded-full"></div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </main>
-    </div>
-  );
+  
 
-  const EmptyState = () => (
-    <Card className="text-center bg-white dark:bg-gray-800">
-      <div className="flex flex-col items-center justify-center py-5 px-6 text-center">
-        <div className="mb-6">
-          <svg
-            width="120"
-            height="120"
-            viewBox="0 0 120 120"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            className={isDarkMode ? "text-gray-400" : "text-gray-300"}
-          >
-            <circle cx="60" cy="60" r="50" fill="currentColor" opacity="0.1" />
-            <rect x="35" y="45" width="40" height="50" rx="4" fill="currentColor" opacity="0.2" />
-            <rect x="40" y="40" width="40" height="50" rx="4" fill="currentColor" opacity="0.3" />
-            <rect x="45" y="35" width="40" height="50" rx="4" fill="currentColor" opacity="0.4" />
-            <circle cx="75" cy="45" r="12" stroke="currentColor" strokeWidth="3" fill="none" opacity="0.6" />
-            <line x1="84" y1="54" x2="95" y2="65" stroke="currentColor" strokeWidth="3" opacity="0.6" />
-            <circle cx="60" cy="55" r="2" fill="currentColor" opacity="0.5" />
-            <circle cx="70" cy="55" r="2" fill="currentColor" opacity="0.5" />
-            <path d="M55 65 Q65 60 75 65" stroke="currentColor" strokeWidth="2" fill="none" opacity="0.5" />
-          </svg>
-        </div>
-        <h3 className={`text-lg font-medium mb-2 ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
-          No posts found
-        </h3>
-        <p className={`text-sm mb-6 max-w-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-          There are no posts to display at the moment. Check back later or try adjusting your search criteria.
-        </p>
-      </div>
-    </Card>
-  );
+  
 
   const PostsGrid = () => (
     <div
@@ -384,10 +298,8 @@ const HomePage = () => {
   // Loading and error states
   if (isLoading) return <LoadingSkeleton />;
   if (error) return (
-    <div className="flex justify-center items-center h-screen">
-      <Card className="text-center">
-        <EmptyState />
-      </Card>
+    <div className="flex justify-center items-center h-[800px]">
+        <NotFound />
     </div>
   );
 
