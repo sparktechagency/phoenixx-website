@@ -27,7 +27,7 @@ const PostCardHeader = ({
       <div className={`${isMobile ? 'w-6 h-6' : 'w-8 h-8'} rounded-full ${isDarkMode ? 'bg-gray-600' : 'bg-gray-300'
         } flex items-center justify-center text-xs ${isDarkMode ? 'text-gray-200' : 'text-white'
         }`}>
-        {postData.author.username?.charAt(0).toUpperCase() || 'A'}
+        {postData.author.name?.charAt(0).toUpperCase() || 'A'}
       </div>
     )
   );
@@ -45,7 +45,7 @@ const PostCardHeader = ({
               ? 'text-gray-200 hover:text-blue-400'
               : 'text-gray-800 hover:text-blue-600'
             }`}>
-            {postData.author.username || postData.author.name}
+            {postData.author.name ? postData.author.name : postData.author.username}
           </span>
           <span className={`${isMobile ? 'text-xs' : 'text-sm'} ${isDarkMode ? 'text-gray-400' : 'text-gray-500'
             }`}>

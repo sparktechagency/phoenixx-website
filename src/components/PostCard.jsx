@@ -47,6 +47,7 @@ const PostCard = ({
   onRepost,
   currentUser = {}
 }) => {
+
   const router = useRouter();
   const [commentText, setCommentText] = useState('');
   const [showReportModal, setShowReportModal] = useState(false);
@@ -215,6 +216,9 @@ const PostCard = ({
     }
   }, [handleSaveUnsave]);
 
+
+
+
   const renderAuthorAvatar = useMemo(() => (
     postData.author.avatar ? (
       <img
@@ -231,27 +235,29 @@ const PostCard = ({
     )
   ), [postData.author, isMobile, isDarkMode]);
 
-  const renderContent = useMemo(() => (
-    <div className={`mb-3 ${isMobile ? 'text-sm' : 'text-base'} ${isDarkMode ? 'text-gray-300' : 'text-gray-800'
-      }`}>
-      {postData.content?.replace(/<[^>]+>/g, '')?.split(' ')?.length > 20 ? (
+  const renderContent = useMemo(() => {
+    if (!postData.content) return null;
+
+    // First remove "Powered by Froala Editor" completely
+    let cleanedContent = postData.content.replace(/Powered by Froala Editor/gi, '');
+
+    // Then remove all HTML tags
+    cleanedContent = cleanedContent.replace(/<[^>]+>/g, '');
+
+    // Handle the word count logic
+    if (cleanedContent.split(' ').length > 20) {
+      return (
         <>
-          {postData.content.replace(/<[^>]+>/g, '').split(' ').slice(0, 20).join(' ')}...
-          <button
-            className={`${isDarkMode
-              ? 'text-blue-400 hover:text-blue-300'
-              : 'text-blue-600 hover:text-blue-800'
-              } cursor-pointer font-medium ml-1`}
-            onClick={handleCommentClick}
-          >
+          {cleanedContent.split(' ').slice(0, 20).join(' ')}...
+          <span onClick={handleCommentClick} style={{ color: isDarkMode ? 'lightblue' : 'blue', cursor: 'pointer' }}>
             See more
-          </button>
+          </span>
         </>
-      ) : (
-        postData.content.replace(/(Powered by Froala Editor|<[^>]+>)/g, '')
-      )}
-    </div>
-  ), [postData.content, isMobile, handleCommentClick, isDarkMode]);
+      );
+    }
+
+    return cleanedContent;
+  }, [postData.content, isMobile, handleCommentClick, isDarkMode]);
 
   const renderTags = useMemo(() => (
     postData.tags?.length > 0 && (

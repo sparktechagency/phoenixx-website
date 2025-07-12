@@ -108,20 +108,21 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
     placeholderText: 'Write your post description here...',
     heightMin: isMobile ? 300 : 400,
     toolbarButtons: [
-      ['bold', 'italic', 'underline', 'formatOL', 'formatUL', 'insertImage', 'emoticons']
+      ['bold', 'italic', 'underline',]
     ],
     pluginsEnabled: ['lists', 'emoticons', 'image'],
     quickInsertTags: [],
+
+    // Enhanced list configuration for numbered lists
     listAdvancedTypes: true,
     listStyles: {
-      'fr-list-style-1': 'Circle',
-      'fr-list-style-2': 'Square',
-      'fr-list-style-3': 'Decimal',
-      'fr-list-style-4': 'Lower Alpha',
-      'fr-list-style-5': 'Upper Alpha',
-      'fr-list-style-6': 'Lower Roman',
-      'fr-list-style-7': 'Upper Roman'
+      'fr-list-style-1': 'Circle',           // • (bullet)
+      'fr-list-style-3': 'Decimal'           // 1, 2, 3, 4, 5... (standard numbers)
     },
+
+    // Additional list options for better numbered list control
+
+
     theme: isDarkMode ? 'dark' : 'default',
     colorsBackground: isDarkMode ?
       ['#1f2937', '#111827', '#374151', '#4b5563', '#6b7280'] :
@@ -167,6 +168,11 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
           if (isDarkMode) {
             this.$el.addClass('fr-dark-mode');
             this.$tb.addClass('fr-dark-mode');
+          }
+
+          // Force refresh list styles to remove cached ones
+          if (this.lists) {
+            this.lists.refresh();
           }
         } catch (error) {
           console.error('Error in editor initialization:', error);
