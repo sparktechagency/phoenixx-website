@@ -68,11 +68,11 @@
 }
 
 
-
+/* 
 @theme {
   --color-primary: #0001FB;
   --color-secondary: #000000;
-}
+} */
 
 /* Add to your global CSS */
 .subcategory-enter {
@@ -102,3 +102,147 @@
 }
 
 
+
+
+/* Froala Dark Mode Full Overrides */
+.fr-box.fr-dark .fr-wrapper {
+  background-color: #1f2937 !important;
+}
+
+.fr-box.fr-dark .fr-element {
+  color: #e5e7eb !important;
+  background-color: #1f2937 !important;
+}
+
+.fr-box.fr-dark .fr-element p,
+.fr-box.fr-dark .fr-element h1,
+.fr-box.fr-dark .fr-element h2,
+.fr-box.fr-dark .fr-element h3,
+.fr-box.fr-dark .fr-element h4,
+.fr-box.fr-dark .fr-element h5,
+.fr-box.fr-dark .fr-element h6,
+.fr-box.fr-dark .fr-element li,
+.fr-box.fr-dark .fr-element a {
+  color: #e5e7eb !important;
+}
+
+.fr-box.fr-dark .fr-placeholder {
+  color: #9ca3af !important;
+}
+
+.fr-box.fr-dark .fr-toolbar {
+  background-color: #111827 !important;
+  border-color: #374151 !important;
+}
+
+.fr-box.fr-dark .fr-second-toolbar {
+  background-color: #111827 !important;
+  border-color: #374151 !important;
+}
+
+.fr-box.fr-dark .fr-modal .fr-modal-wrapper .fr-modal-body {
+  background-color: #1f2937 !important;
+  color: #e5e7eb !important;
+}
+
+.fr-box.fr-dark .fr-modal .fr-modal-wrapper .fr-modal-header {
+  background-color: #111827 !important;
+  border-color: #374151 !important;
+  color: #e5e7eb !important;
+}
+
+
+/* Chat list animations */
+@keyframes slideOut {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+
+  to {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.chat-item {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.chat-item.deleting {
+  animation: slideOut 0.3s ease-in forwards;
+}
+
+/* Pulse animation for unread messages */
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.1);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-pulse {
+  animation: pulse 1.5s infinite;
+}
+
+
+
+/* Hide Froala watermark - try all of these */
+.fr-wrapper a[href*="froala"] {
+  display: none !important;
+}
+
+.fr-wrapper .fr-counter {
+  display: none !important;
+}
+
+.fr-wrapper div[style*="text-align: right"] {
+  display: none !important;
+}
+
+/* More aggressive hiding */
+.fr-wrapper>div:last-child {
+  display: none !important;
+}
+
+/* Hide any link containing "froala" */
+a[href*="froala.com"] {
+  display: none !important;
+}
+
+
+
+
+/* Fix 1: Remove border-radius */
+
+
+/* Fix 3: Fix box-shadow if it's hiding corners */
+.fr-wrapper {
+  box-shadow: none !important;
+  border: 1px solid #ddd !important;
+}
+
+/* Fix 4: Complete border styling */
+.fr-element {
+  border: 1px solid #ccc !important;
+  border-radius: 4px !important
+}

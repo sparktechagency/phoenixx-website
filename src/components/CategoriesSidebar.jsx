@@ -1,429 +1,242 @@
 "use client";
 
 import { useCategoriesQuery } from '@/features/Category/CategoriesApi';
-import { DownOutlined, UnorderedListOutlined } from '@ant-design/icons';
-import { Avatar, Button, Card, Collapse, Spin, Typography } from 'antd';
+import { UnorderedListOutlined } from '@ant-design/icons';
+import { ChevronDown } from 'lucide-react';
 import Image from 'next/image';
-import { useContext, useEffect, useState } from 'react';
+import { useContext, useMemo, useState } from 'react';
 import { baseURL } from '../../utils/BaseURL';
 import { ThemeContext } from '../app/ClientLayout';
 
-const { Title, Text } = Typography;
-const { Panel } = Collapse;
-
 const CategoriesSidebar = ({ onSelectCategory, selectedCategory, selectedSubCategory }) => {
-  const [expandedKeys, setExpandedKeys] = useState([]);
-  const [windowSize, setWindowSize] = useState({
-    width: typeof window !== 'undefined' ? window.innerWidth : 0,
-    height: typeof window !== 'undefined' ? window.innerHeight : 0
-  });
-
-  const { data: categoryData, isLoading: categoryLoading } = useCategoriesQuery();
-  const categories = categoryData?.data?.result || [];
-  const reversedCategories = [...categories].reverse(); // Reverse the categories array
-  console.log(reversedCategories)
+  const [expandedCategories, setExpandedCategories] = useState({});
   const { isDarkMode } = useContext(ThemeContext);
+  const { data: categoryData, isLoading: categoryLoading } = useCategoriesQuery();
 
-  useEffect(() => {
-    const handleResize = () => {
-      setWindowSize({
-        width: window.innerWidth,
-        height: window.innerHeight
-      });
-    };
+  // Memoize derived data
+  const { categories, totalPosts } = useMemo(() => {
+    const categories = categoryData?.data?.result || [];
+    const reversedCategories = [...categories].reverse();
+    const total = reversedCategories.reduce((total, item) => total + (item.category.postCount || 0), 0);
+    return { categories: reversedCategories, totalPosts: total };
+  }, [categoryData]);
 
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  const toggleCategory = (categoryId) => {
+    setExpandedCategories(prev => ({
+      ...prev,
+      [categoryId]: !prev[categoryId]
+    }));
+  };
 
-  // Auto-expand parent category when subcategory is selected
-  useEffect(() => {
-    if (selectedSubCategory && selectedCategory && !expandedKeys.includes(selectedCategory)) {
-      setExpandedKeys(prev => [...prev, selectedCategory]);
-    }
-  }, [selectedCategory, selectedSubCategory, expandedKeys]);
-
-  const isMobile = windowSize.width < 640;
-  const isTablet = windowSize.width >= 640 && windowSize.width < 1024;
-
-  const getTotalPosts = () => reversedCategories.reduce((total, item) => total + (item.category.postCount || 0), 0);
-
-  const handleCategoryClick = (categoryId) => {
-    const category = reversedCategories.find(item => item.category._id === categoryId);
+  const selectCategory = (categoryId) => {
+    const category = categories.find(item => item.category._id === categoryId);
     const hasSubcategories = category?.subcategories?.length > 0;
 
-    // Always select the category first to show its posts
     onSelectCategory(categoryId, "");
 
-    // Toggle expand if has subcategories
     if (hasSubcategories) {
-      toggleExpand(categoryId);
+      setTimeout(() => {
+        toggleCategory(categoryId);
+      }, 0);
     }
   };
 
-  const toggleExpand = (key) => {
-    setExpandedKeys(prev => prev.includes(key)
-      ? prev.filter(k => k !== key)
-      : [...prev, key]
-    );
-  };
-
-  const handleExpandClick = (categoryId, event) => {
-    event.stopPropagation();
-    toggleExpand(categoryId);
-  };
-
-  const handleSubcategoryClick = (categoryId, subcategoryId, event) => {
-    event.stopPropagation();
+  const selectSubcategory = (categoryId, subcategoryId) => {
     onSelectCategory(categoryId, subcategoryId);
   };
 
   const handleShowAllPosts = () => {
     onSelectCategory("", "");
+    setExpandedCategories({});
   };
 
-  // Custom styles for dark mode
-  const cardStyle = {
-    backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
-    borderColor: isDarkMode ? '#374151' : '#d1d5db',
-  };
-
-  const titleStyle = {
-    color: isDarkMode ? '#e5e7eb' : '#1f2937',
-    marginBottom: 16,
-  };
-
-  const getButtonType = (isSelected) => {
+  const getCategoryIconContainerStyle = (isSelected) => {
     if (isSelected) {
-      return 'primary';
+      return 'shadow-sm';
     }
-    return 'text';
+    return isDarkMode ? 'bg-gray-700' : 'bg-gray-100';
   };
 
-  const getButtonStyle = (isSelected) => ({
-    width: '100%',
-    height: 'auto',
-    padding: isMobile ? '8px 12px' : '8px 16px',
-    marginBottom: 4,
-    display: 'flex',
-    justifyContent: 'flex-start',
-    alignItems: 'center',
-    textAlign: 'left',
-    backgroundColor: isSelected
-      ? (isDarkMode ? '#1d4ed8' : '#3b82f6')
-      : (isDarkMode ? 'transparent' : 'transparent'),
-    borderColor: isSelected
-      ? (isDarkMode ? '#1d4ed8' : '#3b82f6')
-      : 'transparent',
-    color: isSelected
-      ? '#ffffff'
-      : (isDarkMode ? '#e5e7eb' : '#374151'),
-    borderLeft: isSelected ? `4px solid ${isDarkMode ? '#60a5fa' : '#3b82f6'}` : 'none',
-  });
+  const getSubcategoryIconContainerStyle = (isSelected) => {
+    if (isSelected) {
+      return isDarkMode ? 'bg-blue-500' : 'bg-blue-100';
+    }
+    return isDarkMode ? 'bg-gray-700' : 'bg-gray-100';
+  };
 
-  const renderCategoryAvatar = (category, isSelected) => {
+  const renderCategoryIcon = (category, isSelected) => {
     const imageUrl = isDarkMode && category.darkImage ? category.darkImage : category.image;
 
-    if (imageUrl) {
-      return (
-        <Avatar
-          shape='square'
-          size={isMobile ? 32 : 40}
-          src={
-            <Image
-              src={`${baseURL}${imageUrl}`}
-              alt={category?.name || "Category image"}
-              width={isMobile ? 32 : 40}
-              height={isMobile ? 32 : 40}
-              style={{ objectFit: 'contain' }}
-            />
-          }
-          style={{
-            border: `1px solid ${isDarkMode
-              ? (isSelected ? '#60a5fa' : '#4b5563')
-              : (isSelected ? '#3b82f6' : '#d1d5db')
-              }`,
-            backgroundColor: isDarkMode ? '#374151' : '#f3f4f6',
-          }}
+    return imageUrl ? (
+      <div className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-200 ${getCategoryIconContainerStyle(isSelected)}`}>
+        <Image
+          src={`${baseURL}${imageUrl}`}
+          alt={category?.name || "Category image"}
+          width={18}
+          height={18}
+          className="object-contain"
         />
-      );
-    }
-
-    return (
-      <Avatar
-        shape='square'
-        size={isMobile ? 32 : 40}
-        icon={<UnorderedListOutlined />}
-        style={{
-          border: `1px solid ${isDarkMode
-            ? (isSelected ? '#60a5fa' : '#4b5563')
-            : (isSelected ? '#3b82f6' : '#d1d5db')
-            }`,
-          backgroundColor: isDarkMode ? '#374151' : '#f3f4f6',
-          color: isDarkMode ? '#e5e7eb' : '#374151',
-        }}
-      />
+      </div>
+    ) : (
+      <div className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-200 ${getCategoryIconContainerStyle(isSelected)} ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+        <UnorderedListOutlined size={18} />
+      </div>
     );
   };
 
-  const renderSubcategoryAvatar = (subcategory, isSelected) => {
+  const renderSubcategoryIcon = (subcategory, isSelected) => {
     const imageUrl = isDarkMode && subcategory.darkImage ? subcategory.darkImage : subcategory.image;
 
-    if (imageUrl) {
-      return (
-        <Avatar
-          shape='square'
-          size={28}
-          src={
-            <Image
-              src={`${baseURL}${imageUrl}`}
-              alt={subcategory?.name || "Subcategory image"}
-              width={28}
-              height={28}
-              style={{ objectFit: 'contain' }}
-            />
-          }
-          style={{
-            border: `1px solid ${isDarkMode
-              ? (isSelected ? '#60a5fa' : '#4b5563')
-              : (isSelected ? '#3b82f6' : '#d1d5db')
-              }`,
-            backgroundColor: isDarkMode ? '#374151' : '#f3f4f6',
-          }}
+    return imageUrl ? (
+      <div className={`w-8 h-8 rounded-md flex items-center justify-center ${getSubcategoryIconContainerStyle(isSelected)}`}>
+        <Image
+          src={`${baseURL}${imageUrl}`}
+          alt={subcategory?.name || "Subcategory image"}
+          width={16}
+          height={16}
+          className="object-contain"
         />
-      );
-    }
-
-    return (
-      <Avatar
-        shape='square'
-        size={28}
-        style={{
-          border: `1px solid ${isDarkMode
-            ? (isSelected ? '#60a5fa' : '#4b5563')
-            : (isSelected ? '#3b82f6' : '#d1d5db')
-            }`,
-          backgroundColor: isDarkMode ? '#374151' : '#f3f4f6',
-          color: isDarkMode ? '#e5e7eb' : '#374151',
-          fontSize: '12px',
-        }}
-      >
+      </div>
+    ) : (
+      <div className={`w-8 h-8 rounded-md flex items-center justify-center ${getSubcategoryIconContainerStyle(isSelected)} text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
         {subcategory.name?.charAt(0)}
-      </Avatar>
+      </div>
     );
   };
 
+  const getItemStyle = (isSelected) => {
+    if (isSelected) {
+      return isDarkMode
+        ? 'bg-blue-600 text-white'
+        : 'bg-blue-50 text-blue-700 border border-blue-200';
+    }
+    return isDarkMode
+      ? 'hover:bg-gray-700 text-gray-200'
+      : 'hover:bg-gray-50 text-gray-700';
+  };
+
+  const getTextStyle = (isSelected) => {
+    if (isSelected) {
+      return isDarkMode ? 'text-white' : 'text-blue-700';
+    }
+    return isDarkMode ? 'text-gray-200' : 'text-gray-900';
+  };
+
+  const getSecondaryTextStyle = (isSelected) => {
+    if (isSelected) {
+      return isDarkMode ? 'text-blue-100' : 'text-blue-600';
+    }
+    return isDarkMode ? 'text-gray-400' : 'text-gray-500';
+  };
+
+  if (categoryLoading) {
+    return (
+      <div className={`rounded-2xl p-4 ${isDarkMode ? 'bg-gray-800' : 'bg-white'} shadow-sm border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} h-fit`}>
+        <div className="w-full h-full bg-gray-200 dark:bg-gray-700 animate-pulse rounded-xl"></div>
+      </div>
+    );
+  }
+
   return (
-    <Card
-      style={{
-        ...cardStyle,
-        position: isMobile ? 'static' : 'sticky',
-        top: isMobile ? 'auto' : 80,
-        width: '100%',
-        padding: 0,
-      }}
-
-    >
-      <Title
-        level={isMobile ? 4 : 3}
-        style={titleStyle}
-      >
+    <div className={`rounded-2xl p-4 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} shadow-sm border h-fit`}>
+      <h2 className={`text-xl font-semibold mb-6 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
         Categories
-      </Title>
+      </h2>
 
-      {categoryLoading ? (
-        <div style={{ textAlign: 'center', padding: '20px 0' }}>
-          <Spin size="small" />
-        </div>
-      ) : (
-        <>
-          {/* All Posts Button */}
-          <Button
-            type={getButtonType(!selectedCategory && !selectedSubCategory)}
-            style={getButtonStyle(!selectedCategory && !selectedSubCategory)}
-            onClick={handleShowAllPosts}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%' }}>
-              <Avatar
-                shape='square'
-                size={isMobile ? 32 : 40}
-                icon={<UnorderedListOutlined />}
-                style={{
-                  border: `1px solid ${isDarkMode
-                    ? (!selectedCategory && !selectedSubCategory ? '#60a5fa' : '#4b5563')
-                    : (!selectedCategory && !selectedSubCategory ? '#3b82f6' : '#d1d5db')
-                    }`,
-                  backgroundColor: !selectedCategory && !selectedSubCategory
-                    ? (isDarkMode ? '#1d4ed8' : '#3b82f6')
-                    : (isDarkMode ? '#374151' : '#f3f4f6'),
-                  color: !selectedCategory && !selectedSubCategory
-                    ? '#ffffff'
-                    : (isDarkMode ? '#e5e7eb' : '#374151'),
-                }}
-              />
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', flex: 1 }}>
-                <Text
-                  strong
-                  style={{
-                    color: !selectedCategory && !selectedSubCategory
-                      ? '#ffffff'
-                      : (isDarkMode ? '#e5e7eb' : '#374151'),
-                    fontSize: isMobile ? '14px' : '16px',
-                  }}
-                >
-                  All Posts
-                </Text>
-                <Text
-                  style={{
-                    color: !selectedCategory && !selectedSubCategory
-                      ? 'rgba(255, 255, 255, 0.8)'
-                      : (isDarkMode ? '#9ca3af' : '#6b7280'),
-                    fontSize: '12px',
-                  }}
-                >
-                  {getTotalPosts()} Posts
-                </Text>
-              </div>
+      <div className="space-y-2">
+        {/* All Posts Button */}
+        <div
+          onClick={handleShowAllPosts}
+          className={`flex items-center justify-between p-2 rounded-lg cursor-pointer transition-all duration-200 ${getItemStyle(!selectedCategory && !selectedSubCategory)}`}
+        >
+          <div className="flex items-center space-x-3">
+            {renderCategoryIcon({ name: 'All Posts' }, !selectedCategory && !selectedSubCategory)}
+            <div className="min-w-0 flex-1">
+              <h3 className={`font-medium text-sm leading-tight ${getTextStyle(!selectedCategory && !selectedSubCategory)}`}>
+                All Posts
+              </h3>
+              <p className={`text-xs leading-tight mt-0.5 ${getSecondaryTextStyle(!selectedCategory && !selectedSubCategory)}`}>
+                {totalPosts.toLocaleString()} Posts
+              </p>
             </div>
-          </Button>
-
-          {/* Categories List */}
-          <div style={{ marginTop: 16 }}>
-            {reversedCategories.map((item) => {
-              const category = item.category;
-              const subcategories = item.subcategories || [];
-              const hasSubcategories = subcategories.length > 0;
-              const key = category._id;
-              const isSelected = selectedCategory === category._id && !selectedSubCategory;
-              const isExpanded = expandedKeys.includes(key);
-
-              return (
-                <div key={key} style={{ marginBottom: 4 }}>
-                  {/* Category Button */}
-                  <Button
-                    type={getButtonType(isSelected)}
-                    style={getButtonStyle(isSelected)}
-                    onClick={() => handleCategoryClick(category._id)}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1 }}>
-                        {renderCategoryAvatar(category, isSelected)}
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', flex: 1 }}>
-                          <Text
-                            strong
-                            style={{
-                              color: isSelected
-                                ? '#ffffff'
-                                : (isDarkMode ? '#e5e7eb' : '#374151'),
-                              fontSize: isMobile ? '14px' : '16px',
-                            }}
-                          >
-                            {category.name}
-                          </Text>
-                          <Text
-                            style={{
-                              color: isSelected
-                                ? 'rgba(255, 255, 255, 0.8)'
-                                : (isDarkMode ? '#9ca3af' : '#6b7280'),
-                              fontSize: '12px',
-                            }}
-                          >
-                            {category.postCount || 0} Posts
-                          </Text>
-                        </div>
-                      </div>
-                      {hasSubcategories && (
-                        <Button
-                          type="text"
-                          size="small"
-                          icon={
-                            <DownOutlined
-                              style={{
-                                transform: isExpanded ? 'rotate(0deg)' : 'rotate(-90deg)',
-                                transition: 'transform 0.2s',
-                                color: isSelected
-                                  ? '#ffffff'
-                                  : (isDarkMode ? '#9ca3af' : '#6b7280'),
-                              }}
-                            />
-                          }
-                          onClick={(e) => handleExpandClick(category._id, e)}
-                          style={{
-                            border: 'none',
-                            boxShadow: 'none',
-                            backgroundColor: 'transparent',
-                          }}
-                        />
-                      )}
-                    </div>
-                  </Button>
-
-                  {/* Subcategories */}
-                  {hasSubcategories && (
-                    <div
-                      style={{
-                        overflow: 'hidden',
-                        maxHeight: isExpanded ? '1000px' : '0px',
-                        opacity: isExpanded ? 1 : 0,
-                        transition: 'all 0.3s ease-in-out',
-                        paddingLeft: 32,
-                      }}
-                    >
-                      <div style={{ paddingTop: 4, paddingBottom: 8 }}>
-                        {subcategories.map((subcategory) => {
-                          const isSubSelected = selectedSubCategory === subcategory._id && selectedCategory === category._id;
-
-                          return (
-                            <Button
-                              key={subcategory._id}
-                              type={getButtonType(isSubSelected)}
-                              style={{
-                                ...getButtonStyle(isSubSelected),
-                                height: 'auto',
-                                padding: '8px 12px',
-                                fontSize: '14px',
-                              }}
-                              onClick={(e) => handleSubcategoryClick(category._id, subcategory._id, e)}
-                            >
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%' }}>
-                                {renderSubcategoryAvatar(subcategory, isSubSelected)}
-                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', flex: 1 }}>
-                                  <Text
-                                    strong
-                                    style={{
-                                      color: isSubSelected
-                                        ? '#ffffff'
-                                        : (isDarkMode ? '#e5e7eb' : '#374151'),
-                                      fontSize: '14px',
-                                    }}
-                                  >
-                                    {subcategory.name}
-                                  </Text>
-                                  <Text
-                                    style={{
-                                      color: isSubSelected
-                                        ? 'rgba(255, 255, 255, 0.8)'
-                                        : (isDarkMode ? '#9ca3af' : '#6b7280'),
-                                      fontSize: '12px',
-                                    }}
-                                  >
-                                    {subcategory.postCount || 0} Posts
-                                  </Text>
-                                </div>
-                              </div>
-                            </Button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
           </div>
-        </>
-      )}
-    </Card>
+        </div>
+
+        {/* Categories List */}
+        {categories.map((item) => {
+          const category = item.category;
+          const subcategories = item.subcategories || [];
+          const hasSubcategories = subcategories.length > 0;
+          const isExpanded = expandedCategories[category._id];
+          const isSelected = selectedCategory === category._id && !selectedSubCategory;
+
+          return (
+            <div key={category._id}>
+              <div
+                onClick={() => selectCategory(category._id)}
+                className={`flex items-center justify-between p-2 rounded-lg cursor-pointer transition-all duration-200 ${getItemStyle(isSelected)}`}
+              >
+                <div className="flex items-center space-x-3">
+                  {renderCategoryIcon(category, isSelected)}
+                  <div className="min-w-0 flex-1">
+                    <h3 className={`font-medium text-sm leading-tight ${getTextStyle(isSelected)}`}>
+                      {category.name}
+                    </h3>
+                    <p className={`text-xs leading-tight mt-0.5 ${getSecondaryTextStyle(isSelected)}`}>
+                      {(category.postCount || 0).toLocaleString()} Posts
+                    </p>
+                  </div>
+                </div>
+
+                {hasSubcategories && (
+                  <ChevronDown
+                    className={`w-4 h-4 transition-transform duration-700 ease-out ${isSelected ? (isDarkMode ? 'text-white' : 'text-blue-700') : (isDarkMode ? 'text-gray-400' : 'text-gray-500')} ${isExpanded ? 'rotate-180' : ''}`}
+                  />
+                )}
+              </div>
+
+              {/* Subcategories */}
+              {hasSubcategories && (
+                <div
+                  className={`overflow-hidden transition-all duration-700 ease-out ${isExpanded ? 'opacity-100 mt-2 pb-2' : 'opacity-0 mt-0'}`}
+                  style={{
+                    maxHeight: isExpanded ? `${subcategories.length * 48 + 22}px` : '0px',
+                    transition: 'max-height 700ms cubic-bezier(0.4, 0, 0.2, 1), opacity 700ms cubic-bezier(0.4, 0, 0.2, 1), margin-top 1000ms cubic-bezier(0.4, 0, 0.2, 1)'
+                  }}
+                >
+                  <div className="ml-4 space-y-1">
+                    {subcategories.map((subcategory) => {
+                      const isSubSelected = selectedSubCategory === subcategory._id && selectedCategory === category._id;
+
+                      return (
+                        <div
+                          key={subcategory._id}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            selectSubcategory(category._id, subcategory._id);
+                          }}
+                          className={`flex items-center justify-between p-2.5 rounded-md cursor-pointer transition-all duration-200 ${getItemStyle(isSubSelected)}`}
+                        >
+                          <div className="flex items-center space-x-2.5">
+                            {renderSubcategoryIcon(subcategory, isSubSelected)}
+                            <h4 className={`font-medium text-sm leading-tight ${getTextStyle(isSubSelected)}`}>
+                              {subcategory.name}
+                            </h4>
+                          </div>
+                          <span className={`text-xs ${getSecondaryTextStyle(isSubSelected)}`}>
+                            {(subcategory.postCount || 0).toLocaleString()}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 };
 

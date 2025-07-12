@@ -176,6 +176,8 @@ const VerifyOTPPage = () => {
             alt="People smiling" 
             layout="fill" 
             objectFit="cover"
+            loading='lazy'
+            loader={() => '/images/login.png'}
           />
         </div>
 

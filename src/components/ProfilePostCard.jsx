@@ -22,7 +22,10 @@ const ProfilePostCard = ({
   onOptionSelect,
   onUnsave,
   currentUser = { name: "User", avatar: "" },
-  isDarkMode
+  isDarkMode,
+  refetchPosts,
+  myCommentPostRefetch,
+  isGridView = false // Add this prop to determine if it's in grid view
 }) => {
   const router = useRouter();
   const [windowSize, setWindowSize] = useState({
@@ -30,13 +33,7 @@ const ProfilePostCard = ({
     height: typeof window !== 'undefined' ? window.innerHeight : 0
   });
 
-
-  // console.log(postData);
-
   const loginUserPost = postData?.author?._id === localStorage.getItem("login_user_id");
-  console.log(loginUserPost);
-
-  console.log(postData.images);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [reportModalVisible, setReportModalVisible] = useState(false);
   const [reportForm] = Form.useForm();
@@ -100,13 +97,6 @@ const ProfilePostCard = ({
     }
   };
 
-  const handleReportSubmit = (values) => {
-    console.log('Report submitted:', values);
-    toast.success('Report submitted successfully');
-    setReportModalVisible(false);
-    reportForm.resetFields();
-  };
-
   const renderAuthorAvatar = () => {
     const author = postData?.author || {};
     return (
@@ -147,7 +137,6 @@ const ProfilePostCard = ({
     );
   };
 
-
   const renderImageGrid = useMemo(() => (
     postData.images && postData.images.length > 0 && (
       <div className="mb-4 rounded-lg overflow-hidden">
@@ -155,54 +144,51 @@ const ProfilePostCard = ({
           <img
             src={getImageUrl(postData.images[0])}
             alt="Post content"
-            className="w-full max-h-[500px] object-cover "
+            className={`w-full ${isGridView ? 'max-h-[250px]' : 'max-h-[500px]'} object-cover`}
           />
         ) : postData.images.length === 2 ? (
-          <div className="flex gap-1 h-[350px]">
+          <div className={`flex gap-1 ${isGridView ? 'h-[200px]' : 'h-[350px]'}`}>
             <img
               src={getImageUrl(postData.images[0])}
               alt="Post content 1"
-              className="w-1/2 h-full object-cover "
+              className="w-1/2 h-full object-cover"
             />
             <img
               src={getImageUrl(postData.images[1])}
               alt="Post content 2"
-              className="w-1/2 h-full object-cover "
-
+              className="w-1/2 h-full object-cover"
             />
           </div>
         ) : postData.images.length === 3 ? (
-          <div className="flex gap-1 h-[350px]">
+          <div className={`flex gap-1 ${isGridView ? 'h-[200px]' : 'h-[350px]'}`}>
             <div className="w-1/2 h-full">
               <img
                 src={getImageUrl(postData.images[0])}
                 alt="Post content 1"
-                className="w-full h-full object-cover "
+                className="w-full h-full object-cover"
               />
             </div>
             <div className="w-1/2 flex flex-col gap-1">
               <img
                 src={getImageUrl(postData.images[1])}
                 alt="Post content 2"
-                className="w-full h-1/2 object-cover "
-
+                className="w-full h-1/2 object-cover"
               />
               <img
                 src={getImageUrl(postData.images[2])}
                 alt="Post content 3"
-                className="w-full h-1/2 object-cover "
+                className="w-full h-1/2 object-cover"
               />
             </div>
           </div>
         ) : postData.images.length >= 4 ? (
-          <div className="grid grid-cols-2 gap-1 h-[350px]">
+          <div className={`grid grid-cols-2 gap-1 ${isGridView ? 'h-[200px]' : 'h-[350px]'}`}>
             {postData.images.slice(0, 4).map((image, index) => (
               <div key={index} className="relative">
                 <img
                   src={getImageUrl(image)}
                   alt={`Post content ${index + 1}`}
-                  className={`w-full h-full object-cover ${index === 3 && postData.images.length > 4 ? 'opacity-80' : ''
-                    }`}
+                  className={`w-full h-full object-cover ${index === 3 && postData.images.length > 4 ? 'opacity-80' : ''}`}
                 />
                 {index === 3 && postData.images.length > 4 && (
                   <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center text-white text-2xl font-bold">
@@ -215,9 +201,7 @@ const ProfilePostCard = ({
         ) : null}
       </div>
     )
-  ), [postData.images]);
-
-
+  ), [postData.images, isGridView]);
 
   const renderTags = () => {
     const tags = postData.tags || [];
@@ -299,13 +283,13 @@ const ProfilePostCard = ({
 
   return (
     <>
-      <div className={`rounded-lg shadow mb-4 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} ${isMobile ? 'p-3' : isTablet ? 'p-4' : 'p-5'}`}>
+      <div className={`rounded-lg shadow mb-4 h-fit ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} ${isMobile ? 'p-3' : isTablet ? 'p-4' : 'p-5'}`}>
         <div className="flex justify-between items-center mb-3">
           <div className="flex items-center gap-2">
             {renderAuthorAvatar()}
             <div className="flex flex-col items-start">
               <span className={`font-medium ${isMobile ? 'text-xs' : 'text-base'} ${isDarkMode ? 'text-gray-200' : 'text-gray-900'}`}>
-                {author.userName || author.name || "User"}
+                {author.name ? author.name : author.username}
               </span>
               <span className={`${isMobile ? 'text-xs' : 'text-sm'} ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                 {postData.isSavedPost
@@ -334,7 +318,7 @@ const ProfilePostCard = ({
         {postData.title && (
           <h2
             onClick={handlePostDetails}
-            className={`${isMobile ? 'text-lg' : isTablet ? 'text-xl' : 'text-2xl'} cursor-pointer ${isDarkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-800'} font-bold mb-3`}
+            className={`${isMobile ? 'text-lg' : isTablet ? 'text-xl' : 'text-2xl'} cursor-pointer ${isDarkMode ? 'text-white hover:text-blue-300' : 'text-black hover:text-blue-800'} font-bold mb-3`}
           >
             {postData.title}
           </h2>
@@ -343,8 +327,6 @@ const ProfilePostCard = ({
         {renderContent()}
 
         {renderImageGrid}
-
-
 
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-4 sm:gap-6">
@@ -364,7 +346,6 @@ const ProfilePostCard = ({
               className={`flex items-center cursor-pointer ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'} p-1 rounded`}
             >
               <Image
-                // src={isDarkMode ? "/icons/message_white.png" : "/icons/message.png"}
                 src={isDarkMode ? "/icons/commentdark.png" : "/icons/message.png"}
                 width={20}
                 height={20}
@@ -387,8 +368,7 @@ const ProfilePostCard = ({
               className={`${isDarkMode ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-500 hover:bg-gray-100'} px-2 py-1.5 cursor-pointer rounded-sm`}
             >
               <Image
-                // src={isDarkMode ? "/icons/share_white.png" : "/icons/share.png"}
-               src={isDarkMode ? "/icons/sharedark.png" : "/icons/share.png"}
+                src={isDarkMode ? "/icons/sharedark.png" : "/icons/share.png"}
                 width={20}
                 height={20}
                 alt="share button"
@@ -403,6 +383,8 @@ const ProfilePostCard = ({
         onClose={() => setEditModalVisible(false)}
         postData={postData}
         isDarkMode={isDarkMode}
+        refetchPosts={refetchPosts}
+        myCommentPostRefetch={myCommentPostRefetch}
       />
 
       <ReportPostModal

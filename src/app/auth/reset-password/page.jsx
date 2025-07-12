@@ -2,9 +2,8 @@
 import { useResetPasswordMutation } from '@/features/auth/authApi';
 import { notification } from 'antd';
 import Image from 'next/image';
-import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import React, { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
 
 const ResetPasswordPage = () => {
@@ -12,7 +11,7 @@ const ResetPasswordPage = () => {
     newPassword: '',
     confirmPassword: ''
   });
-  
+
   const [errors, setErrors] = useState({
     newPassword: '',
     confirmPassword: ''
@@ -26,7 +25,7 @@ const ResetPasswordPage = () => {
   const searchParams = useSearchParams();
   const [resetToken, setResetToken] = useState('');
 
-  const [resetPassword, {isLoading, isError, error}] = useResetPasswordMutation();
+  const [resetPassword, { isLoading, isError, error }] = useResetPasswordMutation();
 
   // Get token from URL or localStorage (client-side only)
   useEffect(() => {
@@ -49,7 +48,7 @@ const ResetPasswordPage = () => {
       ...prev,
       [name]: value
     }));
-    
+
     // Clear error when user starts typing
     if (errors[name]) {
       setErrors(prev => ({
@@ -72,7 +71,7 @@ const ResetPasswordPage = () => {
     } else if (formData.newPassword.length < 8) {
       newErrors.newPassword = 'Password must be at least 8 characters';
       isValid = false;
-    } 
+    }
     if (!formData.confirmPassword) {
       newErrors.confirmPassword = 'Please confirm your password';
       isValid = false;
@@ -87,7 +86,7 @@ const ResetPasswordPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!resetToken) {
       notification.error({
         message: 'Invalid Token',
@@ -98,13 +97,13 @@ const ResetPasswordPage = () => {
 
     if (validateForm()) {
       setIsSubmitting(true);
-      
+
       try {
         await resetPassword({
           newPassword: formData.newPassword,
           confirmPassword: formData.confirmPassword,
         }).unwrap();
-        
+
         // Clear token from localStorage
         if (typeof window !== 'undefined') {
           localStorage.removeItem("forgot-password-otp-token");
@@ -140,10 +139,10 @@ const ResetPasswordPage = () => {
       <div className="flex h-screen justify-center">
         {/* Left Section with Background Image */}
         <div className="hidden md:flex md:w-1/2 justify-center relative">
-          <Image 
-            src="/images/login.png" 
-            alt="People smiling" 
-            layout="fill" 
+          <Image
+            src="/images/login.png"
+            alt="People smiling"
+            layout="fill"
             objectFit="cover"
           />
         </div>
@@ -221,10 +220,10 @@ const ResetPasswordPage = () => {
 
                 <button
                   type="submit"
-                  disabled={isSubmitting || !resetToken}
-                  className={`w-full cursor-pointer bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${(isSubmitting || !resetToken) ? 'opacity-70 cursor-not-allowed' : ''}`}
+                  disabled={isSubmitting || !resetToken || isLoading}
+                  className={`w-full cursor-pointer bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${(isSubmitting || !resetToken || isLoading) ? 'opacity-70 cursor-not-allowed' : ''}`}
                 >
-                  {isSubmitting ? 'Resetting...' : 'Reset Password'}
+                  {(isSubmitting || isLoading) ? 'Resetting...' : 'Reset Password'}
                 </button>
 
                 {!resetToken && (

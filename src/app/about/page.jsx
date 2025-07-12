@@ -5,6 +5,7 @@ import { Spin } from 'antd';
 import Link from 'next/link';
 import { useContext } from 'react';
 import { ThemeContext } from '../ClientLayout';
+import Loading from '../../components/Loading/Loading';
 
 const About = () => {
   const { data, isLoading, isError } = useAboutQuery();
@@ -13,8 +14,8 @@ const About = () => {
   const renderContent = () => {
     if (isLoading) {
       return (
-        <div className='flex justify-center'>
-          <Spin className={isDarkMode ? 'dark-spin' : ''} />
+        <div>
+          <Loading />
         </div>
       );
     }

@@ -1,11 +1,22 @@
 'use client';
-
-import { addMessage } from '@/redux/features/messageSlice';
+import {
+  addChats,
+  deleteChatLocally,
+  markChatAsRead,
+  toggleBlockChat,
+  toggleMuteChat,
+  updateLastMessage
+} from '@/redux/features/chatSlice';
+import {
+  addMessage,
+  updateMessageDelete,
+  updateMessagePin,
+  updateMessageReaction
+} from '@/redux/features/messageSlice';
 import { addNotification } from '@/redux/features/notificationSlice';
 import { useEffect } from 'react';
 import { useDispatch } from 'react-redux';
 import { connectSocket } from '../../utils/socket';
-import { addChats } from '../redux/features/chatSlice';
 
 const SocketComponent = () => {
   const dispatch = useDispatch();
@@ -14,58 +25,108 @@ const SocketComponent = () => {
     const loggedInUserId = localStorage.getItem("login_user_id");
     if (!loggedInUserId) return;
 
-    // console.log(`Setting up socket for user ID: ${loggedInUserId}`);
-
     const socket = connectSocket(loggedInUserId);
 
-    // console.log(socket)
-
-    // Add the event listener for new messages
-    socket.on(`newMessage::${loggedInUserId}`, async (message) => {
-      // console.log('New message received:', message);
+    // Message events
+    socket.on(`newMessage::${loggedInUserId}`, (message) => {
+      // Ensure message has proper structure before adding
+      if (!message.sender) {
+        message.sender = {
+          _id: message.senderId || 'unknown',
+          userName: 'Unknown',
+          profile: null
+        };
+      }
       dispatch(addMessage(message));
+      dispatch(updateLastMessage({
+        chatId: message.chatId,
+        message
+      }));
     });
 
-    // Add the event listener for new chat updates
+    // Message reaction events
+    socket.on(`messageReacted::${loggedInUserId}`, (data) => {
+      dispatch(updateMessageReaction({
+        messageId: data.messageId,
+        reaction: data.reactionType,
+        userId: data.userId
+      }));
+    });
+
+    // Message pin/unpin events
+    socket.on(`messagePinned::${loggedInUserId}`, (data) => {
+      dispatch(updateMessagePin({
+        messageId: data.messageId,
+        isPinned: data.action === 'pin',
+        pinnedBy: data.pinnedBy
+      }));
+    });
+
+    // Message deletion events
+    socket.on(`messageDeleted::${loggedInUserId}`, (data) => {
+      dispatch(updateMessageDelete({
+        messageId: data.messageId
+      }));
+      dispatch(updateLastMessage({
+        chatId: data.chatId,
+        message: {
+          _id: data.messageId,
+          text: "This message has been deleted.",
+          isDeleted: true
+        }
+      }));
+    });
+
+    // Chat events
     socket.on(`newChat::${loggedInUserId}`, (chat) => {
-      // console.log('New chat received:', chat);
-      console.log(chat)
-      addChats(dispatch(chat))
-
+      dispatch(addChats(chat));
     });
 
+    socket.on(`chatDeleted::${loggedInUserId}`, (chatId) => {
+      dispatch(deleteChatLocally(chatId));
+    });
 
-    // console.log('New notification received:', loggedInUserId);
-    // Add the event listener for notifications
-    // socket.on(`notification::${loggedInUserId}`, async (notification) => {
-    socket.on(`notification::${loggedInUserId}`, async (notification) => {
-      // console.log('New notification received:', notification);
+    socket.on(`chatMuted::${loggedInUserId}`, ({ chatId, isMuted }) => {
+      dispatch(toggleMuteChat({ chatId, isMuted }));
+    });
 
-      // Format the notification to match your expected structure
-      const formattedNotification = {
-        _id: notification._id || notification.id || Date.now().toString(),
-        message: notification.message || notification.content || '',
+    socket.on(`chatBlocked::${loggedInUserId}`, ({ chatId, isBlocked }) => {
+      dispatch(toggleBlockChat({ chatId, isBlocked }));
+    });
+
+    socket.on(`chatMarkedAsRead::${loggedInUserId}`, (chatId) => {
+      dispatch(markChatAsRead(chatId));
+    });
+
+    // Notification events
+    socket.on(`notification::${loggedInUserId}`, (notification) => {
+      dispatch(addNotification({
+        _id: notification._id || Date.now().toString(),
+        message: notification.message,
         postId: notification.postId || '',
         commentId: notification.commentId || '',
         type: notification.type || 'info',
         read: false,
         createdAt: notification.createdAt || new Date().toISOString()
-      };
-
-      dispatch(addNotification(formattedNotification));
-
+      }));
     });
 
-    // Cleanup function to remove event listeners
     return () => {
       socket.off(`newMessage::${loggedInUserId}`);
+      socket.off(`messageReacted::${loggedInUserId}`);
+      socket.off(`messagePinned::${loggedInUserId}`);
+      socket.off(`messageDeleted::${loggedInUserId}`);
       socket.off(`newChat::${loggedInUserId}`);
+      socket.off(`chatDeleted::${loggedInUserId}`);
+      socket.off(`chatMuted::${loggedInUserId}`);
+      socket.off(`chatBlocked::${loggedInUserId}`);
+      socket.off(`chatMarkedAsRead::${loggedInUserId}`);
       socket.off(`notification::${loggedInUserId}`);
       socket.disconnect();
     };
-  }, []);
+  }, [dispatch]);
 
-  return  // No UI to render
+  return null;
 };
 
 export default SocketComponent;

@@ -1,6 +1,7 @@
 import { useSilderQuery } from '@/features/report/reportApi';
 import { useCallback, useEffect, useState } from 'react';
 import { baseURL } from '../../utils/BaseURL';
+import './Banner.css';
 
 const CarouselBanner = () => {
   const [activeSlide, setActiveSlide] = useState(0);
@@ -39,7 +40,7 @@ const CarouselBanner = () => {
     // Skip auto-slide if there's only one slide or none
     if (!slides.length || slides.length <= 1) return;
 
-    // Auto-slide every 5 seconds
+    // Auto-slide every 10 seconds
     const interval = setInterval(() => {
       const nextSlide = activeSlide === slides.length - 1 ? 0 : activeSlide + 1;
       changeSlide(nextSlide);
@@ -79,7 +80,7 @@ const CarouselBanner = () => {
             key={index}
             className={`absolute inset-0 w-full h-full transition-all duration-700 ease-in-out transform ${opacityClass} ${positionClass}`}
           >
-            {/* Banner image with subtle zoom effect */}
+            {/* Banner image container */}
             <div className="absolute inset-0 w-full h-full px-3 sm:px-10 rounded-xl overflow-hidden">
               <img
                 src={`${baseURL}${item.image}`}
@@ -99,7 +100,10 @@ const CarouselBanner = () => {
             <button
               key={index}
               onClick={() => changeSlide(index)}
-              className={`w-2 h-2 rounded-full transition-all duration-300 ${activeSlide === index ? 'bg-white w-6' : 'bg-white/50 hover:bg-white/70'}`}
+              className={`w-2 h-2 rounded-full transition-all duration-300 ${activeSlide === index
+                ? 'bg-white w-6'
+                : 'bg-white/50 hover:bg-white/70'
+                }`}
               aria-label={`Go to slide ${index + 1}`}
             />
           ))}
