@@ -63,8 +63,12 @@ export default function Navbar() {
   const { isLoading: allNotificationLoading, refetch } = useGetAllNotificationQuery({});
   const [readNotification] = useMarkAllAsReadMutation();
   const { isLoading: allChatLoading, refetch: refetchChat } = useGetAllChatQuery("");
+
+
   const { notifications } = useSelector((state) => state);
   const { chats } = useSelector((state) => state);
+
+
 
   const { data, isLoading } = useGetProfileQuery();
   const { data: logo } = useLogoQuery();
@@ -85,6 +89,12 @@ export default function Navbar() {
     }
   }, [searchParams]);
 
+  useEffect(() => {
+    localStorage.setItem("messageCount", chats?.unreadCount)
+  }, [chats])
+
+
+
   const handleNavigation = async (path) => {
     if (!isAuthenticated()) {
       router.push('/auth/login');
@@ -95,6 +105,32 @@ export default function Navbar() {
       setDrawerVisible(false);
     }
   };
+
+
+
+  const handleChatNavigation = (path) => {
+    if (!isAuthenticated()) {
+      router.push('/auth/login');
+      return;
+    } else {
+      router.push(path);
+      localStorage.removeItem("messageCount")
+      setDrawerVisible(false);
+    }
+  }
+
+  const handleNotificationNavigate = async (path) => {
+    if (!isAuthenticated()) {
+      router.push('/auth/login');
+      return;
+    } else {
+      router.push(path);
+      await readNotification().unwrap();
+      setDrawerVisible(false);
+    }
+  }
+
+
 
   const items = [
     {
@@ -455,10 +491,10 @@ export default function Navbar() {
                     marginTop: "5px",
                     marginRight: "5px"
                   }}
-                  count={chats?.unreadCount === 0 ? 0 : chats?.unreadCount}
+                  count={localStorage.getItem("messageCount")}
                 >
                   <Button
-                    onClick={() => handleNavigation("/chat")}
+                    onClick={() => handleChatNavigation("/chat")}
                     type="text"
                     icon={isDarkMode ? <MessageDark /> : <MessageLight />}
                     style={iconButtonStyles}
@@ -474,7 +510,7 @@ export default function Navbar() {
                   count={notifications?.unreadCount || 0}
                 >
                   <Button
-                    onClick={() => handleNavigation("/notification")}
+                    onClick={() => handleNotificationNavigate("/notification")}
                     type="text"
                     icon={isDarkMode ? <NotificationDark /> : <NotificationLight />}
                     style={iconButtonStyles}
@@ -566,13 +602,13 @@ export default function Navbar() {
               key: 'messages',
               icon: <MessageOutlined />,
               label: 'Messages',
-              onClick: () => handleNavigation('/chat')
+              onClick: () => handleChatNavigation('/chat')
             },
             {
               key: 'notifications',
               icon: <IoNotificationsSharp />,
               label: 'Notifications',
-              onClick: () => handleNavigation('/notification')
+              onClick: () => handleNotificationNavigate('/notification')
             },
             {
               type: 'divider',

@@ -106,107 +106,37 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
   }, [isDarkMode, editorInitialized]);
 
   // SIMPLE AND WORKING Froala Editor Configuration
-  const froalaConfig = useMemo(() => ({
+  const config = {
     placeholderText: 'Write your post description here...',
-    heightMin: isMobile ? 300 : 400,
-
-    // SIMPLE toolbar - let Froala handle the basic functionality
-    toolbarButtons: [
-      ['bold', 'italic', 'underline', 'insertOrderedList', 'insertUnorderedList']
-    ],
-
-    toolbarButtonsXS: [
-      ['bold', 'italic', 'underline', 'insertOrderedList', 'insertUnorderedList']
-    ],
-    toolbarButtonsSM: [
-      ['bold', 'italic', 'underline', 'insertOrderedList', 'insertUnorderedList']
-    ],
-    toolbarButtonsMD: [
-      ['bold', 'italic', 'underline', 'insertOrderedList', 'insertUnorderedList']
-    ],
-
-    // Basic plugin setup
-    pluginsEnabled: ['lists'],
-
-    // Theme configuration
-    theme: isDarkMode ? 'dark' : 'default',
-    colorsBackground: isDarkMode ?
-      ['#1f2937', '#111827', '#374151', '#4b5563', '#6b7280'] :
-      ['#FFFFFF', '#F5F5F5', '#DDDDDD', '#CCCCCC', '#BBBBBB'],
-    colorsText: isDarkMode ?
-      ['#ffffff', '#e5e7eb', '#d1d5db', '#9ca3af', '#6b7280'] :
-      ['#000000', '#333333', '#666666', '#999999', '#cccccc'],
-
-    toolbarSticky: true,
-    toolbarStickyOffset: 0,
-    toolbarVisibleWithoutSelection: true,
-    charCounterCount: true,
-    wordCounterCount: true,
-    pastePlain: true,
-    pasteDeniedTags: ['script', 'iframe', 'style'],
-    pasteDeniedAttrs: ['style', 'class'],
-    pasteAllowedStyleProps: [],
-    pasteKeepFormatting: false,
-
-    // Image upload configuration
-    imageUploadURL: `${baseURL}/upload`,
-    imageUploadMethod: 'POST',
-    imageMaxSize: 5 * 1024 * 1024,
-    imageAllowedTypes: ['jpeg', 'jpg', 'png', 'gif'],
-
+    heightMin: 300,
+    toolbarButtons: ['bold', 'italic', 'underline', 'formatOL', 'formatUL', 'insertImage',],
+    pluginsEnabled: ['lists', 'emoticons', 'image'],
+    quickInsertTags: [],
+    listAdvancedTypes: false,
+    toolbarInline: false,
+    charCounterCount: false,
     events: {
-      'contentChanged': function () {
-        try {
-          const content = this.html.get();
-          setDescription(content);
-          if (formErrors.description) {
-            setFormErrors(prev => ({ ...prev, description: null }));
-          }
-        } catch (error) {
-          console.error('Error in contentChanged:', error);
-        }
-      },
-
       'initialized': function () {
+        console.log('Editor initialized');
+        // Remove dropdown functionality and arrows
         const editor = this;
 
-        // Set initial content
-        if (description) {
-          editor.html.set(description);
-        }
-
-        // Apply dark mode
-        if (isDarkMode) {
-          editor.$el[0].classList.add('fr-dark-mode');
-          if (editor.$tb && editor.$tb[0]) {
-            editor.$tb[0].classList.add('fr-dark-mode');
-          }
-        }
-
-        // Simple cleanup function
-        const hideDropdowns = () => {
-          const toolbar = editor.$tb && editor.$tb[0];
-          if (toolbar) {
-            // Hide any dropdown menus
-            const dropdowns = toolbar.querySelectorAll('.fr-dropdown-menu');
-            dropdowns.forEach(dropdown => {
-              dropdown.style.display = 'none';
-            });
-          }
-        };
-
-        // Hide dropdowns periodically
-        const cleanupInterval = setInterval(hideDropdowns, 200);
-
-        // Clean up after 5 seconds
+        // Force show list buttons
         setTimeout(() => {
-          clearInterval(cleanupInterval);
-        }, 5000);
-      }
-    },
+          editor.$tb.find('.fr-command[data-cmd="formatOL"]').show();
+          editor.$tb.find('.fr-command[data-cmd="formatUL"]').show();
 
-    license: false,
-  }), [isMobile, isDarkMode, description, formErrors.description]);
+          // Remove dropdown arrows
+          editor.$tb.find('.fr-command[data-cmd="formatOL"]').removeClass('fr-dropdown');
+          editor.$tb.find('.fr-command[data-cmd="formatUL"]').removeClass('fr-dropdown');
+        }, 100);
+      }
+    }
+  };
+
+
+
+
 
   // CSS to hide dropdown elements and make buttons simple
   useEffect(() => {
@@ -690,6 +620,34 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
           background-color: #111827 !important;
           color: #9ca3af !important;
         }
+
+         .fr-command[data-cmd="formatOL"]:after,
+        .fr-command[data-cmd="formatUL"]:after {
+          display: none !important;
+        }
+        
+        /* Hide all dropdown menus */
+        .fr-dropdown-menu {
+          display: none !important;
+        }
+        
+        /* Make sure list buttons are visible */
+        .fr-command[data-cmd="formatOL"],
+        .fr-command[data-cmd="formatUL"] {
+          display: inline-block !important;
+          visibility: visible !important;
+        }
+        
+        /* Basic list styling */
+        .fr-element ol {
+          list-style-type: decimal !important;
+        }
+        
+        .fr-element ul {
+          list-style-type: disc !important;
+        }
+
+
       `}</style>
 
       <div className={`min-h-screen ${isEditing ? '' : 'py-4 sm:py-8 px-2 sm:px-4'}  transition-colors duration-200 ${isDarkMode ? 'bg-gray-900 text-gray-100' : 'bg-gray-50 text-gray-900'}`}>
@@ -791,7 +749,7 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
                       ref={editorRef}
                       key={editorKey}
                       tag="textarea"
-                      config={froalaConfig}
+                      config={config}
                       model={description}
                       onModelChange={setDescription}
                     />

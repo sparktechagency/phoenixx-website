@@ -11,34 +11,64 @@ import FroalaEditor from 'react-froala-wysiwyg';
 
 const Page = () => {
 
-
   const config = {
     placeholderText: 'Write your post description here...',
     heightMin: 300,
-    toolbarButtons: [
-      ['bold', 'italic', 'underline', 'formatOL', 'formatUL', 'insertImage', 'emoticons']
-    ],
+    toolbarButtons: ['bold', 'italic', 'underline', 'formatOL', 'formatUL', 'insertImage',],
     pluginsEnabled: ['lists', 'emoticons', 'image'],
     quickInsertTags: [],
-    listAdvancedTypes: true,
-    listStyles: {
-      'fr-list-style-1': 'Circle',
-      'fr-list-style-2': 'Square',
-      'fr-list-style-3': 'Decimal',
-      'fr-list-style-4': 'Lower Alpha',
-      'fr-list-style-5': 'Upper Alpha',
-      'fr-list-style-6': 'Lower Roman',
-      'fr-list-style-7': 'Upper Roman'
+    listAdvancedTypes: false,
+    toolbarInline: false,
+    charCounterCount: false,
+    events: {
+      'initialized': function () {
+        console.log('Editor initialized');
+        // Remove dropdown functionality and arrows
+        const editor = this;
+
+        // Force show list buttons
+        setTimeout(() => {
+          editor.$tb.find('.fr-command[data-cmd="formatOL"]').show();
+          editor.$tb.find('.fr-command[data-cmd="formatUL"]').show();
+
+          // Remove dropdown arrows
+          editor.$tb.find('.fr-command[data-cmd="formatOL"]').removeClass('fr-dropdown');
+          editor.$tb.find('.fr-command[data-cmd="formatUL"]').removeClass('fr-dropdown');
+        }, 100);
+      }
     }
   };
 
   return (
     <div className="container mx-auto">
-      <div>
-        Hello world
-      </div>
-
-
+      <style jsx global>{`
+        /* Hide dropdown arrows */
+        .fr-command[data-cmd="formatOL"]:after,
+        .fr-command[data-cmd="formatUL"]:after {
+          display: none !important;
+        }
+        
+        /* Hide all dropdown menus */
+        .fr-dropdown-menu {
+          display: none !important;
+        }
+        
+        /* Make sure list buttons are visible */
+        .fr-command[data-cmd="formatOL"],
+        .fr-command[data-cmd="formatUL"] {
+          display: inline-block !important;
+          visibility: visible !important;
+        }
+        
+        /* Basic list styling */
+        .fr-element ol {
+          list-style-type: decimal !important;
+        }
+        
+        .fr-element ul {
+          list-style-type: disc !important;
+        }
+      `}</style>
       <FroalaEditor config={config} />
     </div>
   );

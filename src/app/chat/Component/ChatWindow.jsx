@@ -21,7 +21,6 @@ const ChatWindow = ({ id }) => {
   const { data: chat } = useGetAllChatQuery();
   const chatUser = chat?.data.chats.find(user => user._id === id);
   const { messages, pinnedMessages, isLoading, hasMore, page } = useSelector((state) => state.message);
-  console.log(messages)
 
   const { refetch } = useGetAllMessagesQuery({ chatId: id, page, limit: 10 });
   const [sendMessage, { isLoading: isSending }] = useMessageSendMutation();
@@ -407,12 +406,12 @@ const ChatWindow = ({ id }) => {
 
                   <motion.div
                     className={`relative p-4 rounded-2xl ${isDeleted
-                        ? 'deleted-message'
-                        : isCurrentUser
-                          ? 'bg-blue-500 text-white'
-                          : isDarkMode
-                            ? 'bg-gray-700 text-gray-200'
-                            : 'bg-white text-gray-800 border border-gray-200'
+                      ? 'deleted-message'
+                      : isCurrentUser
+                        ? 'bg-blue-500 text-white'
+                        : isDarkMode
+                          ? 'bg-gray-700 text-gray-200'
+                          : 'bg-white text-gray-800 border border-gray-200'
                       } ${message.replyTo && clickedMessageId === message._id ? 'replied-message-click' : ''
                       } shadow-sm message-bubble`}
                     whileHover={{ scale: 1.02 }}
