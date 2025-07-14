@@ -104,28 +104,23 @@ const messageSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      .addMatcher(messageApi.endpoints.getAllMassage.matchPending, (state) => {
+      .addMatcher(messageApi.endpoints.getAllMessages.matchPending, (state) => {
         state.isLoading = true;
       })
-      .addMatcher(messageApi.endpoints.getAllMassage.matchFulfilled, (state, { payload }) => {
-        state.isLoading = false;
+      .addMatcher(messageApi.endpoints.getAllMessages.matchFulfilled, (state, { payload }) => {
         if (payload.data) {
+          const newMessages = payload?.data?.messages || [];
+
           if (state.page === 1) {
-            state.messages = payload.data.messages.reverse() || [];
+            // Initial load
+            state.messages = [...newMessages].reverse();  // reverse initial load
             state.pinnedMessages = payload.data.pinnedMessages || [];
           } else {
-            const newMessages = payload.data.messages || [];
-            const existingIds = new Set(state.messages.map(msg => msg._id));
-            const uniqueNewMessages = newMessages.filter(msg => !existingIds.has(msg._id));
-            state.messages = [...uniqueNewMessages.reverse(), ...state.messages];
+            // Append older messages at the beginning
+            state.messages = [[...newMessages].reverse()];
           }
-          state.hasMore = (payload.data.messages?.length || 0) >= state.limit;
         }
       })
-      .addMatcher(messageApi.endpoints.getAllMassage.matchRejected, (state, { error }) => {
-        state.isLoading = false;
-        state.error = error.message;
-      });
   }
 });
 

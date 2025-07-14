@@ -75,6 +75,8 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
     }));
   }, [category, subcategoryData]);
 
+
+
   // Initialize Froala Editor when component mounts
   useEffect(() => {
     const loadFroala = async () => {
@@ -103,26 +105,30 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
     }
   }, [isDarkMode, editorInitialized]);
 
-  // Froala Editor Configuration
+  // SIMPLE AND WORKING Froala Editor Configuration
   const froalaConfig = useMemo(() => ({
     placeholderText: 'Write your post description here...',
     heightMin: isMobile ? 300 : 400,
+
+    // SIMPLE toolbar - let Froala handle the basic functionality
     toolbarButtons: [
-      ['bold', 'italic', 'underline',]
+      ['bold', 'italic', 'underline', 'insertOrderedList', 'insertUnorderedList']
     ],
-    pluginsEnabled: ['lists', 'emoticons', 'image'],
-    quickInsertTags: [],
 
-    // Enhanced list configuration for numbered lists
-    listAdvancedTypes: true,
-    listStyles: {
-      'fr-list-style-1': 'Circle',           // • (bullet)
-      'fr-list-style-3': 'Decimal'           // 1, 2, 3, 4, 5... (standard numbers)
-    },
+    toolbarButtonsXS: [
+      ['bold', 'italic', 'underline', 'insertOrderedList', 'insertUnorderedList']
+    ],
+    toolbarButtonsSM: [
+      ['bold', 'italic', 'underline', 'insertOrderedList', 'insertUnorderedList']
+    ],
+    toolbarButtonsMD: [
+      ['bold', 'italic', 'underline', 'insertOrderedList', 'insertUnorderedList']
+    ],
 
-    // Additional list options for better numbered list control
+    // Basic plugin setup
+    pluginsEnabled: ['lists'],
 
-
+    // Theme configuration
     theme: isDarkMode ? 'dark' : 'default',
     colorsBackground: isDarkMode ?
       ['#1f2937', '#111827', '#374151', '#4b5563', '#6b7280'] :
@@ -130,6 +136,7 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
     colorsText: isDarkMode ?
       ['#ffffff', '#e5e7eb', '#d1d5db', '#9ca3af', '#6b7280'] :
       ['#000000', '#333333', '#666666', '#999999', '#cccccc'],
+
     toolbarSticky: true,
     toolbarStickyOffset: 0,
     toolbarVisibleWithoutSelection: true,
@@ -140,13 +147,13 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
     pasteDeniedAttrs: ['style', 'class'],
     pasteAllowedStyleProps: [],
     pasteKeepFormatting: false,
-    pasteConvertWordHeadingToParagraph: true,
-    pasteRemoveStyles: true,
-    pasteRemoveEmptyTags: true,
+
+    // Image upload configuration
     imageUploadURL: `${baseURL}/upload`,
     imageUploadMethod: 'POST',
     imageMaxSize: 5 * 1024 * 1024,
     imageAllowedTypes: ['jpeg', 'jpg', 'png', 'gif'],
+
     events: {
       'contentChanged': function () {
         try {
@@ -159,28 +166,139 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
           console.error('Error in contentChanged:', error);
         }
       },
-      'initialized': function () {
-        try {
-          if (description) {
-            this.html.set(description);
-          }
-          // Apply dark mode class after initialization
-          if (isDarkMode) {
-            this.$el.addClass('fr-dark-mode');
-            this.$tb.addClass('fr-dark-mode');
-          }
 
-          // Force refresh list styles to remove cached ones
-          if (this.lists) {
-            this.lists.refresh();
-          }
-        } catch (error) {
-          console.error('Error in editor initialization:', error);
+      'initialized': function () {
+        const editor = this;
+
+        // Set initial content
+        if (description) {
+          editor.html.set(description);
         }
+
+        // Apply dark mode
+        if (isDarkMode) {
+          editor.$el[0].classList.add('fr-dark-mode');
+          if (editor.$tb && editor.$tb[0]) {
+            editor.$tb[0].classList.add('fr-dark-mode');
+          }
+        }
+
+        // Simple cleanup function
+        const hideDropdowns = () => {
+          const toolbar = editor.$tb && editor.$tb[0];
+          if (toolbar) {
+            // Hide any dropdown menus
+            const dropdowns = toolbar.querySelectorAll('.fr-dropdown-menu');
+            dropdowns.forEach(dropdown => {
+              dropdown.style.display = 'none';
+            });
+          }
+        };
+
+        // Hide dropdowns periodically
+        const cleanupInterval = setInterval(hideDropdowns, 200);
+
+        // Clean up after 5 seconds
+        setTimeout(() => {
+          clearInterval(cleanupInterval);
+        }, 5000);
       }
     },
+
     license: false,
   }), [isMobile, isDarkMode, description, formErrors.description]);
+
+  // CSS to hide dropdown elements and make buttons simple
+  useEffect(() => {
+    const css = `
+    /* Hide all dropdown arrows and menus */
+    .fr-dropdown-arrow,
+    .fr-dropdown-menu {
+      display: none !important;
+    }
+    
+    /* Make list buttons look like simple buttons */
+    .fr-command[data-cmd="insertOrderedList"],
+    .fr-command[data-cmd="insertUnorderedList"] {
+      position: relative;
+    }
+    
+    .fr-command[data-cmd="insertOrderedList"]::after,
+    .fr-command[data-cmd="insertUnorderedList"]::after {
+      display: none !important;
+    }
+    
+    /* Hide any list style related elements */
+    [data-cmd*="listStyle"],
+    .fr-list-style,
+    .fr-dropdown[data-name*="list"] {
+      display: none !important;
+    }
+    
+    /* Ensure buttons work as simple toggles */
+    .fr-toolbar .fr-command[data-cmd="insertOrderedList"],
+    .fr-toolbar .fr-command[data-cmd="insertUnorderedList"] {
+      background: none;
+      border: none;
+      cursor: pointer;
+    }
+    
+    .fr-toolbar .fr-command[data-cmd="insertOrderedList"]:hover,
+    .fr-toolbar .fr-command[data-cmd="insertUnorderedList"]:hover {
+      background-color: rgba(0, 0, 0, 0.1);
+    }
+    
+    /* Active state for list buttons */
+    .fr-toolbar .fr-command[data-cmd="insertOrderedList"].fr-active,
+    .fr-toolbar .fr-command[data-cmd="insertUnorderedList"].fr-active {
+      background-color: rgba(0, 0, 0, 0.2);
+    }
+  `;
+
+    const styleElement = document.createElement('style');
+    styleElement.textContent = css;
+    document.head.appendChild(styleElement);
+
+    return () => {
+      if (document.head.contains(styleElement)) {
+        document.head.removeChild(styleElement);
+      }
+    };
+  }, []);
+
+  // Global cleanup for any dropdown elements
+  useEffect(() => {
+    if (!editorInitialized) return;
+
+    const globalCleanup = setInterval(() => {
+      // Remove any dropdown elements that might appear
+      const dropdowns = document.querySelectorAll('.fr-dropdown-menu');
+      dropdowns.forEach(dropdown => {
+        dropdown.style.display = 'none';
+      });
+
+      // Remove dropdown arrows
+      const arrows = document.querySelectorAll('.fr-dropdown-arrow');
+      arrows.forEach(arrow => {
+        arrow.style.display = 'none';
+      });
+    }, 500);
+
+    setTimeout(() => {
+      clearInterval(globalCleanup);
+    }, 10000);
+
+    return () => {
+      clearInterval(globalCleanup);
+    };
+  }, [editorInitialized]);
+
+
+
+
+
+
+
 
   useEffect(() => {
     if (!isEditing && !initialValues) {
@@ -670,12 +788,12 @@ const BlogPostForm = ({ initialValues, isEditing = false, onSuccess, postId, ref
                 >
                   {editorInitialized && (
                     <FroalaEditor
-                      key={editorKey} // Force re-render when theme changes
-                      tag='textarea'
-                      config={froalaConfig}
                       ref={editorRef}
-                      onModelChange={handleDescriptionChange}
+                      key={editorKey}
+                      tag="textarea"
+                      config={froalaConfig}
                       model={description}
+                      onModelChange={setDescription}
                     />
                   )}
                 </div>

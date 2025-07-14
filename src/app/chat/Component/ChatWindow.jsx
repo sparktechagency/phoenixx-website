@@ -12,8 +12,8 @@ import { useDispatch, useSelector } from 'react-redux';
 import { getImageUrl } from '../../../../utils/getImageUrl';
 import { ImageUplaod } from '../../../../utils/svgImage';
 import { useGetAllChatQuery } from '../../../features/chat/chatList/chatApi';
-import { useGetAllMassageQuery, useMessageSendMutation, usePinMessageMutation, useReactMessageMutation, useReplyMessageMutation } from '../../../features/chat/message/messageApi';
-import { addMessage, resetMessages, setPage } from '../../../redux/features/messageSlice';
+import { useGetAllMessagesQuery, useMessageSendMutation, usePinMessageMutation, useReactMessageMutation, useReplyMessageMutation } from '../../../features/chat/message/messageApi';
+import { addMessage, setPage } from '../../../redux/features/messageSlice';
 import { ThemeContext } from '../../ClientLayout';
 
 const ChatWindow = ({ id }) => {
@@ -21,7 +21,9 @@ const ChatWindow = ({ id }) => {
   const { data: chat } = useGetAllChatQuery();
   const chatUser = chat?.data.chats.find(user => user._id === id);
   const { messages, pinnedMessages, isLoading, hasMore, page } = useSelector((state) => state.message);
-  const { data: messagesData, refetch } = useGetAllMassageQuery({ chatId: id, page, limit: 10 });
+  console.log(messages)
+
+  const { refetch } = useGetAllMessagesQuery({ chatId: id, page, limit: 10 });
   const [sendMessage, { isLoading: isSending }] = useMessageSendMutation();
   const [messageReact] = useReactMessageMutation();
   const [pinMessage] = usePinMessageMutation();
@@ -43,6 +45,7 @@ const ChatWindow = ({ id }) => {
   const [loadingMore, setLoadingMore] = useState(false);
   const [initialLoad, setInitialLoad] = useState(true);
   const [pinnedMessageId, setPinnedMessageId] = useState(null);
+  const [clickedMessageId, setClickedMessageId] = useState(null);
 
   const reactions = [
     { emoji: '❤️', name: 'love' },
@@ -51,23 +54,6 @@ const ChatWindow = ({ id }) => {
     { emoji: '😡', name: 'angry' },
     { emoji: '😢', name: 'sad' }
   ];
-
-  useEffect(() => {
-    dispatch(resetMessages());
-    dispatch(setPage(1));
-    setInitialLoad(true);
-    setPinnedMessageId(null);
-    setReplyingTo(null);
-  }, [id, dispatch]);
-
-  useEffect(() => {
-    if (messagesData?.data) {
-      const pinnedMsg = messagesData.data.pinnedMessages?.[0]?._id;
-      if (pinnedMsg) {
-        setPinnedMessageId(pinnedMsg);
-      }
-    }
-  }, [messagesData]);
 
   useEffect(() => {
     if (initialLoad && messages.length > 0) {
@@ -215,7 +201,7 @@ const ChatWindow = ({ id }) => {
       await messageReact({ messageId, reaction }).unwrap();
       setShowReactionPicker({ messageId: null, show: false });
       antMessage.success("Reaction added!");
-      refetch(); // Refresh messages to show updated reactions
+      refetch();
     } catch (error) {
       antMessage.error("Failed to add reaction");
     }
@@ -361,6 +347,16 @@ const ChatWindow = ({ id }) => {
             background: ${isDarkMode ? 'rgba(59, 130, 246, 0.1)' : 'rgba(59, 130, 246, 0.05)'};
             border-radius: 4px;
           }
+          .replied-message-click {
+            animation: animeBackground 1s;
+          }
+          @keyframes animeBackground {
+            0% { background: linear-gradient(90deg, #ff9a9e 0%, #fad0c4 100%); }
+            25% { background: linear-gradient(90deg, #fad0c4 0%, #fbc2eb 100%); }
+            50% { background: linear-gradient(90deg, #a18cd1 0%, #fbc2eb 100%); }
+            75% { background: linear-gradient(90deg, #fbc2eb 0%, #a6c1ee 100%); }
+            100% { background: transparent; }
+          }
         `}</style>
 
         {loadingMore && (
@@ -380,6 +376,7 @@ const ChatWindow = ({ id }) => {
 
             return (
               <motion.div
+                id={`msg-${message._id}`}
                 key={message._id || index}
                 initial="hidden"
                 animate="visible"
@@ -410,19 +407,39 @@ const ChatWindow = ({ id }) => {
 
                   <motion.div
                     className={`relative p-4 rounded-2xl ${isDeleted
-                      ? 'deleted-message'
-                      : isCurrentUser
-                        ? 'bg-blue-500 text-white'
-                        : isDarkMode
-                          ? 'bg-gray-700 text-gray-200'
-                          : 'bg-white text-gray-800 border border-gray-200'
+                        ? 'deleted-message'
+                        : isCurrentUser
+                          ? 'bg-blue-500 text-white'
+                          : isDarkMode
+                            ? 'bg-gray-700 text-gray-200'
+                            : 'bg-white text-gray-800 border border-gray-200'
+                      } ${message.replyTo && clickedMessageId === message._id ? 'replied-message-click' : ''
                       } shadow-sm message-bubble`}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
+                    onClick={() => {
+                      if (message.replyTo) {
+                        setClickedMessageId(message._id);
+                        setTimeout(() => setClickedMessageId(null), 1000);
+                      }
+                    }}
                   >
                     {/* Reply indicator */}
                     {message.replyTo && !isDeleted && (
-                      <div className="reply-indicator p-2 mb-2 text-xs rounded-lg">
+                      <div
+                        className="reply-indicator p-2 mb-2 text-xs rounded-lg cursor-pointer"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const originalMsg = document.getElementById(`msg-${message.replyTo._id}`);
+                          if (originalMsg) {
+                            originalMsg.scrollIntoView({ behavior: 'smooth' });
+                            originalMsg.classList.add('replied-message-click');
+                            setTimeout(() => {
+                              originalMsg.classList.remove('replied-message-click');
+                            }, 1000);
+                          }
+                        }}
+                      >
                         <div className="flex items-center space-x-2">
                           <div className="w-6 h-6 rounded-full bg-gray-300 flex items-center justify-center">
                             <Avatar

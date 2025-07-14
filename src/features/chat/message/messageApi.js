@@ -2,20 +2,13 @@ import { baseApi } from '../../../../utils/apiBaseQuery';
 
 export const messageApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
-    getAllMassage: builder.query({
-      query: ({ chatId, page = 1 }) => ({
+    getAllMessages: builder.query({
+      query: ({ chatId, page = 1, limit = 10 }) => ({
         url: `/messages/${chatId}`,
         method: "GET",
-        params: { page }
+        params: { page, limit },
       }),
-      providesTags: (result) =>
-        result?.data?.messages
-          ? [
-            ...result.data.messages.map(({ _id }) => ({ type: 'Message', id: _id })),
-            { type: 'Message', id: 'LIST' },
-            { type: 'PinnedMessage', id: 'LIST' }
-          ]
-          : [{ type: 'Message', id: 'LIST' }],
+      providesTags: ['message'],
     }),
 
     reactMessage: builder.mutation({
@@ -23,52 +16,46 @@ export const messageApi = baseApi.injectEndpoints({
         url: `/messages/react/${messageId}`,
         method: "POST",
         body: {
-          reactionType: reaction, //  {"reactionType": "like" } //'like' | 'love' | 'thumbs_up' | 'laugh' | 'angry' | 'sad'
+          reactionType: reaction, // 'like' | 'love' | 'thumbs_up' | 'laugh' | 'angry' | 'sad'
         },
       }),
-      invalidatesTags: (result, error, { messageId }) => [
-        { type: 'Message', id: messageId },
-        { type: 'Message', id: 'LIST' }
-      ],
+      invalidatesTags: ['message'],
     }),
 
     messageSend: builder.mutation({
       query: ({ chatId, body }) => ({
         url: `/messages/send-message/${chatId}`,
         method: "POST",
-        body: body,
+        body,
       }),
-      invalidatesTags: [{ type: 'Message', id: 'LIST' }],
+      invalidatesTags: ['message'],
     }),
 
     pinMessage: builder.mutation({
       query: ({ messageId, action }) => ({
         url: `/messages/pin-unpin/${messageId}`,
         method: "PATCH",
-        body: { action }  // { "action": "pin"}  // unpin 
+        body: { action }, // { action: 'pin' } or 'unpin'
       }),
-      invalidatesTags: (result, error, { messageId }) => [
-        { type: 'Message', id: messageId },
-        { type: 'PinnedMessage', id: 'LIST' }
-      ],
+      invalidatesTags: ['message'],
     }),
 
     replyMessage: builder.mutation({
       query: ({ chatId, messageId, body }) => ({
         url: `/messages/${chatId}/reply/${messageId}`,
         method: "POST",
-        body: body,
+        body,
       }),
-      invalidatesTags: [{ type: 'Message', id: 'LIST' }],
+      invalidatesTags: ['message'],
     }),
   }),
-  overrideExisting: true
+  overrideExisting: true,
 });
 
 export const {
-  useGetAllMassageQuery,
+  useGetAllMessagesQuery,
   useMessageSendMutation,
   usePinMessageMutation,
   useReactMessageMutation,
-  useReplyMessageMutation
+  useReplyMessageMutation,
 } = messageApi;

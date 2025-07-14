@@ -1,7 +1,7 @@
 import { authApi } from "@/features/auth/authApi";
 import authReducer from "@/features/auth/authSlice";
 import chatsReducer from "@/redux/features/chatSlice";
-import messageReducer from "@/redux/features/messageSlice";
+import messageReducer from '@/redux/features/messageSlice';
 import notificationReducer from "@/redux/features/notificationSlice";
 import { configureStore } from "@reduxjs/toolkit";
 

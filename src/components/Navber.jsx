@@ -40,7 +40,7 @@ import { getImageUrl } from '../../utils/getImageUrl';
 import { MessageDark, MessageLight, NotificationDark, NotificationLight } from '../../utils/svgImage';
 import { ThemeContext } from '../app/ClientLayout';
 import { useGetAllChatQuery } from '../features/chat/massage';
-import { useGetAllNotificationQuery } from '../features/notification/noticationApi';
+import { useGetAllNotificationQuery, useMarkAllAsReadMutation } from '../features/notification/noticationApi';
 import { useLogoQuery } from '../features/report/reportApi';
 import SocketComponent from './SocketCompo';
 
@@ -61,6 +61,7 @@ export default function Navbar() {
   const { isDarkMode, toggleTheme } = useContext(ThemeContext);
 
   const { isLoading: allNotificationLoading, refetch } = useGetAllNotificationQuery({});
+  const [readNotification] = useMarkAllAsReadMutation();
   const { isLoading: allChatLoading, refetch: refetchChat } = useGetAllChatQuery("");
   const { notifications } = useSelector((state) => state);
   const { chats } = useSelector((state) => state);
@@ -84,12 +85,13 @@ export default function Navbar() {
     }
   }, [searchParams]);
 
-  const handleNavigation = (path) => {
+  const handleNavigation = async (path) => {
     if (!isAuthenticated()) {
       router.push('/auth/login');
       return;
     } else {
       router.push(path);
+      await readNotification().unwrap();
       setDrawerVisible(false);
     }
   };

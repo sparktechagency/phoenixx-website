@@ -10,6 +10,8 @@ import 'froala-editor/js/plugins/lists.min.js';
 import FroalaEditor from 'react-froala-wysiwyg';
 
 const Page = () => {
+
+
   const config = {
     placeholderText: 'Write your post description here...',
     heightMin: 300,
@@ -32,6 +34,11 @@ const Page = () => {
 
   return (
     <div className="container mx-auto">
+      <div>
+        Hello world
+      </div>
+
+
       <FroalaEditor config={config} />
     </div>
   );
