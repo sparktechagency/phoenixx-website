@@ -1,18 +1,16 @@
-// this is my api query 
-
 import { baseApi } from '../../../../utils/apiBaseQuery';
 
 
 export const chatApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     getAllChat: builder.query({
-      query: () => ({
-        url: `/chats/`,
+      query: (searchTerm = "") => ({
+        url: `/chats/?searchTerm=${searchTerm}`,
         method: "GET",
       }),
       providesTags: ["chat"],
+      pollingInterval: 30000, // 30 seconds
     }),
-
 
     createChat: builder.mutation({
       query: (data) => ({
@@ -25,22 +23,19 @@ export const chatApi = baseApi.injectEndpoints({
 
     markAsRead: builder.mutation({
       query: (id) => ({
-        url: `/chats/mark-chat-as-read/${id}`, // need chatId 
+        url: `/chats/mark-chat-as-read/${id}`, // need chatId
         method: "PATCH",
       }),
       invalidatesTags: ["chat"],
     }),
 
-
     deleteChat: builder.mutation({
       query: (id) => ({
-        url: `/chats/delete/${id}`, // need chatId 
+        url: `/chats/delete/${id}`, // need chatId
         method: "DELETE",
       }),
       invalidatesTags: ["chat"],
     }),
-
-
 
     muteChat: builder.mutation({
       query: ({ id, body }) => ({
@@ -51,10 +46,8 @@ export const chatApi = baseApi.injectEndpoints({
       invalidatesTags: ["chat"],
     }),
 
-
-
     chatBlockAndUnblock: builder.mutation({
-      query: ({ chatId, targetId, body }) => ({ // Fixed parameter destructuring
+      query: ({ chatId, targetId, body }) => ({
         url: `/chats/block-unblock/${chatId}/${targetId}`,
         method: "PATCH",
         body: body
@@ -62,7 +55,6 @@ export const chatApi = baseApi.injectEndpoints({
       invalidatesTags: ["chat"],
     }),
   }),
-
   overrideExisting: true
 });
 

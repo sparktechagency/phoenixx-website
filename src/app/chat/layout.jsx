@@ -1,7 +1,6 @@
 'use client';
 
 import { useContext, useState } from 'react';
-import { IoIosArrowBack } from 'react-icons/io';
 
 import { ThemeContext } from '../ClientLayout';
 import ChatList from './Component/ChatList';
@@ -16,7 +15,7 @@ const ChatLayout = ({ children }) => {
         <ChatList status={isChatActive} setIsChatActive={setIsChatActive} />
       </div>
 
-      <div className={`${isChatActive ? '' : 'hidden lg:block'} border rounded-lg shadow w-full lg:w-2/3 flex flex-col ${isDarkMode
+      {/* <div className={`${isChatActive ? '' : 'hidden lg:block'} border rounded-lg shadow w-full lg:w-2/3 flex flex-col ${isDarkMode
         ? 'bg-gray-900 border-gray-700 text-white'
         : 'bg-gray-50 border-gray-200'
         }`}>
@@ -27,7 +26,7 @@ const ChatLayout = ({ children }) => {
           <IoIosArrowBack className="text-2xl m-2" />
         </button>
         {children}
-      </div>
+      </div> */}
 
 
     </div>

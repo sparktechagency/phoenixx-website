@@ -6,11 +6,11 @@ import {
   toggleBlockChat,
   toggleMuteChat
 } from '@/redux/features/chatSlice';
-import { Avatar, Dropdown, Flex, Input, message, Spin } from 'antd';
+import { Avatar, Dropdown, Flex, Input, message } from 'antd';
 import { AnimatePresence, motion } from 'framer-motion';
 import moment from 'moment';
 import { useParams, useRouter } from 'next/navigation';
-import { useContext, useMemo, useState } from 'react';
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import {
   BsBell,
@@ -22,7 +22,13 @@ import {
 } from 'react-icons/bs';
 import { useDispatch, useSelector } from 'react-redux';
 import { getImageUrl } from '../../../../utils/getImageUrl';
-import { useChatBlockAndUnblockMutation, useDeleteChatMutation, useGetAllChatQuery, useMarkAsReadMutation, useMuteChatMutation } from '../../../features/chat/chatList/chatApi';
+import {
+  useChatBlockAndUnblockMutation,
+  useDeleteChatMutation,
+  useGetAllChatQuery,
+  useMarkAsReadMutation,
+  useMuteChatMutation
+} from '../../../features/chat/chatList/chatApi';
 import { useDebounce } from '../../../hooks/useDebounce';
 import { ThemeContext } from '../../ClientLayout';
 
@@ -33,191 +39,254 @@ const ChatList = ({ setIsChatActive, status }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
   const dispatch = useDispatch();
-  const [loadingStates, setLoadingStates] = useState({});
+  const [actionStates, setActionStates] = useState({});
+  const chatListRef = useRef(null);
 
   const [markAsRead] = useMarkAsReadMutation();
   const [deleteChat] = useDeleteChatMutation();
   const [muteChat] = useMuteChatMutation();
   const [blockChat] = useChatBlockAndUnblockMutation();
 
-  const { data: chatListData, isLoading, isError, refetch } = useGetAllChatQuery(debouncedSearchTerm);
-  const { chats, unreadCount } = useSelector((state) => state.chats);
-  console.log(chats);
+  const { isLoading, isError, refetch } = useGetAllChatQuery(debouncedSearchTerm);
+  const { chats, unreadCount, loading: chatsLoading } = useSelector((state) => state.chats);
 
 
-  const chatList = useMemo(() => {
-    if (!chatListData?.data?.chats) return [];
-    return [...chatListData?.data?.chats].sort((a, b) => {
-      return new Date(b.lastMessage?.createdAt || 0) - new Date(a.lastMessage?.createdAt || 0);
-    });
-  }, [chatListData?.data?.chats]);
+  console.log(chats)
+
+  console.log(chats?.isRead)
+
+  // Memoize chats to prevent unnecessary re-renders
+  const memoizedChats = useMemo(() => chats, [chats, searchTerm]);
+
+  // Preserve scroll position
+  useEffect(() => {
+    if (chatListRef.current) {
+      const savedPosition = sessionStorage.getItem('chatListScrollPosition');
+      if (savedPosition) {
+        chatListRef.current.scrollTop = parseInt(savedPosition, 10);
+      }
+    }
+  }, [memoizedChats]);
+
+  const handleScroll = useCallback(() => {
+    if (chatListRef.current) {
+      sessionStorage.setItem('chatListScrollPosition', chatListRef.current.scrollTop);
+    }
+  }, []);
+
+  // Get current user ID with fallback
+  const getCurrentUserId = useCallback(() => {
+    try {
+      return localStorage.getItem("login_user_id") || '';
+    } catch (error) {
+      console.error('Error accessing localStorage:', error);
+      return '';
+    }
+  }, []);
 
   const handleSelectChat = async (chatId) => {
-    setLoadingStates(prev => ({ ...prev, [chatId]: true }));
-    router.push(`/chat/${chatId}`);
-    if (setIsChatActive) setIsChatActive(true);
+    if (actionStates[chatId]?.loading) return;
+
+    setActionStates(prev => ({ ...prev, [chatId]: { loading: true, action: 'select' } }));
 
     try {
-      const response = await markAsRead(chatId).unwrap();
-      if (response.success) {
-        dispatch(markChatAsRead(chatId));
-      }
+      // Optimistically update UI first
+      dispatch(markChatAsRead(chatId));
+
+      router.push(`/chat/${chatId}`);
+      if (setIsChatActive) setIsChatActive(true);
+
+      // Then send the API request
+      const result = await markAsRead(chatId).unwrap();
+      console.log(result)
+
+      // No need to dispatch again since we did it optimistically
     } catch (error) {
-      toast.error(error.message);
+      console.error('Error marking as read:', error);
+      toast.error(error?.data?.message || error?.message || 'Failed to mark as read');
+      // Revert the optimistic update
+      dispatch(getAllChat.initiate());
     } finally {
-      setLoadingStates(prev => ({ ...prev, [chatId]: false }));
+      setActionStates(prev => ({ ...prev, [chatId]: { loading: false, action: '' } }));
     }
   };
 
   const handleDeleteChat = async (chatId) => {
-    setLoadingStates(prev => ({ ...prev, [chatId]: true }));
+    if (actionStates[chatId]?.loading) return;
+
+    setActionStates(prev => ({ ...prev, [chatId]: { loading: true, action: 'delete' } }));
+
     try {
       await deleteChat(chatId).unwrap();
       dispatch(deleteChatLocally(chatId));
       message.success('Chat deleted successfully');
+
+      // Navigate away if currently viewing deleted chat
       if (id === chatId) {
         router.push('/chat');
       }
     } catch (error) {
-      toast.error(error.message);
+      console.error('Error deleting chat:', error);
+      toast.error(error?.data?.message || error?.message || 'Failed to delete chat');
     } finally {
-      setLoadingStates(prev => ({ ...prev, [chatId]: false }));
+      setActionStates(prev => ({ ...prev, [chatId]: { loading: false, action: '' } }));
     }
   };
 
   const handleMuteChat = async (chatId) => {
-    setLoadingStates(prev => ({ ...prev, [chatId]: true }));
-    try {
-      const chat = chatList.find(c => c._id === chatId);
-      if (!chat) return;
+    if (actionStates[chatId]?.loading) return;
 
-      const isCurrentlyMuted = chat.mutedBy?.includes(localStorage.getItem("login_user_id"));
+    setActionStates(prev => ({ ...prev, [chatId]: { loading: true, action: 'mute' } }));
+
+    try {
+      const chat = memoizedChats.find(c => c._id === chatId);
+      if (!chat) {
+        throw new Error('Chat not found');
+      }
+
+      const currentUserId = getCurrentUserId();
+      const isCurrentlyMuted = chat.mutedBy?.includes(currentUserId);
+      const action = isCurrentlyMuted ? 'unmute' : 'mute';
 
       await muteChat({
         id: chatId,
-        body: { action: isCurrentlyMuted ? 'unmute' : 'mute' }
+        body: { action }
       }).unwrap();
 
-      dispatch(toggleMuteChat(chatId));
-      toast.success(`Chat ${isCurrentlyMuted ? 'unmuted' : 'muted'} successfully`);
+      dispatch(toggleMuteChat({ chatId, isMuted: !isCurrentlyMuted }));
+      toast.success(`Chat ${action}d successfully`);
     } catch (error) {
-      console.error('Mute error:', error);
-      toast.error(error?.data?.message || 'Failed to toggle mute status');
+      console.error('Error toggling mute:', error);
+      toast.error(error?.data?.message || error?.message || 'Failed to toggle mute status');
     } finally {
-      setLoadingStates(prev => ({ ...prev, [chatId]: false }));
+      setActionStates(prev => ({ ...prev, [chatId]: { loading: false, action: '' } }));
     }
   };
 
   const handleBlockChat = async (chatId) => {
-    setLoadingStates(prev => ({ ...prev, [chatId]: true }));
+    if (actionStates[chatId]?.loading) return;
+
+    setActionStates(prev => ({ ...prev, [chatId]: { loading: true, action: 'block' } }));
+
     try {
-      const chat = chatList.find(c => c._id === chatId);
-      if (!chat) return;
-
-      const userId = localStorage.getItem("login_user_id");
-      const isCurrentlyBlocked = chat.blockedUsers?.some(
-        block => block.blocker === userId
-      );
-      const targetId = chat.participants.find(p => p._id !== userId)?._id;
-
-      if (!targetId) {
-        throw new Error("Participant not found");
+      const chat = memoizedChats.find(c => c._id === chatId);
+      if (!chat) {
+        throw new Error('Chat not found');
       }
+
+      const currentUserId = getCurrentUserId();
+      const isCurrentlyBlocked = chat.blockedUsers?.some(
+        block => block.blocker === currentUserId
+      );
+
+      const targetUser = chat.participants?.find(p => p._id !== currentUserId);
+      if (!targetUser) {
+        throw new Error("Target user not found");
+      }
+
+      const action = isCurrentlyBlocked ? 'unblock' : 'block';
 
       await blockChat({
         chatId,
-        targetId,
-        body: { action: isCurrentlyBlocked ? 'unblock' : 'block' }
+        targetId: targetUser._id,
+        body: { action }
       }).unwrap();
 
-      dispatch(toggleBlockChat(chatId));
-      message.success(`User ${isCurrentlyBlocked ? 'unblocked' : 'blocked'} successfully`);
+      dispatch(toggleBlockChat({ chatId, isBlocked: !isCurrentlyBlocked }));
+      message.success(`User ${action}ed successfully`);
     } catch (error) {
-      toast.error(error?.data?.message || error.message);
+      console.error('Error toggling block:', error);
+      toast.error(error?.data?.message || error?.message || 'Failed to toggle block status');
     } finally {
-      setLoadingStates(prev => ({ ...prev, [chatId]: false }));
+      setActionStates(prev => ({ ...prev, [chatId]: { loading: false, action: '' } }));
     }
   };
 
   const formatTime = (timestamp) => {
     if (!timestamp) return "Just now";
-    const bangladeshTime = moment.utc(timestamp).utcOffset(6);
-    return bangladeshTime.fromNow();
+    try {
+      const bangladeshTime = moment.utc(timestamp).utcOffset(6);
+      return bangladeshTime.fromNow();
+    } catch (error) {
+      console.error('Error formatting time:', error);
+      return "Just now";
+    }
   };
 
   const handleSearchChange = (e) => {
     setSearchTerm(e.target.value);
   };
 
-  const getMenuItems = (chat) => [
-    {
-      key: 'mute',
-      label: chat.mutedBy?.includes(localStorage.getItem("login_user_id")) ? 'Unmute Chat' : 'Mute Chat',
-      icon: chat.mutedBy?.includes(localStorage.getItem("login_user_id")) ? <BsBell /> : <BsBellSlash />,
-      onClick: () => handleMuteChat(chat._id)
-    },
-    {
-      key: 'block',
-      label: chat.isBlocked ? 'Unblock User' : 'Block User',
-      icon: <BsBlockquoteRight />,
-      onClick: () => handleBlockChat(chat._id)
-    },
-    {
-      key: 'delete',
-      label: 'Delete Chat',
-      icon: <BsTrash />,
-      danger: true,
-      onClick: () => handleDeleteChat(chat._id)
-    }
-  ];
+  const getMenuItems = (chat) => {
+    const currentUserId = getCurrentUserId();
+    const isMuted = chat.mutedBy?.includes(currentUserId);
+    const isBlocked = chat.blockedUsers?.some(block => block.blocker === currentUserId);
 
-  if (isLoading) {
-    return (
-      <div className={`w-full h-[80vh] rounded-lg flex flex-col shadow-lg border ${isDarkMode ? 'dark-mode bg-gray-800 border-gray-700' : 'bg-[#f9f9f9] border-gray-200'}`}>
-        <div className="p-4">
-          <Flex gap={8}>
-            <Input
-              prefix={<BsSearch className="mx-1 text-subtitle" size={20} />}
-              placeholder="Search for..."
-              allowClear
-              style={{ width: '100%', height: 42 }}
-              disabled
-            />
-          </Flex>
-        </div>
-        <div className="flex-1 flex items-center justify-center">
-          <Spin size="large" />
-        </div>
+    return [
+      {
+        key: 'mute',
+        label: isMuted ? 'Unmute Chat' : 'Mute Chat',
+        icon: isMuted ? <BsBell /> : <BsBellSlash />,
+        onClick: () => handleMuteChat(chat._id),
+        disabled: actionStates[chat._id]?.loading
+      },
+      {
+        key: 'block',
+        label: isBlocked ? 'Unblock User' : 'Block User',
+        icon: <BsBlockquoteRight />,
+        onClick: () => handleBlockChat(chat._id),
+        disabled: actionStates[chat._id]?.loading
+      },
+      {
+        key: 'delete',
+        label: 'Delete Chat',
+        icon: <BsTrash />,
+        danger: true,
+        onClick: () => handleDeleteChat(chat._id),
+        disabled: actionStates[chat._id]?.loading
+      }
+    ];
+  };
+
+  const getParticipantInfo = (chat) => {
+    const currentUserId = getCurrentUserId();
+    const participant = chat.participants?.find(p => p._id !== currentUserId);
+    return participant || { userName: 'User', profile: null };
+  };
+
+  const renderErrorState = () => (
+    <div className={`w-full h-[80vh] rounded-lg flex flex-col shadow-lg border ${isDarkMode ? 'dark-mode bg-gray-800 border-gray-700' : 'bg-[#f9f9f9] border-gray-200'
+      }`}>
+      <div className="p-4">
+        <Flex gap={8}>
+          <Input
+            prefix={<BsSearch className="mx-1 text-subtitle" size={20} />}
+            placeholder="Search for..."
+            allowClear
+            style={{ width: '100%', height: 42 }}
+            value={searchTerm}
+            onChange={handleSearchChange}
+          />
+        </Flex>
       </div>
-    );
-  }
+      <div className="flex-1 flex items-center justify-center">
+        <p className={isDarkMode ? 'text-gray-400' : 'text-gray-500'}>
+          Failed to load chats.{' '}
+          <button onClick={refetch} className="text-primary hover:underline">
+            Retry
+          </button>
+        </p>
+      </div>
+    </div>
+  );
 
   if (isError) {
-    return (
-      <div className={`w-full h-[80vh] rounded-lg flex flex-col shadow-lg border ${isDarkMode ? 'dark-mode bg-gray-800 border-gray-700' : 'bg-[#f9f9f9] border-gray-200'}`}>
-        <div className="p-4">
-          <Flex gap={8}>
-            <Input
-              prefix={<BsSearch className="mx-1 text-subtitle" size={20} />}
-              placeholder="Search for..."
-              allowClear
-              style={{ width: '100%', height: 42 }}
-              value={searchTerm}
-              onChange={handleSearchChange}
-            />
-          </Flex>
-        </div>
-        <div className="flex-1 flex items-center justify-center">
-          <p className={isDarkMode ? 'text-gray-400' : 'text-gray-500'}>
-            Failed to load chats. <button onClick={refetch} className="text-primary">Retry</button>
-          </p>
-        </div>
-      </div>
-    );
+    return renderErrorState();
   }
 
   return (
-    <div className={`w-full h-[80vh] rounded-lg flex flex-col shadow-lg border ${isDarkMode ? 'dark-mode bg-gray-800 border-gray-700' : 'bg-[#f9f9f9] border-gray-200'}`}>
+    <div className={`w-full h-[80vh] rounded-lg flex flex-col shadow-lg border ${isDarkMode ? 'dark-mode bg-gray-800 border-gray-700' : 'bg-[#f9f9f9] border-gray-200'
+      }`}>
       <div className="p-4">
         <Flex gap={8}>
           <Input
@@ -232,7 +301,12 @@ const ChatList = ({ setIsChatActive, status }) => {
         </Flex>
       </div>
 
-      <div className={`chat-list-container flex-1 overflow-y-auto px-4 ${isDarkMode ? 'scrollbar-dark' : 'scrollbar-light'}`}>
+      <div
+        ref={chatListRef}
+        onScroll={handleScroll}
+        className={`chat-list-container flex-1 overflow-y-auto px-4 ${isDarkMode ? 'scrollbar-dark' : 'scrollbar-light'
+          }`}
+      >
         <style jsx global>{`
           .chat-list-container::-webkit-scrollbar {
             width: 6px;
@@ -246,32 +320,39 @@ const ChatList = ({ setIsChatActive, status }) => {
           }
         `}</style>
 
-        {chatList?.length > 0 ? (
+        {memoizedChats?.length > 0 ? (
           <AnimatePresence>
-            {chatList.map((chat) => (
-              <motion.div
-                key={chat._id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.2 }}
-              >
-                <Spin spinning={!!loadingStates[chat._id]}>
+            {memoizedChats.map((chat) => {
+              const isActionLoading = actionStates[chat._id]?.loading;
+              const currentAction = actionStates[chat._id]?.action;
+              const participant = getParticipantInfo(chat);
+              const currentUserId = getCurrentUserId();
+              const isMuted = chat.mutedBy?.includes(currentUserId);
+              const isBlocked = chat.blockedUsers?.some(block => block.blocker === currentUserId);
+
+              return (
+                <motion.div
+                  key={chat._id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.2 }}
+                >
                   <div
-                    onClick={() => handleSelectChat(chat._id)}
-                    className={`flex items-center gap-4 p-4 cursor-pointer rounded-lg relative group ${chat._id === id
+                    onClick={() => !isActionLoading && handleSelectChat(chat._id)}
+                    className={`flex items-center gap-4 p-4 rounded-lg relative group ${chat._id === id
                       ? (isDarkMode ? 'bg-gray-700' : 'bg-[#EBF4FF]')
                       : (isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-[#EBF4FF]')
-                      } ${isDarkMode ? 'text-gray-200' : 'text-gray-800'
+                      } ${isDarkMode ? 'text-gray-200' : 'text-gray-800'} ${isActionLoading ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer'
                       }`}
                   >
                     <div className="relative">
                       <Avatar
                         size={50}
-                        src={getImageUrl(chat?.participants?.[0]?.profile)}
+                        src={getImageUrl(participant?.profile)}
                         className="transition-transform duration-200 group-hover:scale-110"
                       />
-                      {chat.isBlocked && (
+                      {isBlocked && (
                         <div className="absolute inset-0 bg-black bg-opacity-50 rounded-full flex items-center justify-center">
                           <BsBlockquoteRight className="text-white" />
                         </div>
@@ -280,19 +361,22 @@ const ChatList = ({ setIsChatActive, status }) => {
 
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-center">
-                        <h3 className={`font-medium ${chat.unreadCount > 0 ? "font-bold" : "font-normal"} truncate ${chat.isBlocked ? 'line-through' : ''}`}>
-                          {chat?.participants?.[0]?.userName || "User"}
+                        <h3 className={`font-medium ${chats.isRead ? "font-bold" : "font-normal"
+                          } truncate ${isBlocked ? 'line-through' : ''}`}>
+                          {participant?.userName || "User"}
                         </h3>
                         <div className="flex items-center gap-2">
-                          <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                          <span className={`text-xs ${chats.isRead ? "font-bold" : "font-normal"
+                            } truncate ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                             {formatTime(chat?.lastMessage?.createdAt)}
                           </span>
-                          {chat.mutedBy?.includes(localStorage.getItem("login_user_id")) && <BsBellSlash className="text-gray-400" size={14} />}
+                          {isMuted && <BsBellSlash className="text-gray-400" size={14} />}
                         </div>
                       </div>
 
                       <div className="flex items-center gap-2">
-                        <p className={`text-sm ${chat.unreadCount > 0 ? "font-semibold" : "font-normal"} truncate ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                        <p className={`text-sm
+                          } truncate ${chats.isRead ? "font-bold" : "font-normal"} ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                           {chat?.lastMessage?.text?.slice(0, 25) || ''}
                           {!chat?.lastMessage?.text && chat?.lastMessage?.image && '📷 Photo'}
                           {!chat?.lastMessage?.text && !chat?.lastMessage?.image && 'No messages yet'}
@@ -315,21 +399,23 @@ const ChatList = ({ setIsChatActive, status }) => {
                         menu={{ items: getMenuItems(chat) }}
                         trigger={['click']}
                         placement="bottomRight"
+                        disabled={isActionLoading}
                       >
                         <motion.button
                           whileHover={{ scale: 1.1 }}
                           whileTap={{ scale: 0.9 }}
                           className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 cursor-pointer"
                           onClick={(e) => e.stopPropagation()}
+                          disabled={isActionLoading}
                         >
                           <BsThreeDotsVertical />
                         </motion.button>
                       </Dropdown>
                     </div>
                   </div>
-                </Spin>
-              </motion.div>
-            ))}
+                </motion.div>
+              );
+            })}
           </AnimatePresence>
         ) : (
           <motion.div

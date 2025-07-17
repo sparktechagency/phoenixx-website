@@ -23,15 +23,18 @@ const messageSlice = createSlice({
         state.messages.push(action.payload);
       }
     },
+
     resetMessages: (state) => {
       state.messages = [];
       state.pinnedMessages = [];
       state.page = 1;
       state.hasMore = true;
     },
+
     setPage: (state, action) => {
       state.page = action.payload;
     },
+
     updateMessageReaction: (state, action) => {
       const { messageId, reaction, userId } = action.payload;
       state.messages = state.messages.map(msg => {
@@ -63,6 +66,7 @@ const messageSlice = createSlice({
         return msg;
       });
     },
+
     updateMessagePin: (state, action) => {
       const { messageId, isPinned, pinnedBy } = action.payload;
       state.messages = state.messages.map(msg => {
@@ -86,6 +90,7 @@ const messageSlice = createSlice({
         state.pinnedMessages = state.pinnedMessages.filter(msg => msg._id !== messageId);
       }
     },
+
     updateMessageDelete: (state, action) => {
       const { messageId } = action.payload;
       state.messages = state.messages.map(msg => {
@@ -102,6 +107,7 @@ const messageSlice = createSlice({
       state.pinnedMessages = state.pinnedMessages.filter(msg => msg._id !== messageId);
     }
   },
+
   extraReducers: (builder) => {
     builder
       .addMatcher(messageApi.endpoints.getAllMessages.matchPending, (state) => {
@@ -112,15 +118,20 @@ const messageSlice = createSlice({
           const newMessages = payload?.data?.messages || [];
 
           if (state.page === 1) {
-            // Initial load
-            state.messages = [...newMessages].reverse();  // reverse initial load
+            state.messages = [...newMessages].reverse();
             state.pinnedMessages = payload.data.pinnedMessages || [];
           } else {
-            // Append older messages at the beginning
-            state.messages = [[...newMessages].reverse()];
+            state.messages = [...newMessages].reverse();
           }
+
+          state.hasMore = newMessages.length === state.limit;
+          state.isLoading = false;
         }
       })
+      .addMatcher(messageApi.endpoints.getAllMessages.matchRejected, (state, { error }) => {
+        state.isLoading = false;
+        state.error = error.message;
+      });
   }
 });
 
